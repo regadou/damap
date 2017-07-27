@@ -12,7 +12,7 @@ import org.regadou.damai.Property;
 
 public class CollectionProperty implements Property {
 
-   private  static final List<String> lengthNames = Arrays.asList(new String[]{"length", "size", "count"});
+   public static final List<String> lengthNames = Arrays.asList(new String[]{"length", "size", "count"});
 
    private Collection collection;
    private Object array;

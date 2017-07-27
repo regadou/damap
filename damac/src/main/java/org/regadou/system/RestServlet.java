@@ -70,6 +70,7 @@ public class RestServlet implements Servlet {
       String[] path = getPathParts(request.getPathInfo());
       response.setContentType("text/plain");
       response.getOutputStream().write(eval(method, path).getBytes());
+      cx.close();
    }
 
    private String[] getPathParts(String path) {
