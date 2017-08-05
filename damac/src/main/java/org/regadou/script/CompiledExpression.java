@@ -8,39 +8,21 @@ import javax.script.ScriptException;
 import org.regadou.damai.Reference;
 import org.regadou.reference.ReferenceHolder;
 import org.regadou.damai.Action;
-import org.regadou.system.Context;
+import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.reference.MapEntryWrapper;
 
 public class CompiledExpression extends CompiledScript implements Expression {
 
+   private Configuration configuration;
    private ScriptEngine engine;
    private String text;
    private List<Reference> tokens = new ArrayList<>();
    private Action action;
 
-   public CompiledExpression() {
-      this(null, Collections.EMPTY_LIST);
-   }
-
-   public CompiledExpression(ScriptEngine engine) {
-      this(engine, Collections.EMPTY_LIST);
-   }
-
-   public CompiledExpression(Reference...tokens) {
-      this(null, Arrays.asList(tokens));
-   }
-
-   public CompiledExpression(ScriptEngine engine, Reference...tokens) {
-      this(engine, Arrays.asList(tokens));
-   }
-
-   public CompiledExpression(Collection<Reference> tokens) {
-      this(null, tokens);
-   }
-
-   public CompiledExpression(ScriptEngine engine, Collection<Reference> tokens) {
+   public CompiledExpression(ScriptEngine engine, Collection<Reference> tokens, Configuration configuration) {
       this.engine = engine;
+      this.configuration = configuration;
       if (tokens != null) {
          for (Reference token : tokens)
             addToken(token);
@@ -54,7 +36,7 @@ public class CompiledExpression extends CompiledScript implements Expression {
 
    @Override
    public Object eval(ScriptContext context) throws ScriptException {
-      return Context.currentContext().execute(this, context);
+      return getValue(context);
    }
 
    @Override
@@ -78,34 +60,7 @@ public class CompiledExpression extends CompiledScript implements Expression {
 
    @Override
    public Reference getValue() {
-      if (action != null) {
-         if (tokens.isEmpty())
-            return new ReferenceHolder(action.getName(), action);
-         Object value = action.execute(tokens.toArray());
-         if (value instanceof Reference)
-            return (Reference)value;
-         else if (value instanceof Map.Entry)
-            return new MapEntryWrapper((Map.Entry)value);
-         else
-            return new ReferenceHolder(null, value);
-      }
-      else {
-         switch (tokens.size()) {
-            case 0:
-               return null;
-            case 1:
-               return tokens.get(0);
-            default:
-               if (tokens.get(0) instanceof Expression) {
-                  Reference result = null;
-                  for (Reference token : tokens)
-                     result = ((Expression)token).getValue();
-                  return result;
-               }
-               //TODO: check if we have properties enumeration for an entity
-               return new ReferenceHolder(null, tokens);
-         }
-      }
+      return getValue(null);
    }
 
    @Override
@@ -143,6 +98,40 @@ public class CompiledExpression extends CompiledScript implements Expression {
       }
       else
          tokens.add(token);
+   }
+
+   @Override
+   public Reference getValue(ScriptContext context) {
+      if (context == null)
+         context = configuration.getContextFactory().getScriptContext();
+      if (action != null) {
+         if (tokens.isEmpty())
+            return new ReferenceHolder(action.getName(), action);
+         Object value = action.execute(tokens.toArray());
+         if (value instanceof Reference)
+            return (Reference)value;
+         else if (value instanceof Map.Entry)
+            return new MapEntryWrapper((Map.Entry)value);
+         else
+            return new ReferenceHolder(null, value);
+      }
+      else {
+         switch (tokens.size()) {
+            case 0:
+               return null;
+            case 1:
+               return tokens.get(0);
+            default:
+               if (tokens.get(0) instanceof Expression) {
+                  Reference result = null;
+                  for (Reference token : tokens)
+                     result = ((Expression)token).getValue();
+                  return result;
+               }
+               //TODO: check if we have properties enumeration for an entity
+               return new ReferenceHolder(null, tokens);
+         }
+      }
    }
 
    private Action isAction(Object token) {

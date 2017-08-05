@@ -10,17 +10,12 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.script.Bindings;
 import javax.script.ScriptContext;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import javax.script.SimpleBindings;
-import org.regadou.system.Context;
 
 public class ContextWrapper implements ScriptContext {
 
@@ -36,7 +31,7 @@ public class ContextWrapper implements ScriptContext {
 
    public ContextWrapper(Context context) {
       this.context = context;
-      scopes.put(GLOBAL_SCOPE, context.getInstance(ScriptEngineManager.class).getBindings());
+      scopes.put(GLOBAL_SCOPE, context.getEngineManager().getBindings());
       scopes.put(ENGINE_SCOPE, new SimpleBindings(context.getProperty(Map.class)));
       InputStream input = context.getProperty(InputStream.class);
       if (input != null)
@@ -47,6 +42,10 @@ public class ContextWrapper implements ScriptContext {
       output = context.getProperty(OutputStream.class, new ReferenceHolder("name", "error"));
       if (output != null)
          error = new PrintWriter(new OutputStreamWriter(output));
+   }
+
+   public Context getWrapper() {
+      return context;
    }
 
    @Override
@@ -140,42 +139,4 @@ public class ContextWrapper implements ScriptContext {
    public List<Integer> getScopes() {
       return new ArrayList<>(scopes.keySet());
    }
-
-   public Object run(ScriptEngine engine, String inputPrompt, String resultPrefix, String[] endWords) {
-      if (inputPrompt == null)
-         inputPrompt = "";
-      if (resultPrefix == null)
-         resultPrefix = "";
-      List<String> endList = (endWords == null) ? Collections.EMPTY_LIST : Arrays.asList(endWords);
-      Object result = null;
-      while (reader != null) {
-         try {
-            writer.write(inputPrompt);
-            writer.flush();
-            String txt = reader.readLine();
-            if (txt == null) {
-               reader = null;
-               continue;
-            }
-            txt = txt.trim();
-            if (endList.contains(txt)) {
-               reader.close();
-               reader = null;
-            }
-            else if (!txt.isEmpty()) {
-               result = engine.eval(txt, engine.getContext());
-               if (result != null) {
-                  writer.write(resultPrefix+result+"\n");
-                  writer.flush();
-               }
-            }
-         }
-         catch (Throwable t) {
-            t.printStackTrace(error);
-         }
-      }
-
-      return result;
-   }
-
 }

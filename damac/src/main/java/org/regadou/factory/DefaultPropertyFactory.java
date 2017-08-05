@@ -1,24 +1,33 @@
 package org.regadou.factory;
 
+import com.google.inject.Inject;
 import java.util.Arrays;
 import java.util.Collection;
 import org.regadou.reference.MapProperty;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import javax.script.ScriptContext;
 import org.apache.commons.beanutils.BeanMap;
 import org.regadou.util.ClassIterator;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Action;
+import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
 import org.regadou.reference.CollectionProperty;
 import org.regadou.reference.ReadOnlyProperty;
+import org.regadou.util.MultiMap;
 
 public class DefaultPropertyFactory implements PropertyFactory {
 
    private static final String TYPE_PROPERTY_NAME = "type";
-   
+   private static final List<Class> SIMPLE_TYPES = Arrays.asList(
+      Void.class, Number.class, Boolean.class, Action.class,
+      CharSequence.class, Property.class, Class.class
+   );
+
    private Map<Class,Action<Map<String, Property>>> functions = new LinkedHashMap<>();
 
    private Action<Map<String, Property>> mapFunction = value -> {
@@ -50,11 +59,19 @@ public class DefaultPropertyFactory implements PropertyFactory {
       return getProperties(((Reference)value[0]).getValue());
    };
 
-   public DefaultPropertyFactory() {
+   private Action<Map<String, Property>> contextFunction = value -> {
+      return getProperties(new MultiMap((ScriptContext)value[0]));
+   };
+
+   private Configuration configuration;
+
+   @Inject
+   public DefaultPropertyFactory(Configuration configuration) {
+      this.configuration = configuration;
       functions.put(Collection.class, collectionFunction);
       functions.put(Object[].class, arrayFunction);
       functions.put(Reference.class, referenceFunction);
-      //TODO: other types we need functions: number, charsequence, action, class
+      functions.put(ScriptContext.class, contextFunction);
    }
 
    @Override
@@ -67,6 +84,8 @@ public class DefaultPropertyFactory implements PropertyFactory {
          Action<Map<String, Property>> f = functions.get(c);
          if (f != null)
             return f.execute(value);
+         if (SIMPLE_TYPES.contains(c))
+            return Collections.EMPTY_MAP;
       }
 
       return mapFunction.execute(value);

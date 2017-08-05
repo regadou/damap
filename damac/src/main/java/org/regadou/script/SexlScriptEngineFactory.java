@@ -1,11 +1,20 @@
 package org.regadou.script;
 
+import com.google.inject.Inject;
 import java.util.Arrays;
 import java.util.List;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
+import org.regadou.damai.Configuration;
 
 public class SexlScriptEngineFactory implements ScriptEngineFactory {
+
+   private Configuration configuration;
+
+   @Inject
+   public SexlScriptEngineFactory(Configuration configuration) {
+      this.configuration = configuration;
+   }
 
    @Override
    public String getEngineName() {
@@ -64,6 +73,6 @@ public class SexlScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public ScriptEngine getScriptEngine() {
-      return new SexlScriptEngine(this);
+      return new SexlScriptEngine(this, configuration);
    }
 }

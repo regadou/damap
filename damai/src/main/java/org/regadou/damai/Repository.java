@@ -1,21 +1,18 @@
 package org.regadou.damai;
 
 import java.util.Collection;
+import java.util.Map;
 
 public interface Repository {
 
-    public Collection<Class> getTypes();
+    public Collection<String> getTypes();
 
-    public Collection<String> getNames();
+    public Collection<Map<String,Object>> getAll(String type);
 
-    public Class getType(String name);
+    public Map<String,Object> getOne(String type, Object id);
 
-    public <T> Collection<T> getAll(Class<T> type);
+    public Map<String,Object> save(String type, Map<String,Object> entity);
 
-    public <T> T getOne(Class<T> type, Object id);
-
-    public <T> T save(T entity);
-
-    public <T> boolean delete(Class<T> type, Object id);
+    public boolean delete(String type, Object id);
 }
 

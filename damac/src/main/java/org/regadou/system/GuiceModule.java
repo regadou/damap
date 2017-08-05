@@ -1,62 +1,49 @@
 package org.regadou.system;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import java.util.Comparator;
 import javax.activation.FileTypeMap;
-import javax.activation.MimetypesFileTypeMap;
-import javax.script.Bindings;
-import javax.script.ScriptEngineManager;
-import javax.script.SimpleBindings;
-import org.regadou.util.DefaultComparator;
+import org.regadou.damai.Configuration;
 import org.regadou.factory.DefaultConverterManager;
-import org.regadou.util.DefaultFilter;
-import org.regadou.factory.DefaultInstanceFactory;
 import org.regadou.factory.DefaultPropertyFactory;
 import org.regadou.factory.DefaultResourceManager;
-import org.regadou.factory.UrlResourceFactory;
 import org.regadou.damai.ConverterManager;
-import org.regadou.damai.Filter;
-import org.regadou.damai.InstanceFactory;
+import org.regadou.damai.MimeHandlerFactory;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.ResourceManager;
-import org.regadou.factory.FileResourceFactory;
+import org.regadou.damai.ScriptContextFactory;
+import org.regadou.factory.DefaultFileTypeMap;
+import org.regadou.factory.DefaultMimeHandlerFactory;
 
 public class GuiceModule extends AbstractModule {
 
    @Override
    public void configure() {
-      bind(InstanceFactory.class).to(DefaultInstanceFactory.class).in(Singleton.class);
       bind(ConverterManager.class).to(DefaultConverterManager.class).in(Singleton.class);
       bind(PropertyFactory.class).to(DefaultPropertyFactory.class).in(Singleton.class);
-      bind(Filter.class).to(DefaultFilter.class).in(Singleton.class);
-      bind(Comparator.class).to(DefaultComparator.class).in(Singleton.class);
+      bind(ResourceManager.class).to(DefaultResourceManager.class).in(Singleton.class);
+      bind(FileTypeMap.class).to(DefaultFileTypeMap.class).in(Singleton.class);
+      bind(MimeHandlerFactory.class).to(DefaultMimeHandlerFactory.class).in(Singleton.class);
    }
 
    @Provides
-   @Singleton
-   public ScriptEngineManager getScriptEngineManager() {
-      ScriptEngineManager manager = new ScriptEngineManager();
-      Bindings global = new SimpleBindings();
-      manager.setBindings(global);
-      return manager;
+   public Configuration getConfiguration() {
+      return Context.currentContext();
    }
 
    @Provides
-   @Singleton
-   public ResourceManager getResourceManager() {
-      ResourceManager manager = new DefaultResourceManager();
-      manager.registerFactory(new UrlResourceFactory(manager));
-      manager.registerFactory(new FileResourceFactory(manager));
-      return manager;
+   public ScriptContextFactory getScriptContextFactory() {
+      return Context.currentContext();
    }
 
-   @Provides
    @Singleton
-   public FileTypeMap getFileTypeMap() {
-      FileTypeMap map = new MimetypesFileTypeMap(getClass().getResourceAsStream("/mimetypes"));
-      FileTypeMap.setDefaultFileTypeMap(map);
-      return map;
+   @Provides
+   public Gson getGson() {
+      return new GsonBuilder().setPrettyPrinting()
+                              .setDateFormat("YYYY-MM-dd HH:mm:ss")
+                              .create();
    }
 }

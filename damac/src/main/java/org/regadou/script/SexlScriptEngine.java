@@ -1,6 +1,5 @@
 package org.regadou.script;
 
-import java.io.IOException;
 import org.regadou.number.Time;
 import org.regadou.number.Complex;
 import org.regadou.number.Probability;
@@ -16,12 +15,15 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import javax.script.SimpleScriptContext;
-import org.regadou.system.Context;
+import org.regadou.damai.Configuration;
 import org.regadou.system.ContextWrapper;
+import org.regadou.util.StringInput;
 
 public class SexlScriptEngine implements ScriptEngine, Compilable {
 
    private ScriptEngineFactory factory;
+   private Configuration configuration;
+   private ScriptContext context;
    private String punctuationChars = ",;:.!?";
    private String openingChars = "([{";
    private String closingChars = ")]}";
@@ -31,21 +33,19 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
    private int apostrophe = 0;
    private String commentEnding = "\n\r\0";
 
-   private ScriptContext defaultContext;
-
-   protected SexlScriptEngine(ScriptEngineFactory factory) {
+   protected SexlScriptEngine(ScriptEngineFactory factory, Configuration configuration) {
       this.factory = factory;
+      this.configuration = configuration;
    }
 
    @Override
    public Object eval(String script) throws ScriptException {
-      return execute(script, defaultContext);
+      return execute(script, (ScriptContext)null);
    }
 
    @Override
    public Object eval(Reader reader) throws ScriptException {
-      try { return execute(Context.currentContext().read(reader), defaultContext); }
-      catch (IOException e) { throw new RuntimeException(e); }
+      return execute(new StringInput(reader).toString(), (ScriptContext)null);
    }
 
    @Override
@@ -55,8 +55,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
    @Override
    public Object eval(Reader reader, Bindings n) throws ScriptException {
-      try { return execute(Context.currentContext().read(reader), n); }
-      catch (IOException e) { throw new RuntimeException(e); }
+      return execute(new StringInput(reader).toString(), n);
    }
 
    @Override
@@ -66,31 +65,24 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
    @Override
    public Object eval(Reader reader, ScriptContext context) throws ScriptException {
-      try { return execute(Context.currentContext().read(reader), context); }
-      catch (IOException e) { throw new RuntimeException(e); }
+      return execute(new StringInput(reader).toString(), context);
    }
 
    @Override
    public void put(String key, Object value) {
-      if (defaultContext != null) {
-         Bindings bindings = defaultContext.getBindings(ScriptContext.ENGINE_SCOPE);
-         if (bindings == null) {
-            bindings = new SimpleBindings();
-            defaultContext.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
-         }
-         bindings.put(key, value);
+      ScriptContext cx = getContext();
+      Bindings bindings = cx.getBindings(ScriptContext.ENGINE_SCOPE);
+      if (bindings == null) {
+         bindings = new SimpleBindings();
+         cx.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
       }
+      bindings.put(key, value);
    }
 
    @Override
    public Object get(String key) {
-      if (defaultContext != null) {
-         Bindings bindings = defaultContext.getBindings(ScriptContext.ENGINE_SCOPE);
-         if (bindings != null) {
-            return bindings.get(key);
-         }
-      }
-      return null;
+      Bindings bindings = getContext().getBindings(ScriptContext.ENGINE_SCOPE);
+      return (bindings != null) ? bindings.get(key) : null;
    }
 
    @Override
@@ -100,25 +92,22 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
    @Override
    public Bindings getBindings(int scope) {
-      return (defaultContext == null) ? null : defaultContext.getBindings(scope);
+      return getContext().getBindings(scope);
    }
 
    @Override
    public void setBindings(Bindings bindings, int scope) {
-      if (defaultContext == null) {
-         defaultContext = new SimpleScriptContext();
-      }
-      defaultContext.setBindings(bindings, scope);
+      getContext().setBindings(bindings, scope);
    }
 
    @Override
    public ScriptContext getContext() {
-      return defaultContext;
+      return (context == null) ? configuration.getContextFactory().getScriptContext() : context;
    }
 
    @Override
    public void setContext(ScriptContext context) {
-      defaultContext = context;
+      this.context = context;
    }
 
    @Override
@@ -128,16 +117,12 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
    @Override
    public CompiledScript compile(String script) throws ScriptException {
-      if (defaultContext == null) {
-         defaultContext = new ContextWrapper();
-      }
-      return parseExpression(new ParserStatus(defaultContext, script));
+      return parseExpression(new ParserStatus(getContext(), script));
     }
 
    @Override
    public CompiledScript compile(Reader reader) throws ScriptException {
-      try { return compile(Context.currentContext().read(reader)); }
-      catch (IOException e) { throw new RuntimeException(e); }
+      return compile(new StringInput(reader).toString());
    }
 
    public boolean isAlpha(char c) {
@@ -181,15 +166,18 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
    }
 
    private Object execute(String txt, Bindings bindings) {
-      ScriptContext cx = new SimpleScriptContext();
-      cx.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
-      return Context.currentContext().execute(parseExpression(new ParserStatus(cx, txt)), cx);
+      ScriptContext cx;
+      if (bindings == null)
+         cx = getContext();
+      else {
+         cx = new SimpleScriptContext();
+         cx.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+      }
+      return parseExpression(new ParserStatus(cx, txt)).getValue(cx);
    }
 
    private Object execute(String txt, ScriptContext context) {
-      if (context == null)
-         context = defaultContext;
-      return Context.currentContext().execute(parseExpression(new ParserStatus(context, txt)), context);
+      return parseExpression(new ParserStatus(context, txt)).getValue(getContext());
    }
 
    private CompiledExpression parseExpression(ParserStatus status) {
@@ -214,7 +202,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
       if (end > 0 && c != end)
          throw new RuntimeException("Syntax error: closing character "+end+" missing");
-      return new CompiledExpression(this, tokens);
+      return new CompiledExpression(this, tokens, configuration);
    }
 
    private Object getToken(char c, ParserStatus status) {

@@ -1,7 +1,5 @@
 package org.regadou.system;
 
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -15,11 +13,12 @@ import java.util.TreeSet;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import org.regadou.factory.DefaultInstanceFactory;
-import org.regadou.damai.InstanceFactory;
+import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
-import org.regadou.damai.Resource;
 import org.regadou.reference.ReferenceHolder;
+import org.regadou.reference.UrlReference;
+import org.regadou.script.InteractiveScript;
+import org.regadou.util.StringInput;
 
 public class Main {
 
@@ -29,22 +28,22 @@ public class Main {
       Map<String,String> options = new LinkedHashMap<>();
       args = parseArgs(args, options);
       if (args != null) {
-         Context cx = Context.currentContext(true, new ReferenceHolder("instanceFactory", getInstanceFactory())
-                                                 , new ReferenceHolder("input", System.in)
-                                                 , new ReferenceHolder("output", System.out)
-                                                 , new ReferenceHolder("error", System.err));
-         ScriptEngineManager scriptManager = cx.getInstance(ScriptEngineManager.class);
+         Configuration conf = new Context(new ReferenceHolder("input", System.in),
+                                          new ReferenceHolder("output", System.out),
+                                          new ReferenceHolder("error", System.err));
+         ScriptEngineManager scriptManager = conf.getEngineManager();
          for (int a = 0; a < args.length; a++) {
-            Resource r = cx.getResource(args[a]);
+            Reference r = ((Context)conf).getReference(args[a]);
             if (r == null)
                throw new RuntimeException("Cannot load file "+args[a]);
-            ScriptEngine engine = scriptManager.getEngineByMimeType(r.getMimetype());
+            UrlReference u = (r instanceof UrlReference) ? (UrlReference)r : null;
+            ScriptEngine engine = (u == null) ? null : scriptManager.getEngineByMimeType(u.getMimetype());
             if (engine == null)
                System.out.println(r.getValue());
             else {
                List<String> list = Arrays.asList(args).subList(a+1, args.length);
-               cx.getReference("arguments").setValue(Arrays.asList(list.toArray(new String[list.size()])));
-               engine.eval(cx.read(r.getInputStream(), "utf8"));
+               ((Context)conf).getReference("arguments").setValue(Arrays.asList(list.toArray(new String[list.size()])));
+               engine.eval(new StringInput(u.getInputStream(), "utf8").toString());
                break;
             }
          }
@@ -66,11 +65,11 @@ public class Main {
             }
          }
 
-         cx.getReference("arguments").setValue(Arrays.asList(args));
+         ((Context)conf).getReference("arguments").setValue(Arrays.asList(args));
          if (script != null)
             engine.eval(script);
          if (interactive)
-            cx.run(engine, "\n? ", "= ", new String[]{"exit", "quit"});
+            new InteractiveScript(conf, engine, "\n? ", "= ", new String[]{"exit", "quit"}).run(conf.getContextFactory().getScriptContext());
       }
       else {
          StringBuilder buffer = new StringBuilder();
@@ -164,12 +163,5 @@ public class Main {
          languages.addAll(factory.getExtensions());
       });
       System.out.println("Available languages: "+languages);
-   }
-
-   private static InstanceFactory getInstanceFactory() {
-      Injector injector = Guice.createInjector(new GuiceModule());
-      InstanceFactory factory = injector.getInstance(InstanceFactory.class);
-      ((DefaultInstanceFactory)factory).setInjector(injector);
-      return factory;
    }
 }

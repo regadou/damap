@@ -10,39 +10,41 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
-import javax.activation.FileTypeMap;
-import org.regadou.damai.Resource;
-import org.regadou.system.Context;
+import org.regadou.damai.Configuration;
+import org.regadou.damai.Reference;
 
-public class UrlResource implements Resource, Closeable {
+public class UrlReference implements Reference, Closeable {
 
+   private Configuration configuration;
    private URL url;
    private String mimetype;
    private URLConnection connection;
    private Object content;
 
-   public UrlResource(URL url) {
+   public UrlReference(URL url, Configuration configuration) {
       this.url = url;
+      this.configuration = configuration;
    }
 
-   public UrlResource(URI uri) throws MalformedURLException {
+   public UrlReference(URI uri, Configuration configuration) throws MalformedURLException {
       this.url = uri.toURL();
+      this.configuration = configuration;
    }
 
-   public UrlResource(File file) throws MalformedURLException {
+   public UrlReference(File file, Configuration configuration) throws MalformedURLException {
       this.url = file.toURI().toURL();
+      this.configuration = configuration;
    }
 
-   public UrlResource(String url) throws MalformedURLException {
+   public UrlReference(String url, Configuration configuration) throws MalformedURLException {
       this.url = new URL(url);
+      this.configuration = configuration;
    }
 
-   @Override
    public String getUri() {
       return url.toString();
    }
 
-   @Override
    public String getMimetype() {
       if (mimetype == null) {
          try { mimetype = getConnection().getContentType(); }
@@ -59,7 +61,7 @@ public class UrlResource implements Resource, Closeable {
                else if (dot == 0)
                   mimetype = "text/plain";
                else
-                  mimetype = Context.currentContext().getInstance(FileTypeMap.class).getContentType(last);
+                  mimetype = configuration.getTypeMap().getContentType(last);
             }
          }
       }
@@ -95,7 +97,10 @@ public class UrlResource implements Resource, Closeable {
             String charset = connection.getContentEncoding();
             if (charset == null || charset.isEmpty())
                charset = Charset.defaultCharset().toString();
-            content = Context.currentContext().read(input, charset);
+            content = configuration.getHandlerFactory()
+                                   .getHandler(getMimetype())
+                                   .getInputHandler(mimetype)
+                                   .load(input, charset);
          }
          catch (IOException e) { throw new RuntimeException(e); }
       }
@@ -115,7 +120,10 @@ public class UrlResource implements Resource, Closeable {
          String charset = connection.getContentEncoding();
          if (charset == null || charset.isEmpty())
             charset = Charset.defaultCharset().toString();
-         output.write(((value == null) ? "" : value.toString()).getBytes(charset));
+         configuration.getHandlerFactory()
+                      .getHandler(getMimetype())
+                      .getOutputHandler(mimetype)
+                      .save(output, charset, value);
       }
       catch (IOException e) { throw new RuntimeException(e); }
    }

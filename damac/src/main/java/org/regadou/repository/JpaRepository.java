@@ -1,4 +1,4 @@
-package org.regadou.factory;
+package org.regadou.repository;
 
 import com.google.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
@@ -9,7 +9,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
-import javax.persistence.TypedQuery;
+import javax.persistence.Query;
 import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
 import org.regadou.damai.Converter;
@@ -36,34 +36,28 @@ public class JpaRepository implements Repository {
    }
 
    @Override
-   public Collection<Class> getTypes() {
-      return classToNameMap.keySet();
-   }
-
-   @Override
-   public Collection<String> getNames() {
+   public Collection<String> getTypes() {
       return nameToClassMap.keySet();
    }
 
-   @Override
    public Class getType(String name) {
       return (name == null) ? null : nameToClassMap.get(name.toLowerCase());
    }
 
    @Override
-   public <T> Collection<T> getAll(Class<T> type) {
-      return query(type, "select e from " + type.getSimpleName() + " e order by e.id", null);
+   public Collection<Map<String,Object>> getAll(String type) {
+      return query(type, "select e from " + type, null);
    }
 
    @Override
-   public <T> T getOne(Class<T> type, Object id) {
-      String jpql = "select e from " + type.getSimpleName() + " e where e.id = ?1 order by e.id";
-      Collection<T> entities = query(type, jpql, Arrays.asList(id));
+   public Map<String,Object> getOne(String type, Object id) {
+      String jpql = "select e from " + type + " e where e.id = ?1";
+      Collection<Map<String,Object>> entities = query(type, jpql, Arrays.asList(id));
       return entities.isEmpty() ? null : entities.iterator().next();
    }
 
    @Override
-   public <T> T save(T entity) {
+   public Map<String,Object> save(String type, Map<String,Object> entity) {
       return transaction(manager -> {
          Set ids = manager.getMetamodel().entity(entity.getClass()).getIdClassAttributes();
          for (Object id : ids) {
@@ -77,9 +71,9 @@ public class JpaRepository implements Repository {
    }
 
    @Override
-   public <T> boolean delete(Class<T> type, Object id) {
+   public boolean delete(String type, Object id) {
       return null != transaction(manager -> {
-         Object entity = manager.find(type, id);
+         Object entity = manager.find(nameToClassMap.get(type.toLowerCase()), id);
          if (entity != null) {
             manager.remove(entity);
          }
@@ -113,9 +107,9 @@ public class JpaRepository implements Repository {
       }
    }
 
-   private <T> Collection<T> query(Class<T> type, String jpql, List params) {
+   private Collection<Map<String,Object>> query(String type, String jpql, List params) {
       EntityManager manager = factory.createEntityManager();
-      TypedQuery query = manager.createQuery(jpql, type);
+      Query query = manager.createQuery(jpql);
       if (params != null) {
          for (int p = 0; p < params.size(); p++) {
             query.setParameter(p + 1, params.get(p));

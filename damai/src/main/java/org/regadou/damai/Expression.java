@@ -1,5 +1,7 @@
 package org.regadou.damai;
 
+import javax.script.ScriptContext;
+
 public interface Expression extends Reference<Reference> {
 
    Action getAction();
@@ -7,5 +9,7 @@ public interface Expression extends Reference<Reference> {
    Reference[] getTokens();
 
    void addToken(Reference token);
+
+   Reference getValue(ScriptContext context);
 
 }

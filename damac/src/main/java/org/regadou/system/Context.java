@@ -1,13 +1,13 @@
 package org.regadou.system;
 
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import org.regadou.reference.ReferenceHolder;
 import java.io.Closeable;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.Reader;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,41 +17,34 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import java.util.TreeMap;
+import javax.activation.FileTypeMap;
 import javax.script.ScriptContext;
-import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
-import org.regadou.damai.Action;
-import org.regadou.damai.Converter;
+import org.regadou.damai.Configuration;
 import org.regadou.damai.ConverterManager;
-import org.regadou.damai.Expression;
-import org.regadou.damai.Filter;
-import org.regadou.damai.InstanceFactory;
-import org.regadou.damai.Printable;
-import org.regadou.damai.Property;
+import org.regadou.damai.MimeHandlerFactory;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Reference;
-import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
+import org.regadou.damai.ScriptContextFactory;
+import org.regadou.reference.FilterExpression;
 
-public class Context implements Closeable {
+public class Context implements Configuration, ScriptContextFactory, Closeable {
 
-   private static ThreadLocal<Context> CURRENT_CONTEXT = new ThreadLocal() {
+   private static final ThreadLocal<Context> CURRENT_CONTEXT = new ThreadLocal() {
       @Override
       protected synchronized Context initialValue() { return null; }
    };
 
-   private InstanceFactory firstInstanceFactory;
+   private static final char[] FILE_CHARS = "./\\".toCharArray();
+   private static Injector FIRST_INJECTOR;
 
+   @Deprecated
    public static Context currentContext() {
-      return currentContext(true, new Reference[0]);
-   }
-
-   public static Context currentContext(boolean create, Reference ... properties) {
       Context cx = CURRENT_CONTEXT.get();
-      if (cx == null && create) {
-         cx = new Context(properties);
+      if (cx == null) {
+         cx = new Context();
          CURRENT_CONTEXT.set(cx);
       }
       return cx;
@@ -63,12 +56,7 @@ public class Context implements Closeable {
    private OutputStream output, error;
    private Map<String, Reference> dictionary;
    private Stack<ScriptContext> scriptContextStack = new Stack<>();
-   private InstanceFactory instanceFactory;
-   private ScriptEngineManager scriptEngineManager;
-   private ConverterManager converterManager;
-   private ResourceManager resourceManager;
-   private PropertyFactory propertyFactory;
-   private Filter defaultFilter;
+   private Injector injector;
 
    public Context(Reference ... properties) {
       if (CURRENT_CONTEXT.get() != null)
@@ -92,8 +80,19 @@ public class Context implements Closeable {
          dictionary = new TreeMap<>();
       if (error == null)
          error = System.err;
-      if (instanceFactory != null && firstInstanceFactory == null)
-         firstInstanceFactory = instanceFactory;
+      if (injector == null) {
+         for (Context cx = parent; cx != null; cx = cx.parent) {
+            if (cx.injector != null) {
+               injector = cx.injector;
+               break;
+            }
+         }
+         if (injector == null) {
+            if (FIRST_INJECTOR == null)
+               FIRST_INJECTOR = Guice.createInjector(new GuiceModule());
+            injector = FIRST_INJECTOR;
+         }
+      }
    }
 
    @Override
@@ -103,14 +102,68 @@ public class Context implements Closeable {
    }
 
    @Override
+   public URL[] getClasspath() {
+      return new URL[0];
+   }
+
+   @Override
+   public ScriptContextFactory getContextFactory() {
+      return injector.getInstance(ScriptContextFactory.class);
+   }
+
+   @Override
+   public ConverterManager getConverterManager() {
+      return injector.getInstance(ConverterManager.class);
+   }
+
+   @Override
+   public ScriptEngineManager getEngineManager() {
+      return injector.getInstance(ScriptEngineManager.class);
+   }
+
+   @Override
+   public MimeHandlerFactory getHandlerFactory() {
+      return injector.getInstance(MimeHandlerFactory.class);
+   }
+
+   @Override
+   public PropertyFactory getPropertyFactory() {
+      return injector.getInstance(PropertyFactory.class);
+   }
+
+   @Override
+   public ResourceManager getResourceManager() {
+      return injector.getInstance(ResourceManager.class);
+   }
+
+   @Override
+   public FileTypeMap getTypeMap() {
+      return injector.getInstance(FileTypeMap.class);
+   }
+
+   @Override
    public void close() {
       if (CURRENT_CONTEXT.get() == this)
          CURRENT_CONTEXT.set(this.parent);
    }
 
+   @Override
+   public ScriptContext getScriptContext(Reference...properties) {
+      if (scriptContextStack.isEmpty())
+         scriptContextStack.add(new ContextWrapper(this));
+      return scriptContextStack.lastElement();
+   }
+
+   public boolean closeScriptContext(ScriptContext context) {
+      if (context instanceof ContextWrapper) {
+         ((ContextWrapper)context).getWrapper().close();
+         return true;
+      }
+      return false;
+   }
+
    public <T> T getProperty(Class<T> type, Reference ... properties) {
-      if (defaultFilter == null)
-         defaultFilter = getInstance(Filter.class);
+      PropertyFactory propertyFactory = injector.getInstance(PropertyFactory.class);
       List<Reference> criteria;
       if (properties == null || properties.length == 0)
          criteria = (type == null) ? Collections.EMPTY_LIST
@@ -121,127 +174,34 @@ public class Context implements Closeable {
          criteria = new ArrayList(Arrays.asList(properties));
          criteria.add(0, new ReferenceHolder("type", type));
       }
-      Collection<Field> fields = defaultFilter.filter(Arrays.asList(getClass().getDeclaredFields()), criteria);
+      Collection fields = (Collection)new FilterExpression(propertyFactory, Arrays.asList(getClass().getDeclaredFields()), criteria).getValue().getValue();
       if (!fields.isEmpty()) {
-         try { return (T)fields.iterator().next().get(this); }
+         try { return (T)((Field)fields.iterator().next()).get(this); }
          catch (IllegalArgumentException|IllegalAccessException e) { throw new RuntimeException(e); }
       }
       return null;
    }
 
-   public <T> T getInstance(Class<T> type, Reference ... properties) {
-      if (instanceFactory == null) {
-         for (Context cx = parent; cx != null; cx = cx.parent) {
-            if (cx.instanceFactory != null) {
-               instanceFactory = cx.instanceFactory;
-               break;
-            }
-         }
-         if (instanceFactory == null) {
-            if (firstInstanceFactory == null)
-               throw new RuntimeException("Cannot find instance factory for "+this);
-            instanceFactory = firstInstanceFactory;
-         }
-      }
-      return instanceFactory.getInstance(type, properties);
-   }
-
    public Reference getReference(String name) {
       if (name == null || name.trim().isEmpty())
          return null;
+
+      int index = name.indexOf(':');
+      String scheme = (index < 0) ? null : name.substring(0, index);
+      if (scheme != null || canBeFile(name)) {
+         ResourceFactory factory = injector.getInstance(ResourceManager.class).getFactory(scheme);
+         if (factory != null)
+            return factory.getResource(name);
+      }
+
       for (Context cx = this; cx != null; cx = cx.parent) {
          if (cx.dictionary.containsKey(name))
             return cx.dictionary.get(name);
       }
-      if (name.indexOf(':') < 0 && name.indexOf('/') < 0 && name.indexOf('\\') < 0) {
-         Reference r = new ReferenceHolder(name, null);
-         dictionary.put(name, r);
-         return r;
-      }
-      return getResource(name);
-   }
 
-   public Resource getResource(String uri) {
-      if (uri == null || uri.trim().isEmpty())
-         return null; //TODO: return new TextStream(name, InputStream, OutputStream);
-      int index = uri.indexOf(':');
-      String scheme = (index < 0) ? null : uri.substring(0, index);
-      if (resourceManager == null)
-         resourceManager = getInstance(ResourceManager.class);
-      ResourceFactory factory = resourceManager.getFactory(scheme);
-      return (factory == null) ? null : factory.getResource(uri);
-   }
-
-   public Property getProperty(Object value, String name) {
-      if (propertyFactory == null)
-         propertyFactory = getInstance(PropertyFactory.class);
-      Map<String,Property> properties = propertyFactory.getProperties(value);
-      return (properties == null) ? null : properties.get(name);
-   }
-
-   public String read(InputStream input, String charset) throws IOException {
-      return read(new InputStreamReader(input, charset));
-   }
-
-   public String read(Reader reader) throws IOException {
-      StringBuilder buffer = new StringBuilder();
-      char[] chars = new char[1024];
-      for (int got = 0; (got = reader.read(chars)) >= 0;) {
-         if (got > 0)
-            buffer.append(chars, 0, got);
-      }
-      return buffer.toString();
-   }
-
-   public Object run(ScriptEngine engine, String inputPrompt, String resultPrefix, String[] endWords) {
-      return ((ContextWrapper)getScriptContext()).run(engine, inputPrompt, resultPrefix, endWords);
-   }
-
-   public Reference execute(Expression expression, ScriptContext context) {
-      if (expression == null)
-         return null;
-      if (context != null)
-         scriptContextStack.push(context);
-      Reference result = expression.getValue();
-      if (context != null)
-         scriptContextStack.pop();
-      return result;
-   }
-
-   public Reference execute(Action function, Reference ... parameters) {
-      if (function == null)
-         return new ReferenceHolder(null, parameters);
-      if (parameters == null)
-         parameters = new Reference[0];
-      Object value = function.execute((Object[])parameters);
-      return (value instanceof Reference) ? (Reference)value : new ReferenceHolder(null, value);
-   }
-
-   public Object execute(String code, String lang) {
-      ScriptEngine engine = getScriptEngine(lang);
-      if (engine == null)
-         throw new RuntimeException("Unknown language "+lang);
-      try { return engine.eval(code, getScriptContext()); }
-      catch (ScriptException e) { throw new RuntimeException(e); }
-   }
-
-   public String print(Object data, String lang) {
-      ScriptEngine engine = getScriptEngine(lang);
-      if (engine == null)
-         throw new RuntimeException("Unknown language "+lang);
-      if (engine instanceof Printable)
-         return ((Printable)engine).print(data);
-      throw new RuntimeException(lang+" is not printable");
-   }
-
-   public <S,T> T convert(Object data, Class<T> type) {
-      if (converterManager == null)
-         converterManager = getInstance(ConverterManager.class);
-      Class srcClass = (data == null) ? Void.class : data.getClass();
-      Converter<S,T> converter = converterManager.getConverter(srcClass, type);
-      if (converter == null)
-         throw new RuntimeException("Cannot find converter to "+type.getName());
-      return converter.convert((S)data);
+      Reference r = new ReferenceHolder(name, null);
+      dictionary.put(name, r);
+      return r;
    }
 
    protected void makeCurrent() {
@@ -249,26 +209,6 @@ public class Context implements Closeable {
       if (cx != null)
          throw new RuntimeException("Context already set on this thread: "+cx);
       CURRENT_CONTEXT.set(this);
-   }
-
-   private ScriptEngine getScriptEngine(String lang) {
-      if (scriptEngineManager == null)
-         scriptEngineManager = getInstance(ScriptEngineManager.class);
-      if (lang.indexOf('/') > 0) {
-         ScriptEngine engine = scriptEngineManager.getEngineByMimeType(lang);
-         if (engine != null)
-            return engine;
-      }
-      ScriptEngine engine = scriptEngineManager.getEngineByExtension(lang);
-      if (engine != null)
-         return engine;
-      return scriptEngineManager.getEngineByName(lang);
-   }
-
-   private ScriptContext getScriptContext() {
-      if (scriptContextStack.isEmpty())
-         scriptContextStack.add(new ContextWrapper(this));
-      return scriptContextStack.lastElement();
    }
 
    private Field getField(Reference property) {
@@ -292,6 +232,14 @@ public class Context implements Closeable {
          catch (ClassNotFoundException ex) {}
       }
       return null;
+   }
+
+   private boolean canBeFile(String name) {
+      for (char c : FILE_CHARS) {
+         if (name.indexOf(c) >= 0)
+            return true;
+      }
+      return false;
    }
 }
 

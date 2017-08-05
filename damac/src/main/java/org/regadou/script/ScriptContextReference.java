@@ -20,7 +20,7 @@ public class ScriptContextReference implements Reference {
 
    @Override
    public Object getValue() {
-      return null;
+      return cx.getAttribute(name);
    }
 
    @Override
@@ -31,5 +31,9 @@ public class ScriptContextReference implements Reference {
 
    @Override
    public void setValue(Object value) {
+      int scope = cx.getAttributesScope(name);
+      if (scope < 0)
+         scope = cx.getScopes().get(0);
+      cx.setAttribute(name, value, scope);
    }
 }

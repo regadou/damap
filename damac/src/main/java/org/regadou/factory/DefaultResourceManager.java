@@ -1,15 +1,27 @@
 package org.regadou.factory;
 
+import com.google.inject.Inject;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.TreeMap;
-import org.regadou.damai.Reference;
+import java.util.Set;
+import org.regadou.damai.Configuration;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
 
 public class DefaultResourceManager implements ResourceManager {
 
    private Map<String,ResourceFactory> factories = new HashMap<>();
+   private Configuration configuration;
+
+   @Inject
+   public DefaultResourceManager(Configuration configuration) {
+      this.configuration = configuration;
+      registerFactory(new ServerResourceFactory(this, configuration));
+      registerFactory(new UrlResourceFactory(this, configuration));
+      registerFactory(new FileResourceFactory(this, configuration));
+      //TODO: add javascript: and other script schemes with a ScriptEngineResourceFactory
+   }
 
    @Override
    public ResourceFactory getFactory(String scheme) {
@@ -18,7 +30,8 @@ public class DefaultResourceManager implements ResourceManager {
 
    @Override
    public ResourceFactory[] getFactories() {
-      return factories.values().toArray(new ResourceFactory[factories.size()]);
+      Set<ResourceFactory> set = new LinkedHashSet<>(factories.values());
+      return set.toArray(new ResourceFactory[set.size()]);
    }
 
    @Override
