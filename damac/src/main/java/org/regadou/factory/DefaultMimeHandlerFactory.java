@@ -1,12 +1,12 @@
 package org.regadou.factory;
 
-import com.google.gson.Gson;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeSet;
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
@@ -23,6 +23,7 @@ import org.regadou.damai.MimeHandler;
 import org.regadou.damai.MimeHandlerFactory;
 import org.regadou.script.ScriptEngineMimeHandler;
 import org.regadou.util.CsvHandler;
+import org.regadou.util.JsonHandler;
 import org.regadou.util.StringInput;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
@@ -31,18 +32,17 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
 
    private final Map<String, MimeHandler> handlers = new LinkedHashMap<>();
    private Configuration configuration;
-   private Gson gson;
 
    @Inject
-   public DefaultMimeHandlerFactory(Configuration configuration, Gson gson) {
+   public DefaultMimeHandlerFactory(Configuration configuration) {
       this.configuration = configuration;
-      this.gson = gson;
       for (MimeHandler handler : createDefaultHandlers())
          registerHandler(handler);
       for (ScriptEngineFactory factory : configuration.getEngineManager().getEngineFactories())
-         registerHandler(new ScriptEngineMimeHandler(factory.getScriptEngine(), configuration, gson));
+         registerHandler(new ScriptEngineMimeHandler(factory.getScriptEngine(), configuration));
    }
 
+   @Override
    public void registerHandler(MimeHandler handler) {
       for (String type : handler.getMimetypes()) {
          if (handlers.containsKey(type))
@@ -51,6 +51,7 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
       }
    }
 
+   @Override
    public MimeHandler getHandler(String mimetype) {
       MimeHandler handler = handlers.get(mimetype);
       if (handler == null && mimetype.indexOf('/') < 0) {
@@ -63,15 +64,13 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
       return handler;
    }
 
+   @Override
+   public Collection<String> getMimetypes() {
+      return handlers.keySet();
+   }
+
    private MimeHandler[] createDefaultHandlers() {
       return new MimeHandler[]{
-         new DefaultMimeHandler((input, charset) -> {
-            return gson.fromJson(new InputStreamReader(input, charset), Object.class);
-         }, (output, charset, value) -> {
-            Writer writer = new OutputStreamWriter(output, charset);
-            writer.write(gson.toJson(value));
-            writer.close();
-         }, "application/json", "text/json"),
 
          new DefaultMimeHandler((input, charset) -> {
             return new StringInput(input, charset).toString();
@@ -81,12 +80,29 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
          }, "text/plain", "text/html"),
 
          new DefaultMimeHandler((input, charset) -> {
+            Properties p = new Properties();
+            p.load(new InputStreamReader(input, charset));
+            return p;
+         }, (output, charset, value) -> {
+            Properties p;
+            if (value instanceof Properties)
+               p = (Properties)value;
+            else {
+               Map map = (value instanceof Map) ? (Map)value : configuration.getConverter().convert(value, Map.class);
+               p = new Properties();
+               for (Object key : map.keySet())
+                  p.setProperty(String.valueOf(key), configuration.getConverter().convert(value, String.class));
+            }
+            p.store(new OutputStreamWriter(output, charset), "");
+         }, "text/x-java-properties"),
+
+         new DefaultMimeHandler((input, charset) -> {
             try { return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(input); }
             catch (ParserConfigurationException|SAXException e) { throw new RuntimeException(e); }
          }, (output, charset, value) -> {
             try {
                TransformerFactory.newInstance().newTransformer().transform(
-                    new DOMSource((Node)configuration.getConverterManager().getConverter(Object.class, Document.class).convert(value)),
+                    new DOMSource((Node)configuration.getConverter().convert(value, Document.class)),
                     new StreamResult(output)
                );
             }
@@ -99,6 +115,8 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
                output.write(String.valueOf(value).getBytes(charset));
                output.flush();
          }, new TreeSet<>(Arrays.asList(ImageIO.getReaderMIMETypes())).toArray(new String[0])),
+
+         new JsonHandler(configuration),
 
          new CsvHandler(configuration)
       };

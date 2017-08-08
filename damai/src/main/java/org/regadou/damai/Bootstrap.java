@@ -1,5 +1,6 @@
 package org.regadou.damai;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -9,36 +10,43 @@ import java.io.Reader;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
 import javax.activation.FileTypeMap;
+import javax.script.Bindings;
 import javax.script.ScriptContext;
+import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.SimpleScriptContext;
 
-public class Main implements ScriptContextFactory, ConverterManager, Configuration {
+public class Bootstrap implements ScriptContextFactory, Converter, Configuration {
 
    public static void main(String[] args) {
-      Main config = new Main(args);
-      //This is only for testing for now
-      for (Method m : config.getClass().getDeclaredMethods()) {
-         if (m.getParameterCount() > 0 || !Modifier.isPublic(m.getModifiers()) || Modifier.isStatic(m.getModifiers()))
-            continue;
-         System.out.print(m.getName() + " = ");
-         try { System.out.println(config.convert(m.invoke(config), String.class)); }
-         catch (Exception e) {
-            System.out.println(e);
-            e.printStackTrace();
-         }
+      Configuration config = new Bootstrap(args);
+      config.getEngineManager().getBindings().put(Configuration.class.getName(), config);
+      System.out.println("handlers = "+config.getHandlerFactory().getMimetypes());
+      Collection<String> mimetypes = new ArrayList<>();
+      for (ScriptEngineFactory factory : config.getEngineManager().getEngineFactories())
+         mimetypes.addAll(factory.getMimeTypes());
+      System.out.println("engines = "+mimetypes);
+      Map map = config.getConverter().convert(config.getTypeMap(), Map.class);
+      System.out.println("type mapping = "+map.get("mapping"));
+      URL init = config.getInitScript();
+      if (init != null) {
+         Reference r = config.getResourceManager().getResource(init.toString());
+         System.out.println(r.getValue());
       }
+      else
+         System.out.println("configuration = "+config);
    }
 
    private static final String PROPERTY_PREFIX = Configuration.class.getName() + ".";
@@ -63,32 +71,34 @@ public class Main implements ScriptContextFactory, ConverterManager, Configurati
       protected synchronized ScriptContext initialValue() { return null; }
    };
 
-   // first key is target class and second key is source class
-   private final Map<Class,Map<Class,Converter>> converters = new LinkedHashMap<>();
    private final Map<String,Object> properties = new LinkedHashMap<>();
    private URL[] classpath;
-   private ClassLoader classLoader;
-   private boolean loadingClassLoader;
+   private Bindings globalScope;
+   private URL initScript;
    private ScriptContextFactory contextFactory;
-   private ConverterManager converterManager;
+   private Converter converterManager;
    private ScriptEngineManager engineManager;
    private MimeHandlerFactory handlerFactory;
    private PropertyFactory propertyFactory;
    private ResourceManager resourceManager;
    private FileTypeMap typeMap;
+   private ClassLoader classLoader;
+   private boolean loadingClassLoader;
 
-   public Main(String[] args) {
-      Properties props = null;
+   public Bootstrap(String...args) {
+      Properties properties = null;
       for (String arg : args) {
-         if (props == null)
-            props = new Properties();
-         try { props.load(getReader(arg)); }
+         if (arg == null || arg.trim().isEmpty())
+            continue;
+         if (properties == null)
+            properties = new Properties();
+         try { properties.load(toReader(arg)); }
          catch (IOException e) { throw new RuntimeException(e); }
       }
       setProperties(properties);
    }
 
-   public Main(Map properties) {
+   public Bootstrap(Map properties) {
       setProperties(properties);
    }
 
@@ -112,37 +122,81 @@ public class Main implements ScriptContextFactory, ConverterManager, Configurati
    }
 
    @Override
-   public <S, T> Converter<S, T> getConverter(Class<S> sourceClass, Class<T> targetClass) {
-      Map<Class,Converter> map = converters.get(targetClass);
-      if (map != null) {
-         Converter c = map.get(sourceClass);
-         if (c != null)
-            return c;
-      }
-      return value -> {
-         try { return (T)convert(value, targetClass); }
-         catch (Exception e) {
-            RuntimeException rte = (e instanceof RuntimeException) ? (RuntimeException)e : new RuntimeException(e);
-            throw rte;
+   public <T> T convert(Object value, Class<T> type) {
+      if (type == null || Void.class.isAssignableFrom(type))
+         return null;
+      Class valueType = (value == null) ? Void.class : value.getClass();
+      if (type.isAssignableFrom(valueType))
+         return (T)value;
+      if (CharSequence.class.isAssignableFrom(type))
+         return (T)toString(value);
+      if (URL.class.isAssignableFrom(type))
+         return (T)toUrl(value);
+      if (Class.class.isAssignableFrom(type))
+         return (T)toClass(value);
+      if (InputStream.class.isAssignableFrom(type))
+         return (T)toInputStream(value);
+      if (Reader.class.isAssignableFrom(type))
+         return (T)toReader(value);
+      if (Collection.class.isAssignableFrom(type))
+         return (T)(value instanceof Collection ? value : toArray(value, Object.class));
+      if (Map.class.isAssignableFrom(type)) {
+         if (value instanceof Map)
+            return (T)value;
+         try {
+            Class beanClass = getClassLoader().loadClass("org.apache.commons.beanutils.BeanMap");
+            return (T)beanClass.getConstructor(Object.class).newInstance(value);
          }
-      };
+         catch (Exception e) { return null; }
+      }
+      if (type.isPrimitive())
+         return (T)convert((value == null) ? "0" : value.toString(), PRIMITIVES_MAP.get(type));
+      if (type.isArray())
+         return (T)toArray(value, type.getComponentType());
+      if (type.isInterface() || Modifier.isAbstract(type.getModifiers()))
+         return (T)newInstance(toClass(value));
+      for (Constructor c : type.getConstructors()) {
+         try {
+            Class[] params = c.getParameterTypes();
+            switch (params.length) {
+               case 0:
+                  if (value == null)
+                     return (T)c.newInstance();
+                  break;
+               case 1:
+                  if (value != null && params[0].isAssignableFrom(valueType))
+                     return (T)c.newInstance(value);
+            }
+         }
+         catch (Exception e) {}
+      }
+      return null;
    }
 
    @Override
-   public <S, T> void registerConverter(Class<S> sourceClass, Class<T> targetClass, Converter<S, T> converter) {
-      Map<Class,Converter> map = converters.get(targetClass);
-      if (map == null) {
-         map = new LinkedHashMap<>();
-         converters.put(targetClass, map);
-      }
-      map.put(sourceClass, converter);
+   public <S, T> void registerFunction(Class<S> sourceClass, Class<T> targetClass, Function<S, T> function) {
+      throw new RuntimeException("Bootstrap class does not support conversion function registration");
    }
 
    @Override
    public URL[] getClasspath() {
       if (classpath == null)
-         classpath = findProperty(URL[].class, "classpath");
+         classpath = findProperty(null, "classpath");
       return classpath;
+   }
+
+   @Override
+   public Bindings getGlobalScope() {
+      if (globalScope == null)
+         globalScope = findProperty(null, "globalScope");
+      return globalScope;
+   }
+
+   @Override
+   public URL getInitScript() {
+      if (initScript == null)
+         initScript = findProperty(null, "initScript");
+      return initScript;
    }
 
    @Override
@@ -156,9 +210,9 @@ public class Main implements ScriptContextFactory, ConverterManager, Configurati
    }
 
    @Override
-   public ConverterManager getConverterManager() {
+   public Converter getConverter() {
       if (converterManager == null) {
-         converterManager = findProperty(ConverterManager.class, "converterManager");
+         converterManager = findProperty(Converter.class, "converterManager");
          if (converterManager == null)
             converterManager = this;
       }
@@ -167,8 +221,12 @@ public class Main implements ScriptContextFactory, ConverterManager, Configurati
 
    @Override
    public ScriptEngineManager getEngineManager() {
-      if (engineManager == null)
+      if (engineManager == null) {
          engineManager = findProperty(ScriptEngineManager.class, "engineManager");
+         Bindings global = getGlobalScope();
+         if (global != null)
+            engineManager.setBindings(global);
+      }
       return engineManager;
    }
 
@@ -203,7 +261,7 @@ public class Main implements ScriptContextFactory, ConverterManager, Configurati
       return typeMap;
    }
 
-   public ClassLoader getClassLoader() {
+   private ClassLoader getClassLoader() {
       if (classLoader == null) {
          loadingClassLoader = true;
          classLoader = new URLClassLoader(getClasspath());
@@ -226,7 +284,7 @@ public class Main implements ScriptContextFactory, ConverterManager, Configurati
    }
 
    private <T> T findProperty(Class<T> type, String name) {
-      Object value = properties.get(type.getName());
+      Object value = (type == null) ? null : properties.get(type.getName());
       if (value == null && name != null)
          value = properties.get(PROPERTY_PREFIX + name);
       if (value != null && value instanceof CharSequence && value.toString().trim().isEmpty())
@@ -236,39 +294,6 @@ public class Main implements ScriptContextFactory, ConverterManager, Configurati
          RuntimeException rte = (e instanceof RuntimeException) ? (RuntimeException)e : new RuntimeException(e);
          throw rte;
       }
-   }
-
-   private Object convert(Object value, Class type) throws Exception {
-      if (type.isAssignableFrom(Void.class))
-         return null;
-      Class valueType = (value == null) ? Void.class : value.getClass();
-      if (type.isAssignableFrom(valueType))
-         return value;
-      if (type == String.class)
-         return toString(value);
-      if (type == URL.class)
-         return toUrl(value);
-      if (type == Class.class)
-         return toClass(value);
-      if (type.isPrimitive())
-         return convert((value == null) ? "0" : value.toString(), PRIMITIVES_MAP.get(type));
-      if (type.isArray())
-         return toArray(value, type.getComponentType());
-      if (type.isInterface() || Modifier.isAbstract(type.getModifiers()))
-         return newInstance(toClass(value));
-      for (Constructor c : type.getConstructors()) {
-         Class[] params = c.getParameterTypes();
-         switch (params.length) {
-            case 0:
-               if (value == null)
-                  return c.newInstance();
-               break;
-            case 1:
-               if (value != null && params[0].isAssignableFrom(valueType))
-                  return c.newInstance(value);
-         }
-      }
-      return null;
    }
 
    private Object newInstance(Class type) {
@@ -304,6 +329,8 @@ public class Main implements ScriptContextFactory, ConverterManager, Configurati
    private Object toArray(Object src, Class subtype) {
       if (src instanceof Collection)
          src = ((Collection)src).toArray();
+      else if (src instanceof Map)
+         src = ((Map)src).entrySet().toArray();
       else if (src instanceof CharSequence) {
          String txt = src.toString().trim();
          src = txt.isEmpty() ? new String[0] : txt.split(",");
@@ -330,23 +357,29 @@ public class Main implements ScriptContextFactory, ConverterManager, Configurati
          return ((Class)type).getName();
       if (value instanceof char[])
          return new String((char[])value);
-      if (type.isArray())
+      if (value instanceof Collection || value instanceof Map || type.isArray())
          return "("+String.join(" ", (String[])toArray(value, String.class))+")";
       return value.toString();
    }
 
-   private URL toUrl(Object value) throws MalformedURLException {
-      if (value instanceof URL)
-         return (URL)value;
-      if (value instanceof URI)
-         return ((URI)value).toURL();
-      if (value instanceof File)
-         return ((File)value).toURI().toURL();
-      if (value == null)
-         return null;
-      String txt = value.toString().trim();
-      try { return new URL(txt); }
-      catch (MalformedURLException e) { return new File(txt).toURI().toURL(); }
+   private URL toUrl(Object value) {
+      try {
+         if (value instanceof URL)
+            return (URL)value;
+         if (value instanceof URI)
+            return ((URI)value).toURL();
+         if (value instanceof File)
+            return ((File)value).toURI().toURL();
+         if (value == null)
+            return null;
+         String txt = value.toString().trim();
+         try { return new URL(txt); }
+         catch (MalformedURLException e) {
+            URL url = getClass().getResource(txt);
+            return (url != null) ? url : new File(txt).toURI().toURL();
+         }
+      }
+      catch (MalformedURLException e){ return null; }
    }
 
    private Class toClass(Object value)  {
@@ -364,14 +397,29 @@ public class Main implements ScriptContextFactory, ConverterManager, Configurati
       }
    }
 
-   private Reader getReader(String path) throws IOException {
-      InputStream input;
-      try { input = new URL(path).openStream(); }
-      catch (MalformedURLException ex) {
-         input = getClass().getResourceAsStream(path);
-         if (input == null)
-            input = new FileInputStream(path);
+   private InputStream toInputStream(Object value) {
+      if (value instanceof InputStream)
+         return (InputStream)value;
+      if (value instanceof CharSequence || value instanceof URL || value instanceof URI || value instanceof File) {
+         String path = value.toString();
+         try { return new URL(path).openStream(); }
+         catch (MalformedURLException e) {
+            InputStream input = getClass().getResourceAsStream(path);
+            try { return (input != null) ? input : new FileInputStream(path); }
+            catch (IOException e2) { throw new RuntimeException(e2); }
+         }
+         catch (IOException e) { throw new RuntimeException(e); }
       }
-      return new InputStreamReader(input);
+      if (value instanceof byte[])
+         return new ByteArrayInputStream((byte[])value);
+      return new ByteArrayInputStream(String.valueOf(value).getBytes());
+   }
+
+   private Reader toReader(Object value) {
+      if (value instanceof Reader)
+         return (Reader)value;
+      if (value instanceof InputStream)
+         return new InputStreamReader((InputStream)value);
+      return new InputStreamReader(toInputStream(value));
    }
 }

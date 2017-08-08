@@ -12,7 +12,7 @@ import javax.persistence.Persistence;
 import javax.persistence.Query;
 import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
-import org.regadou.damai.Converter;
+import javax.script.Bindings;
 import org.regadou.damai.Repository;
 
 public class JpaRepository implements Repository {
@@ -22,7 +22,7 @@ public class JpaRepository implements Repository {
    private Map<Class, String> classToNameMap = new LinkedHashMap<>();
 
    @Inject
-   public JpaRepository(Converter converter, Properties properties) throws ClassNotFoundException {
+   public JpaRepository(Properties properties) throws ClassNotFoundException {
       Class.forName("org.hibernate.jpa.HibernatePersistenceProvider");
       factory = Persistence.createEntityManagerFactory("javatest", properties);
       EntityManager manager = factory.createEntityManager();
@@ -45,19 +45,32 @@ public class JpaRepository implements Repository {
    }
 
    @Override
-   public Collection<Map<String,Object>> getAll(String type) {
-      return query(type, "select e from " + type, null);
+   public Collection<String> getPrimaryKeys(String type) {
+      return Collections.singleton("id");
    }
 
    @Override
-   public Map<String,Object> getOne(String type, Object id) {
+   public Collection<Object> getIds(String type) {
+      Collection<Object> ids = new ArrayList<>();
+      for (Bindings row : query(type, "select e.id from " + type + " e", null))
+         ids.add(row.get("id"));
+      return ids;
+   }
+
+   @Override
+   public Collection<Bindings> getAll(String type) {
+      return query(type, "select e from " + type + " e", null);
+   }
+
+   @Override
+   public Bindings getOne(String type, Object id) {
       String jpql = "select e from " + type + " e where e.id = ?1";
-      Collection<Map<String,Object>> entities = query(type, jpql, Arrays.asList(id));
+      Collection<Bindings> entities = query(type, jpql, Arrays.asList(id));
       return entities.isEmpty() ? null : entities.iterator().next();
    }
 
    @Override
-   public Map<String,Object> save(String type, Map<String,Object> entity) {
+   public Bindings save(String type, Bindings entity) {
       return transaction(manager -> {
          Set ids = manager.getMetamodel().entity(entity.getClass()).getIdClassAttributes();
          for (Object id : ids) {
@@ -107,7 +120,7 @@ public class JpaRepository implements Repository {
       }
    }
 
-   private Collection<Map<String,Object>> query(String type, String jpql, List params) {
+   private Collection<Bindings> query(String type, String jpql, List params) {
       EntityManager manager = factory.createEntityManager();
       Query query = manager.createQuery(jpql);
       if (params != null) {

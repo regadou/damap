@@ -773,6 +773,7 @@ text/x-dsrc					d
 text/x-diff					diff patch
 text/x-haskell					hs
 text/x-java					java
+text/x-java-properties        properties
 text/x-literate-haskell				lhs
 text/x-log					log
 text/x-makefile

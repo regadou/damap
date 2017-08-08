@@ -10,6 +10,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.regadou.damai.Action;
 
+/**
+ * This class is a work in progress for now
+ * It will eventually be able to implement any interface based on the map given in the constructor
+ * Keys in the map can be either properties where this implementation will look for getters and setters
+ * or method names in which cases corresponding values must be convertible to an org.regadou.damai.Action implementation
+ */
 public class Implementation implements InvocationHandler {
 
    private static final Map<Class, Class> primitives = new LinkedHashMap<>();

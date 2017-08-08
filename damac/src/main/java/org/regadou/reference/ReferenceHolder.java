@@ -1,5 +1,6 @@
 package org.regadou.reference;
 
+import java.util.Map;
 import org.regadou.damai.Reference;
 
 public class ReferenceHolder implements Reference {
@@ -44,4 +45,24 @@ public class ReferenceHolder implements Reference {
          this.value = value;
    }
 
+   public Map.Entry toMapEntry() {
+      ReferenceHolder me = this;
+      return new Map.Entry() {
+         @Override
+         public Object getKey() {
+            return name;
+         }
+
+         @Override
+         public Object getValue() {
+            return value;
+         }
+
+         @Override
+         public Object setValue(Object value) {
+            me.setValue(value);
+            return me.value;
+         }
+      };
+   }
 }

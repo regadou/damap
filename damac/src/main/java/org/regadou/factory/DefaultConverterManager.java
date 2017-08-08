@@ -1,68 +1,38 @@
 package org.regadou.factory;
 
-import org.apache.commons.convert.ConversionException;
-import org.apache.commons.convert.Converters;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Function;
+import org.regadou.util.ClassIterator;
 import org.regadou.damai.Converter;
-import org.regadou.damai.ConverterManager;
 
-public class DefaultConverterManager implements ConverterManager {
+public class DefaultConverterManager implements Converter {
 
-   public static class ConverterWrapper<S,T> implements Converter<S,T> {
-
-      private org.apache.commons.convert.Converter<S,T> wrappedConverter;
-
-      public ConverterWrapper(org.apache.commons.convert.Converter<S,T> converter) {
-         wrappedConverter = converter;
-      }
-
-      @Override
-      public T convert(S source) {
-         return wrappedConverter.convert(source);
-      }
-   }
+   // first key is targetClass, second key is sourceClass
+   private Map<Class,Map<Class,Function>> functionsMap = new LinkedHashMap<>();
 
    @Override
-   public <S, T> Converter<S, T> getConverter(Class<S> sourceClass, Class<T> targetClass) {
-      org.apache.commons.convert.Converter converter = Converters.getConverter(sourceClass, targetClass);
-      if (converter == null)
+   public <T> T convert(Object value, Class<T> type) {
+      Map<Class,Function> functions = functionsMap.get(type);
+      if (functions == null)
          return null;
-      else if (converter instanceof Converter)
-         return (Converter)converter;
-      else
-         return new ConverterWrapper(converter);
+      ClassIterator iterator = new ClassIterator(value);
+      while (iterator.hasNext()) {
+         Class c = iterator.next();
+         Function function = functions.get(c);
+         if (function != null)
+            return (T)function.apply(value);
+      }
+      return null;
    }
 
    @Override
-   public <S, T> void registerConverter(Class<S> sourceClass, Class<T> targetClass, Converter<S, T> converter) {
-      org.apache.commons.convert.Converter apacheConverter;
-      if (converter instanceof org.apache.commons.convert.Converter)
-         apacheConverter = (org.apache.commons.convert.Converter)converter;
-      else if (converter instanceof ConverterWrapper)
-         apacheConverter = ((ConverterWrapper)converter).wrappedConverter;
-      else
-         apacheConverter = new org.apache.commons.convert.Converter<S,T>() {
-            @Override
-            public boolean canConvert(Class src, Class dst) {
-               return sourceClass.isAssignableFrom(src) && targetClass.isAssignableFrom(dst);
-            }
-
-            @Override
-            public T convert(S s) throws ConversionException {
-               return converter.convert(s);
-            }
-
-            @Override
-            public Class<S> getSourceClass() {
-               return sourceClass;
-            }
-
-            @Override
-            public Class<T> getTargetClass() {
-               return targetClass;
-            }
-         };
-
-      Converters.registerConverter(apacheConverter, sourceClass, targetClass);
+   public <S, T> void registerFunction(Class<S> sourceClass, Class<T> targetClass, Function<S, T> function) {
+      Map<Class,Function> functions = functionsMap.get(targetClass);
+      if (functions == null) {
+         functions = new LinkedHashMap<>();
+         functionsMap.put(targetClass, functions);
+      }
+      functions.put(sourceClass, function);
    }
-
 }

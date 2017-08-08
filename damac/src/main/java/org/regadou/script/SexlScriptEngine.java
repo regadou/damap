@@ -16,7 +16,6 @@ import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import javax.script.SimpleScriptContext;
 import org.regadou.damai.Configuration;
-import org.regadou.system.ContextWrapper;
 import org.regadou.util.StringInput;
 
 public class SexlScriptEngine implements ScriptEngine, Compilable {

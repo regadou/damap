@@ -33,7 +33,7 @@ public class Main {
                                           new ReferenceHolder("error", System.err));
          ScriptEngineManager scriptManager = conf.getEngineManager();
          for (int a = 0; a < args.length; a++) {
-            Reference r = ((Context)conf).getReference(args[a]);
+            Reference r = conf.getResourceManager().getResource(args[a]);
             if (r == null)
                throw new RuntimeException("Cannot load file "+args[a]);
             UrlReference u = (r instanceof UrlReference) ? (UrlReference)r : null;
@@ -42,7 +42,7 @@ public class Main {
                System.out.println(r.getValue());
             else {
                List<String> list = Arrays.asList(args).subList(a+1, args.length);
-               ((Context)conf).getReference("arguments").setValue(Arrays.asList(list.toArray(new String[list.size()])));
+               conf.getResourceManager().getResource("arguments").setValue(Arrays.asList(list.toArray(new String[list.size()])));
                engine.eval(new StringInput(u.getInputStream(), "utf8").toString());
                break;
             }
@@ -65,7 +65,7 @@ public class Main {
             }
          }
 
-         ((Context)conf).getReference("arguments").setValue(Arrays.asList(args));
+         conf.getResourceManager().getResource("arguments").setValue(Arrays.asList(args));
          if (script != null)
             engine.eval(script);
          if (interactive)

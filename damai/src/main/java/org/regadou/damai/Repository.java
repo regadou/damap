@@ -1,18 +1,21 @@
 package org.regadou.damai;
 
 import java.util.Collection;
-import java.util.Map;
+import javax.script.Bindings;
 
 public interface Repository {
 
-    public Collection<String> getTypes();
+   Collection<String> getTypes();
 
-    public Collection<Map<String,Object>> getAll(String type);
+   Collection<String> getPrimaryKeys(String type);
 
-    public Map<String,Object> getOne(String type, Object id);
+   Collection<Object> getIds(String type);
 
-    public Map<String,Object> save(String type, Map<String,Object> entity);
+   Collection<Bindings> getAll(String type);
 
-    public boolean delete(String type, Object id);
+   Bindings getOne(String type, Object id);
+
+   Bindings save(String type, Bindings entity);
+
+   boolean delete(String type, Object id);
 }
-

@@ -12,7 +12,9 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.SimpleBindings;
@@ -49,6 +51,14 @@ public class ContextWrapper implements ScriptContext {
    }
 
    @Override
+   public String toString() {
+      Set keys = new TreeSet();
+      for (Bindings bindings : scopes.values())
+         keys.addAll(bindings.keySet());
+      return keys.toString();
+   }
+
+   @Override
    public void setBindings(Bindings bindings, int scope) {
       scopes.put(scope, bindings);
    }
@@ -79,7 +89,7 @@ public class ContextWrapper implements ScriptContext {
 
    @Override
    public Object getAttribute(String name) {
-       for (Bindings bindings : scopes.values()) {
+      for (Bindings bindings : scopes.values()) {
          if (bindings.containsKey(name))
             return bindings.get(name);
       }

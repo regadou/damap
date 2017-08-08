@@ -18,17 +18,17 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.TreeMap;
 import javax.activation.FileTypeMap;
+import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngineManager;
 import org.regadou.damai.Configuration;
-import org.regadou.damai.ConverterManager;
 import org.regadou.damai.MimeHandlerFactory;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Reference;
-import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
 import org.regadou.damai.ScriptContextFactory;
 import org.regadou.reference.FilterExpression;
+import org.regadou.damai.Converter;
 
 public class Context implements Configuration, ScriptContextFactory, Closeable {
 
@@ -37,7 +37,6 @@ public class Context implements Configuration, ScriptContextFactory, Closeable {
       protected synchronized Context initialValue() { return null; }
    };
 
-   private static final char[] FILE_CHARS = "./\\".toCharArray();
    private static Injector FIRST_INJECTOR;
 
    @Deprecated
@@ -106,14 +105,24 @@ public class Context implements Configuration, ScriptContextFactory, Closeable {
       return new URL[0];
    }
 
+   public URL getInitScript() {
+      return null;
+   }
+
+   @Override
+   public Bindings getGlobalScope() {
+      ScriptEngineManager manager = injector.getInstance(ScriptEngineManager.class);
+      return (manager == null) ? null : manager.getBindings();
+   }
+
    @Override
    public ScriptContextFactory getContextFactory() {
       return injector.getInstance(ScriptContextFactory.class);
    }
 
    @Override
-   public ConverterManager getConverterManager() {
-      return injector.getInstance(ConverterManager.class);
+   public Converter getConverter() {
+      return injector.getInstance(Converter.class);
    }
 
    @Override
@@ -154,6 +163,7 @@ public class Context implements Configuration, ScriptContextFactory, Closeable {
       return scriptContextStack.lastElement();
    }
 
+   @Override
    public boolean closeScriptContext(ScriptContext context) {
       if (context instanceof ContextWrapper) {
          ((ContextWrapper)context).getWrapper().close();
@@ -180,28 +190,6 @@ public class Context implements Configuration, ScriptContextFactory, Closeable {
          catch (IllegalArgumentException|IllegalAccessException e) { throw new RuntimeException(e); }
       }
       return null;
-   }
-
-   public Reference getReference(String name) {
-      if (name == null || name.trim().isEmpty())
-         return null;
-
-      int index = name.indexOf(':');
-      String scheme = (index < 0) ? null : name.substring(0, index);
-      if (scheme != null || canBeFile(name)) {
-         ResourceFactory factory = injector.getInstance(ResourceManager.class).getFactory(scheme);
-         if (factory != null)
-            return factory.getResource(name);
-      }
-
-      for (Context cx = this; cx != null; cx = cx.parent) {
-         if (cx.dictionary.containsKey(name))
-            return cx.dictionary.get(name);
-      }
-
-      Reference r = new ReferenceHolder(name, null);
-      dictionary.put(name, r);
-      return r;
    }
 
    protected void makeCurrent() {
@@ -232,14 +220,6 @@ public class Context implements Configuration, ScriptContextFactory, Closeable {
          catch (ClassNotFoundException ex) {}
       }
       return null;
-   }
-
-   private boolean canBeFile(String name) {
-      for (char c : FILE_CHARS) {
-         if (name.indexOf(c) >= 0)
-            return true;
-      }
-      return false;
    }
 }
 

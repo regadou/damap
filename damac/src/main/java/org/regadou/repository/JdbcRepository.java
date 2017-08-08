@@ -12,6 +12,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import javax.script.Bindings;
+import javax.script.SimpleBindings;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Repository;
 
@@ -53,30 +55,69 @@ public class JdbcRepository implements Repository, Closeable {
    }
 
    @Override
+   public boolean equals(Object that) {
+      return toString().equals(that.toString());
+   }
+
+   @Override
+   public int hashCode() {
+      return toString().hashCode();
+   }
+
+   @Override
    public Collection<String> getTypes() {
       return primaryKeys.keySet();
    }
 
    @Override
-   public Collection<Map<String,Object>> getAll(String type) {
+   public Collection<String> getPrimaryKeys(String type) {
+      String[] keys = primaryKeys.get(type);
+      return (keys == null) ? Collections.EMPTY_LIST : Arrays.asList(keys);
+   }
+
+   @Override
+   public Collection<Object> getIds(String type) {
+      Collection<Object> ids = new ArrayList<>();
+      String[] keys = primaryKeys.get(type);
+      if (keys == null || keys.length == 0)
+         return ids;
+      String sql = "select " +  String.join(", ", keys) + " from " + type;
+      try {
+         for (Bindings row : getRows(statement.executeQuery(sql))) {
+            if (keys.length == 1)
+               ids.add(row.get(keys[0]));
+            else {
+               Object[] id = new Object[keys.length];
+               for (int k = 0; k < keys.length; k++)
+                  id[k] = row.get(keys[k]);
+               ids.add(id);
+            }
+         }
+         return ids;
+      }
+      catch (SQLException e) { throw new RuntimeException(e); }
+   }
+
+   @Override
+   public Collection<Bindings> getAll(String type) {
       String sql = "select * from " + type;
       try { return getRows(statement.executeQuery(sql)); }
       catch (SQLException e) { throw new RuntimeException(e); }
    }
 
    @Override
-   public Map<String,Object> getOne(String type, Object id) {
-      Object[] params = configuration.getConverterManager().getConverter(Object.class, Object[].class).convert(id);
+   public Bindings getOne(String type, Object id) {
+      Object[] params = configuration.getConverter().convert(id, Object[].class);
       String sql = "select * from " + type +  getFilter(getMap(primaryKeys.get(type), params));
       try {
-         Collection<Map<String,Object>>  entities = getRows(statement.executeQuery(sql));
+         Collection<Bindings>  entities = getRows(statement.executeQuery(sql));
          return entities.isEmpty() ? null : entities.iterator().next();
       }
       catch (SQLException e) { throw new RuntimeException(e); }
    }
 
    @Override
-   public Map<String,Object> save(String type, Map<String,Object> entity) {
+   public Bindings save(String type, Bindings entity) {
       String filter = getFilter(getKeys(primaryKeys.get(type), entity));
       try {
          String sql = filter.isEmpty()
@@ -92,7 +133,7 @@ public class JdbcRepository implements Repository, Closeable {
 
    @Override
    public boolean delete(String type, Object id) {
-      Object[] params = configuration.getConverterManager().getConverter(Object.class, Object[].class).convert(id);
+      Object[] params = configuration.getConverter().convert(id, Object[].class);
       String sql = "delete from " + type + getFilter(getMap(primaryKeys.get(type), params));
       try { return statement.executeUpdate(sql) > 0; }
       catch (SQLException e) { throw new RuntimeException(e); }
@@ -112,8 +153,8 @@ public class JdbcRepository implements Repository, Closeable {
       }
    }
 
-   private Map<String,Object> getMap(String[] keys, Object[] values) {
-      Map<String,Object> map = new LinkedHashMap<>();
+   private Bindings getMap(String[] keys, Object[] values) {
+      Bindings map = new SimpleBindings();
       for (int k = 0; k < keys.length; k++) {
          Object value = (k >= values.length) ? null : values[k];
          map.put(keys[k], value);
@@ -121,14 +162,14 @@ public class JdbcRepository implements Repository, Closeable {
       return map;
    }
 
-   private Map<String,Object> getKeys(String keys[], Map<String,Object> src) {
-      Map<String,Object> dst = new LinkedHashMap<>();
+   private Bindings getKeys(String keys[], Bindings src) {
+      Bindings dst = new SimpleBindings();
       for (String key : keys)
          dst.put(key, src.get(key));
       return dst;
    }
 
-   private String getFilter(Map<String,Object> filter) {
+   private String getFilter(Bindings filter) {
       String sql = "";
       for (String key : filter.keySet()) {
          Object value = filter.get(key);
@@ -140,19 +181,19 @@ public class JdbcRepository implements Repository, Closeable {
       return sql;
    }
 
-   private String getUpdate(Map<String,Object> entity) {
+   private String getUpdate(Bindings entity) {
       String sql = "";
       for (String key : entity.keySet())
          sql += (sql.isEmpty() ? " set " : ", ") + key + printValue(entity.get(key), false);
       return sql;
    }
 
-   private Collection<Map<String,Object>> getRows(ResultSet rs) throws SQLException {
-      Collection<Map<String,Object>> rows = new ArrayList<>();
+   private Collection<Bindings> getRows(ResultSet rs) throws SQLException {
+      Collection<Bindings> rows = new ArrayList<>();
       ResultSetMetaData meta = rs.getMetaData();
       int nc = meta.getColumnCount();
       while (rs.next()) {
-         Map<String,Object> row = new LinkedHashMap<>();
+         Bindings row = new SimpleBindings();
          for (int c = 1; c <= nc; c++) {
             String col = meta.getColumnName(c).toLowerCase();
             Object val = rs.getObject(c);

@@ -102,7 +102,7 @@ public class UrlReference implements Reference, Closeable {
                                    .getInputHandler(mimetype)
                                    .load(input, charset);
          }
-         catch (IOException e) { throw new RuntimeException(e); }
+         catch (Exception e) { throw new RuntimeException("Error getting value for "+url, e); }
       }
       return content;
    }
@@ -125,7 +125,7 @@ public class UrlReference implements Reference, Closeable {
                       .getOutputHandler(mimetype)
                       .save(output, charset, value);
       }
-      catch (IOException e) { throw new RuntimeException(e); }
+      catch (Exception e) { throw new RuntimeException("Error setting value for "+url, e); }
    }
 
    private URLConnection getConnection() throws IOException {

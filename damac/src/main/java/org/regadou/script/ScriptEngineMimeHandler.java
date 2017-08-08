@@ -1,8 +1,8 @@
 package org.regadou.script;
 
-import com.google.gson.Gson;
 import java.util.List;
 import javax.inject.Inject;
+import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import org.regadou.damai.Configuration;
@@ -16,13 +16,11 @@ public class ScriptEngineMimeHandler implements MimeHandler {
 
    private ScriptEngine scriptEngine;
    private Configuration configuration;
-   private Gson gson;
 
    @Inject
-   public ScriptEngineMimeHandler(ScriptEngine scriptEngine, Configuration configuration, Gson gson) {
+   public ScriptEngineMimeHandler(ScriptEngine scriptEngine, Configuration configuration) {
       this.scriptEngine = scriptEngine;
       this.configuration = configuration;
-      this.gson = gson;
    }
 
    @Override
@@ -34,23 +32,21 @@ public class ScriptEngineMimeHandler implements MimeHandler {
    @Override
    public MimeHandlerInput getInputHandler(String mimetype) {
       return (input, charset) -> {
-         try { return scriptEngine.eval(new StringInput(input, charset).toString()); }
+         try {
+            ScriptContext cx = configuration.getContextFactory().getScriptContext();
+            return scriptEngine.eval(new StringInput(input, charset).toString(), cx);
+         }
          catch (ScriptException e) { throw new RuntimeException(e); }
       };
    }
 
    @Override
    public MimeHandlerOutput getOutputHandler(String mimetype) {
-      return (output, charset, value) -> {
-         String txt;
-         if (scriptEngine instanceof Printable)
-            txt = ((Printable)scriptEngine).print(value);
-         else if (scriptEngine.getFactory().getMimeTypes().contains("application/javascript"))
-            txt = gson.toJson(value);
-         else
-            txt = configuration.getConverterManager().getConverter(Object.class, String.class).convert(value);
-         output.write(txt.getBytes(charset));
-      };
+      if (scriptEngine instanceof Printable)
+         return (output, charset, value) ->  output.write(((Printable)scriptEngine).print(value).getBytes(charset));
+      if (scriptEngine.getFactory().getMimeTypes().contains("application/javascript"))
+         return configuration.getHandlerFactory().getHandler("application/json")
+                                                 .getOutputHandler("application/json");
+      return (output, charset, value) -> output.write(configuration.getConverter().convert(value, String.class).getBytes(charset));
    }
-
 }

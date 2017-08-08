@@ -55,6 +55,10 @@ public class DefaultFileTypeMap extends FileTypeMap {
       return DEFAULT_MIMETYPE;
    }
 
+   public Map<String,String> getMapping() {
+      return extensions;
+   }
+
    private void loadMimetypes(InputStream input) {
       BufferedReader reader = new BufferedReader(new InputStreamReader(input));
       reader.lines().forEach(line -> {
