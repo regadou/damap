@@ -13,7 +13,7 @@ import org.regadou.damai.MimeHandlerOutput;
 
 public class JsonHandler implements MimeHandler {
 
-   private static final String[] mimetypes = new String[]{"application/json", "text/json"};
+   private static final String[] MIMETYPES = new String[]{"application/json", "text/json"};
    private Configuration configuration;
    private Gson gson;
 
@@ -27,7 +27,7 @@ public class JsonHandler implements MimeHandler {
 
    @Override
    public String[] getMimetypes() {
-      return mimetypes;
+      return MIMETYPES;
    }
 
    @Override

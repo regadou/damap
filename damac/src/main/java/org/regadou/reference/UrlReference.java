@@ -102,7 +102,9 @@ public class UrlReference implements Reference, Closeable {
                                    .getInputHandler(mimetype)
                                    .load(input, charset);
          }
-         catch (Exception e) { throw new RuntimeException("Error getting value for "+url, e); }
+         catch (Exception e) {
+            throw new RuntimeException("Error getting value for "+url+" with mimetype "+mimetype, e);
+         }
       }
       return content;
    }

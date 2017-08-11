@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Enumeration;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.TreeMap;
 import javax.activation.FileTypeMap;
 
@@ -65,26 +67,14 @@ public class DefaultFileTypeMap extends FileTypeMap {
          int escape = line.indexOf('#');
          if (escape >= 0)
             line = line.substring(0, escape);
-         char[] chars = line.trim().toCharArray();
-         if (chars.length == 0)
-            return;
-         int start = -1;
          String mimetype = null;
-         for (int i = 0; i < chars.length; i++) {
-            char c = chars[i];
-            if (c <= 32) {
-               if (start >= 0) {
-                  String txt = new String(chars, start, i - start).toLowerCase();
-                  if (mimetype == null)
-                     mimetype = txt;
-                  else
-                     extensions.put(txt, mimetype);
-                  start = -1;
-               }
-            }
+         Enumeration e = new StringTokenizer(line);
+         while (e.hasMoreElements()) {
+            if (mimetype == null)
+               mimetype = e.nextElement().toString();
+            else
+               extensions.put(e.nextElement().toString(), mimetype);
          }
-         if (start >= 0 && mimetype != null)
-            extensions.put(new String(chars, start, chars.length - start).toLowerCase(), mimetype);
       });
       try { reader.close(); }
       catch (Exception e) {}

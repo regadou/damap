@@ -27,12 +27,16 @@ public class HttpScriptContext implements ScriptContext {
 
    public static final int SESSION_SCOPE = (GLOBAL_SCOPE + ENGINE_SCOPE) / 2;
 
+   private HttpServletRequest request;
+   private HttpServletResponse response;
    private Map<Integer,Bindings> scopes = new TreeMap<>();
    private Reader reader;
    private Writer writer;
    private PrintWriter error;
 
    public HttpScriptContext(HttpServletRequest request, HttpServletResponse response, Configuration configuration) {
+      this.request = request;
+      this.response = response;
       Bindings bindings = configuration.getEngineManager().getBindings();
       bindings.put("ENGINE_SCOPE", ENGINE_SCOPE);
       bindings.put("SESSION_SCOPE", SESSION_SCOPE);
@@ -56,16 +60,10 @@ public class HttpScriptContext implements ScriptContext {
                     session::removeAttribute);
             scopes.put(SESSION_SCOPE, new SimpleBindings(map));
          }
-         try { reader = new InputStreamReader(request.getInputStream()); }
-         catch (IOException e) {}
       }
       else
          scopes.put(ENGINE_SCOPE, new SimpleBindings());
 
-      if (response != null) {
-         try { writer = new OutputStreamWriter(response.getOutputStream()); }
-         catch (IOException e) {}
-      }
       error = new PrintWriter(System.err);
 
    }
@@ -129,6 +127,10 @@ public class HttpScriptContext implements ScriptContext {
 
    @Override
    public Writer getWriter() {
+      if (writer == null && response != null) {
+         try { writer = new OutputStreamWriter(response.getOutputStream()); }
+         catch (IOException e) {}
+      }
       return writer;
    }
 
@@ -154,6 +156,10 @@ public class HttpScriptContext implements ScriptContext {
 
    @Override
    public Reader getReader() {
+      if (reader == null && request != null) {
+         try { reader = new InputStreamReader(request.getInputStream()); }
+         catch (IOException e) {}
+      }
       return reader;
    }
 

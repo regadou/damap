@@ -9,7 +9,9 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -17,6 +19,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -30,23 +33,19 @@ import javax.script.SimpleScriptContext;
 
 public class Bootstrap implements ScriptContextFactory, Converter, Configuration {
 
+   private static boolean DEBUG = false;
+
    public static void main(String[] args) {
       Configuration config = new Bootstrap(args);
-      config.getEngineManager().getBindings().put(Configuration.class.getName(), config);
-      System.out.println("handlers = "+config.getHandlerFactory().getMimetypes());
-      Collection<String> mimetypes = new ArrayList<>();
-      for (ScriptEngineFactory factory : config.getEngineManager().getEngineFactories())
-         mimetypes.addAll(factory.getMimeTypes());
-      System.out.println("engines = "+mimetypes);
-      Map map = config.getConverter().convert(config.getTypeMap(), Map.class);
-      System.out.println("type mapping = "+map.get("mapping"));
+      if (DEBUG)
+         printDebugInfo(config);
       URL init = config.getInitScript();
       if (init != null) {
          Reference r = config.getResourceManager().getResource(init.toString());
          System.out.println(r.getValue());
       }
       else
-         System.out.println("configuration = "+config);
+         System.out.println("configuration = "+getProperties(config));
    }
 
    private static final String PROPERTY_PREFIX = Configuration.class.getName() + ".";
@@ -107,6 +106,7 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
       ScriptContext cx = currentContext.get();
       if (cx == null) {
          cx = new SimpleScriptContext();
+         cx.setBindings(getEngineManager().getBindings(), ScriptContext.GLOBAL_SCOPE);
          currentContext.set(cx);
       }
       return cx;
@@ -181,21 +181,21 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
    @Override
    public URL[] getClasspath() {
       if (classpath == null)
-         classpath = findProperty(null, "classpath");
+         classpath = findProperty(URL[].class, "classpath");
       return classpath;
    }
 
    @Override
    public Bindings getGlobalScope() {
       if (globalScope == null)
-         globalScope = findProperty(null, "globalScope");
+         globalScope = findProperty(Bindings.class, "globalScope");
       return globalScope;
    }
 
    @Override
    public URL getInitScript() {
       if (initScript == null)
-         initScript = findProperty(null, "initScript");
+         initScript = findProperty(URL.class, "initScript");
       return initScript;
    }
 
@@ -223,9 +223,16 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
    public ScriptEngineManager getEngineManager() {
       if (engineManager == null) {
          engineManager = findProperty(ScriptEngineManager.class, "engineManager");
-         Bindings global = getGlobalScope();
-         if (global != null)
-            engineManager.setBindings(global);
+         if (engineManager != null) {
+            Bindings global = getGlobalScope();
+            if (global != null)
+               engineManager.setBindings(global);
+            else
+               global = engineManager.getBindings();
+            String key = Configuration.class.getName();
+            if (!global.containsKey(key))
+               global.put(key, this);
+         }
       }
       return engineManager;
    }
@@ -264,7 +271,10 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
    private ClassLoader getClassLoader() {
       if (classLoader == null) {
          loadingClassLoader = true;
-         classLoader = new URLClassLoader(getClasspath());
+         URL[] cp = getClasspath();
+         if (cp == null)
+            cp = new URL[0];
+         classLoader = new URLClassLoader(cp);
          loadingClassLoader = false;
       }
       return classLoader;
@@ -284,11 +294,15 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
    }
 
    private <T> T findProperty(Class<T> type, String name) {
-      Object value = (type == null) ? null : properties.get(type.getName());
+      if (type == null)
+         type = (Class<T>)Object.class;
+      Object value = properties.get(type.getName());
       if (value == null && name != null)
          value = properties.get(PROPERTY_PREFIX + name);
       if (value != null && value instanceof CharSequence && value.toString().trim().isEmpty())
          value = null;
+      if (value == null && type.isInterface())
+         return null;
       try { return (T)convert(value, type); }
       catch (Exception e) {
          RuntimeException rte = (e instanceof RuntimeException) ? (RuntimeException)e : new RuntimeException(e);
@@ -421,5 +435,60 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
       if (value instanceof InputStream)
          return new InputStreamReader((InputStream)value);
       return new InputStreamReader(toInputStream(value));
+   }
+
+   private static void printDebugInfo(Configuration config) {
+      System.out.println("configuration = "+getProperties(config));
+      config.getEngineManager().getBindings().put(Configuration.class.getName(), config);
+      System.out.println("handlers = "+config.getHandlerFactory().getMimetypes());
+      Collection<String> mimetypes = new ArrayList<>();
+      for (ScriptEngineFactory factory : config.getEngineManager().getEngineFactories())
+         mimetypes.addAll(factory.getMimeTypes());
+      System.out.println("engines = "+mimetypes);
+      Map map = config.getConverter().convert(config.getTypeMap(), Map.class);
+      System.out.println("type mapping = "+map.get("mapping"));
+   }
+
+   private static Map getProperties(Object obj) {
+      if (obj instanceof Map)
+         return (Map)obj;
+      if (obj == null)
+         return Collections.EMPTY_MAP;
+      if (obj instanceof Collection)
+         return getProperties(((Collection)obj).toArray());
+      Class type = obj.getClass();
+      Map map = new LinkedHashMap();
+      if (type.isArray()) {
+         int length = Array.getLength(obj);
+         map.put("length", length);
+         for (int i = 0; i < length; i++)
+            map.put(String.valueOf(i), Array.get(obj, i));
+         return map;
+      }
+
+      String name = null;
+      try {
+         for (Field f : type.getFields()) {
+            name = f.getName();
+            map.put(name, f.get(obj));
+         }
+         for (Method m : type.getMethods()) {
+            name = getPropertyName(m.getName());
+            if (name != null && m.getParameterCount() == 0)
+               map.put(name, m.invoke(obj));
+         }
+         return map;
+      }
+      catch (Exception e) { throw new RuntimeException("Error setting value for "+name, e); }
+   }
+
+   private static String getPropertyName(String name) {
+      if (name.startsWith("get") && name.length() > 3 && Character.isUpperCase(name.charAt(3)))
+         return name.substring(3, 4).toLowerCase() + name.substring(4);
+      if (name.startsWith("is") && name.length() > 2 && Character.isUpperCase(name.charAt(2)))
+         return name.substring(2, 3).toLowerCase() + name.substring(3);
+      if (name.startsWith("set") && name.length() > 3 && Character.isUpperCase(name.charAt(3)))
+         return name.substring(3, 4).toLowerCase() + name.substring(4);
+      return null;
    }
 }

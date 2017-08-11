@@ -55,6 +55,7 @@ public class Context implements Configuration, ScriptContextFactory, Closeable {
    private OutputStream output, error;
    private Map<String, Reference> dictionary;
    private Stack<ScriptContext> scriptContextStack = new Stack<>();
+   private ScriptEngineManager engineManager;
    private Injector injector;
 
    public Context(Reference ... properties) {
@@ -111,7 +112,7 @@ public class Context implements Configuration, ScriptContextFactory, Closeable {
 
    @Override
    public Bindings getGlobalScope() {
-      ScriptEngineManager manager = injector.getInstance(ScriptEngineManager.class);
+      ScriptEngineManager manager = getEngineManager();
       return (manager == null) ? null : manager.getBindings();
    }
 
@@ -127,7 +128,11 @@ public class Context implements Configuration, ScriptContextFactory, Closeable {
 
    @Override
    public ScriptEngineManager getEngineManager() {
-      return injector.getInstance(ScriptEngineManager.class);
+      if (engineManager == null) {
+         engineManager = new ScriptEngineManager();
+         engineManager.getBindings().put("configuration", this);
+      }
+      return engineManager;
    }
 
    @Override

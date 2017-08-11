@@ -4,8 +4,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import javax.activation.FileTypeMap;
-import javax.script.Bindings;
-import javax.script.ScriptEngineManager;
 import org.regadou.damai.Configuration;
 import org.regadou.factory.DefaultConverterManager;
 import org.regadou.factory.DefaultPropertyFactory;
@@ -37,15 +35,5 @@ public class GuiceModule extends AbstractModule {
    @Provides
    public ScriptContextFactory getScriptContextFactory() {
       return Context.currentContext();
-   }
-
-   @Singleton
-   @Provides
-   public ScriptEngineManager getScriptEngineManager(Configuration cfg) {
-      ScriptEngineManager manager = new ScriptEngineManager();
-      Bindings global = cfg.getGlobalScope();
-      if (global != null)
-         manager.setBindings(global);
-      return manager;
    }
 }

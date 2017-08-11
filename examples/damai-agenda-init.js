@@ -1,4 +1,10 @@
 var conf = this["org.regadou.damai.Configuration"];
+var it = java.util.Arrays.asList(conf.getClass().getMethods()).iterator();
+while (it.hasNext()) {
+   var m = it.next();
+   if (m.getParameterCount() == 0 && m.getName().startsWith("get"))
+      print("******** "+m.getName().substring(3)+" = "+m.invoke(conf));
+}
 if (session == null) {
    var cx = conf.getContextFactory().getScriptContext();
    cx.setAttribute("session", {}, SESSION_SCOPE);
@@ -22,4 +28,5 @@ if (database == null) {
    }
    cx.setAttribute("database", db, SESSION_SCOPE);
 }
+print("******** context = "+conf.getContextFactory());
 

@@ -6,10 +6,15 @@ import java.util.List;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import org.regadou.damai.Configuration;
+import org.regadou.system.Context;
 
 public class SexlScriptEngineFactory implements ScriptEngineFactory {
 
    private Configuration configuration;
+
+   public SexlScriptEngineFactory() {
+      this.configuration = Context.currentContext();
+   }
 
    @Inject
    public SexlScriptEngineFactory(Configuration configuration) {
