@@ -2,21 +2,31 @@ package org.regadou.repository;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.script.Bindings;
+import org.regadou.damai.Expression;
+import org.regadou.damai.Filterable;
 import org.regadou.damai.Repository;
 import org.regadou.reference.ReferenceHolder;
+import org.regadou.script.GenericComparator;
 
-public class RepositoryType implements Map<Object,Bindings> {
+public class RepositoryType implements Map<Object,Bindings>, Filterable {
 
    private String type;
    private Repository repo;
+   private Comparator comparator;
 
    public RepositoryType(String type, Repository repo) {
+      this(type, repo, null);
+   }
+
+   public RepositoryType(String type, Repository repo, Comparator comparator) {
       this.type = type;
       this.repo = repo;
+      this.comparator = (comparator == null) ? new GenericComparator(null) : comparator;
    }
 
    @Override
@@ -46,12 +56,20 @@ public class RepositoryType implements Map<Object,Bindings> {
 
    @Override
    public boolean containsKey(Object key) {
-      return repo.getIds(type).contains(key);
+      for (Object id : repo.getIds(type)) {
+         if (comparator.compare(id, key) == 0)
+            return true;
+      }
+      return false;
    }
 
    @Override
    public boolean containsValue(Object value) {
-      return values().contains(value);
+      for (Bindings b : values()) {
+         if (comparator.compare(b, value) == 0)
+            return true;
+      }
+      return false;
    }
 
    @Override
@@ -109,5 +127,10 @@ public class RepositoryType implements Map<Object,Bindings> {
       for (Object id : repo.getIds(type))
          entries.add(new ReferenceHolder(id.toString(), repo.getOne(type, id)).toMapEntry());
       return entries;
+   }
+
+   @Override
+   public Collection filter(Expression filterExpression) {
+      return repo.getAny(type, filterExpression);
    }
 }

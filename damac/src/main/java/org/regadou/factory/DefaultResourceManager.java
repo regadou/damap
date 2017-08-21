@@ -1,18 +1,15 @@
 package org.regadou.factory;
 
-import com.google.inject.Inject;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.script.ScriptContext;
+import javax.inject.Inject;
 import org.regadou.damai.Configuration;
-import org.regadou.damai.Property;
 import org.regadou.damai.Reference;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
-import org.regadou.reference.MapProperty;
-import org.regadou.util.MapAdapter;
+import org.regadou.script.ScriptContextProperty;
 
 public class DefaultResourceManager implements ResourceManager {
 
@@ -27,6 +24,7 @@ public class DefaultResourceManager implements ResourceManager {
       registerFactory(new ServerResourceFactory(this, configuration));
       registerFactory(new UrlResourceFactory(this, configuration));
       registerFactory(new FileResourceFactory(this, configuration));
+      //TODO: add class name factory
       //TODO: add javascript: and other script schemes with a ScriptEngineResourceFactory
    }
 
@@ -42,7 +40,7 @@ public class DefaultResourceManager implements ResourceManager {
             return factory.getResource(name);
       }
 
-      return getContextProperty(name);
+      return new ScriptContextProperty(configuration.getContextFactory(), name);
    }
 
    @Override
@@ -73,18 +71,5 @@ public class DefaultResourceManager implements ResourceManager {
             return true;
       }
       return false;
-   }
-
-   private Property getContextProperty(String name) {
-      ScriptContext cx = configuration.getContextFactory().getScriptContext();
-      int scope = cx.getAttributesScope(name);
-      if (scope < 0)
-         scope = ScriptContext.ENGINE_SCOPE;
-      final int s = scope;
-      Map<String,Object> map = new MapAdapter<>(
-          key -> cx.getAttribute(key, s),
-          (key, value) -> cx.setAttribute(key, value, s)
-      );
-      return new MapProperty(map, name);
    }
 }

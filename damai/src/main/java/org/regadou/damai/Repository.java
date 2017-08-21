@@ -13,6 +13,8 @@ public interface Repository {
 
    Collection<Bindings> getAll(String type);
 
+   Collection<Bindings> getAny(String type, Expression exp);
+
    Bindings getOne(String type, Object id);
 
    Bindings save(String type, Bindings entity);

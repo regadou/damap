@@ -2,11 +2,11 @@ package org.regadou.factory;
 
 import org.regadou.repository.JdbcVendor;
 import org.regadou.repository.JdbcRepository;
-import com.google.inject.Inject;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import javax.inject.Inject;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
 import org.regadou.damai.ResourceFactory;
@@ -47,9 +47,9 @@ public class ServerResourceFactory implements ResourceFactory {
       switch(uri.substring(0, uri.indexOf(':'))) {
          case "jdbc":
             JdbcConnectionInfo info = new JdbcConnectionInfo(uri, vendorMap);
-            return new ReferenceHolder(info.getUrl(), new JdbcRepository(info, configuration), true);
+            return new ReferenceHolder(info.getUrl(), new JdbcRepository(info, configuration.getConverter()), true);
          case "tcp":
-            return new ReferenceHolder(uri, new TcpServer(uri, configuration), true);
+            return new ReferenceHolder(uri, new TcpServer(uri, configuration.getEngineManager(), configuration.getContextFactory()), true);
       }
       return null;
    }

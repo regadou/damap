@@ -10,12 +10,14 @@ import org.regadou.reference.ReferenceHolder;
 import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
+import org.regadou.damai.Operator;
 import org.regadou.reference.MapEntryWrapper;
 
 public class CompiledExpression extends CompiledScript implements Expression {
 
    private Configuration configuration;
    private ScriptEngine engine;
+   private Map<Operator,OperatorAction> operators;
    private String text;
    private List<Reference> tokens = new ArrayList<>();
    private Action action;
@@ -102,47 +104,69 @@ public class CompiledExpression extends CompiledScript implements Expression {
 
    @Override
    public Reference getValue(ScriptContext context) {
-      if (context == null)
-         context = configuration.getContextFactory().getScriptContext();
-      if (action != null) {
-         if (tokens.isEmpty())
-            return new ReferenceHolder(action.getName(), action);
-         Object value = action.execute(tokens.toArray());
-         if (value instanceof Reference)
-            return (Reference)value;
-         else if (value instanceof Map.Entry)
-            return new MapEntryWrapper((Map.Entry)value);
-         else
-            return new ReferenceHolder(null, value);
+      ScriptContext oldContext = configuration.getContextFactory().getScriptContext();
+      if (context == null) {
+         context = oldContext;
+         oldContext = null;
       }
-      else {
-         switch (tokens.size()) {
-            case 0:
-               return null;
-            case 1:
-               return tokens.get(0);
-            default:
-               if (tokens.get(0) instanceof Expression) {
-                  Reference result = null;
-                  for (Reference token : tokens)
-                     result = ((Expression)token).getValue();
-                  return result;
-               }
-               //TODO: check if we have properties enumeration for an entity
-               return new ReferenceHolder(null, tokens);
+      else
+         configuration.getContextFactory().setScriptContext(context);
+
+      try {
+         if (action != null) {
+            Object value;
+            if (tokens.isEmpty())
+               value = action;
+            else
+               value = action.execute(tokens.toArray());
+            if (value instanceof Reference)
+               return (Reference)value;
+            else if (value instanceof Map.Entry)
+               return new MapEntryWrapper((Map.Entry)value);
+            else
+               return new ReferenceHolder(null, value);
          }
+         else {
+            switch (tokens.size()) {
+               case 0:
+                  return null;
+               case 1:
+                  return tokens.get(0);
+               default:
+                  if (tokens.get(0) instanceof Expression) {
+                     Reference result = null;
+                     for (Reference token : tokens) {
+                        if (token instanceof Expression)
+                           result = ((Expression)token).getValue(context);
+                        else
+                           result = token;
+                     }
+                     return result;
+                  }
+                  //TODO: check if we have properties enumeration for an entity
+                  return new ReferenceHolder(null, tokens);
+            }
+         }
+      }
+      finally {
+         if (oldContext != null)
+            configuration.getContextFactory().setScriptContext(oldContext);
       }
    }
 
    private Action isAction(Object token) {
-      if (token instanceof Action) {
+      if (token instanceof Operator) {
+         if (operators == null) {
+            operators = new TreeMap<>();
+            for (OperatorAction op : OperatorAction.createActions(configuration))
+               operators.put(op.getOperator(), op);
+         }
+         return operators.get((Operator)token);
+      }
+      if (token instanceof Action)
          return (Action)token;
-      }
-      else if (token instanceof Reference) {
+      if (token instanceof Reference)
          return isAction(((Reference)token).getValue());
-      }
-      else {
-         return null;
-      }
+      return null;
    }
 }

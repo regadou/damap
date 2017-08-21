@@ -18,7 +18,6 @@ import javax.script.SimpleBindings;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import org.apache.commons.beanutils.BeanMap;
 import org.regadou.damai.Configuration;
 import org.regadou.util.EnumerationSet;
 import org.regadou.util.MapAdapter;
@@ -49,17 +48,15 @@ public class HttpScriptContext implements ScriptContext {
                  request::setAttribute,
                  request::removeAttribute);
          bindings = new SimpleBindings(map);
-         bindings.put("request", new BeanMap(request));
+         bindings.put("request", request);
          scopes.put(ENGINE_SCOPE, bindings);
-         HttpSession session = request.getSession(false);
-         if (session != null) {
-            map = new MapAdapter<>(
-                    () -> new EnumerationSet(session.getAttributeNames()),
-                    session::getAttribute,
-                    session::setAttribute,
-                    session::removeAttribute);
-            scopes.put(SESSION_SCOPE, new SimpleBindings(map));
-         }
+         HttpSession session = request.getSession();
+         map = new MapAdapter<>(
+                 () -> new EnumerationSet(session.getAttributeNames()),
+                 session::getAttribute,
+                 session::setAttribute,
+                 session::removeAttribute);
+         scopes.put(SESSION_SCOPE, new SimpleBindings(map));
       }
       else
          scopes.put(ENGINE_SCOPE, new SimpleBindings());

@@ -39,17 +39,13 @@ public class HttpContextFactory implements ScriptContextFactory {
          }
       }
       cx = new HttpScriptContext(request, response, configuration);
-      currentContext.set(null);
+      currentContext.set(cx);
       return cx;
    }
 
    @Override
-   public boolean closeScriptContext(ScriptContext context) {
-      if (context != null && currentContext.get() == context) {
-         currentContext.set(null);
-         return true;
-      }
-      return false;
+   public void setScriptContext(ScriptContext context) {
+      currentContext.set(context);
    }
 
 }

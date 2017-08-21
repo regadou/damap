@@ -6,5 +6,5 @@ public interface ScriptContextFactory {
 
    ScriptContext getScriptContext(Reference...properties);
 
-   boolean closeScriptContext(ScriptContext context);
+   void setScriptContext(ScriptContext context);
 }

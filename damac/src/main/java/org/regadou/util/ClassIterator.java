@@ -1,13 +1,16 @@
 package org.regadou.util;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 public class ClassIterator implements Iterator<Class> {
 
    private Class currentClass;
-   private Class[] interfaces;
+   private List<Class> interfaces;
    private int at;
 
    public ClassIterator(Class c) {
@@ -22,7 +25,7 @@ public class ClassIterator implements Iterator<Class> {
    public boolean hasNext() {
       //TODO: each interface can extends parent interfaces
       if (interfaces != null) {
-         if (at < interfaces.length)
+         if (at < interfaces.size())
             return true;
          interfaces = null;
          currentClass = getSuperClass(currentClass);
@@ -34,14 +37,15 @@ public class ClassIterator implements Iterator<Class> {
    public Class next() {
       //TODO: each interface can extends parent interfaces
       if (interfaces != null) {
-         if (at < interfaces.length)
-            return interfaces[at++];
+         if (at < interfaces.size())
+            return interfaces.get(at++);
          interfaces = null;
          currentClass = getSuperClass(currentClass);
       }
       if (currentClass == null)
          throw new NoSuchElementException("No more element to iterate over");
-      interfaces = currentClass.getInterfaces();
+      interfaces = new ArrayList<>();
+      getInterfaces(currentClass.getInterfaces());
       at = 0;
       return currentClass;
    }
@@ -59,5 +63,12 @@ public class ClassIterator implements Iterator<Class> {
       }
       else
          return src.getSuperclass();
+   }
+
+   private void getInterfaces(Class[] src) {
+      for (Class type : src) {
+         interfaces.add(type);
+         getInterfaces(type.getInterfaces());
+      }
    }
 }

@@ -1,12 +1,15 @@
 package org.regadou.damai;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -18,9 +21,12 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
@@ -29,16 +35,23 @@ import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
-import javax.script.SimpleScriptContext;
 
-public class Bootstrap implements ScriptContextFactory, Converter, Configuration {
+public class Bootstrap implements Configuration, Converter {
 
    private static boolean DEBUG = false;
 
-   public static void main(String[] args) {
-      Configuration config = new Bootstrap(args);
+   public static void main(String[] args) throws IOException {
+      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+      Writer writer = new OutputStreamWriter(System.out);
+      Writer error = new OutputStreamWriter(System.err);
+      Configuration config = new Bootstrap(checkDebugArg(args, reader));
+      ScriptContext cx = config.getContextFactory().getScriptContext(
+         newReference("reader", reader),
+         newReference("writer", writer),
+         newReference("errorWriter", error)
+      );
       if (DEBUG)
-         printDebugInfo(config);
+         printDebugInfo(config, writer);
       URL init = config.getInitScript();
       if (init != null) {
          Reference r = config.getResourceManager().getResource(init.toString());
@@ -46,6 +59,45 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
       }
       else
          System.out.println("configuration = "+getProperties(config));
+   }
+
+   public static void printDebugInfo(Configuration config, Writer writer) throws IOException {
+      if (writer == null)
+         writer = config.getContextFactory().getScriptContext().getWriter();
+      writer.write("configuration = "+getProperties(config)+"\n");
+      for (Method m : config.getClass().getDeclaredMethods()) {
+         int mod = m.getModifiers();
+         if (m.getParameterCount() == 0 && Modifier.isPublic(mod) && !Modifier.isStatic(mod)) {
+            Object value;
+            try { value = m.invoke(config); }
+            catch (Exception e) { value = e; }
+            System.out.println("  "+m.getName()+" = "+value);
+         }
+      }
+      config.getEngineManager().getBindings().put(Configuration.class.getName(), config);
+      writer.write("handlers = "+config.getHandlerFactory().getMimetypes()+"\n");
+      Collection<String> mimetypes = new ArrayList<>();
+      for (ScriptEngineFactory factory : config.getEngineManager().getEngineFactories())
+         mimetypes.addAll(factory.getMimeTypes());
+      writer.write("engines = "+mimetypes+"\n");
+      Map map = config.getConverter().convert(config.getTypeMap(), Map.class);
+      writer.write("type mapping = "+map.get("mapping")+"\n");
+   }
+
+   public static Reference newReference(String name, Object value) {
+      return new Reference() {
+         @Override
+         public String getName() { return name; }
+
+         @Override
+         public Object getValue() { return value; }
+
+         @Override
+         public Class getType() { return Object.class; }
+
+         @Override
+         public void setValue(Object value) {}
+      };
    }
 
    private static final String PROPERTY_PREFIX = Configuration.class.getName() + ".";
@@ -65,10 +117,30 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
       }
    }
 
-   private final ThreadLocal<ScriptContext> currentContext = new ThreadLocal() {
-      @Override
-      protected synchronized ScriptContext initialValue() { return null; }
-   };
+   private static String[] checkDebugArg(String[] src, BufferedReader reader) {
+      boolean gotDebug = false;
+      List<String> dst = new ArrayList<>(Arrays.asList(src));
+      Iterator<String> it = dst.iterator();
+      while (it.hasNext()) {
+         String arg = it.next();
+         while (arg.startsWith("-"))
+            arg = arg.substring(1);
+         if (arg.equals("debug")) {
+            it.remove();
+            gotDebug = true;
+         }
+      }
+      if (gotDebug) {
+         try {
+            System.out.println("*** press enter after starting debugger ***");
+            reader.readLine();
+         }
+         catch (IOException e) { throw new RuntimeException(e); }
+         return dst.toArray(new String[dst.size()]);
+      }
+      else
+         return src;
+   }
 
    private final Map<String,Object> properties = new LinkedHashMap<>();
    private URL[] classpath;
@@ -78,7 +150,7 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
    private Converter converterManager;
    private ScriptEngineManager engineManager;
    private MimeHandlerFactory handlerFactory;
-   private PropertyFactory propertyFactory;
+   private PropertyManager propertyManager;
    private ResourceManager resourceManager;
    private FileTypeMap typeMap;
    private ClassLoader classLoader;
@@ -99,78 +171,6 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
 
    public Bootstrap(Map properties) {
       setProperties(properties);
-   }
-
-   @Override
-   public ScriptContext getScriptContext(Reference...properties) {
-      ScriptContext cx = currentContext.get();
-      if (cx == null) {
-         cx = new SimpleScriptContext();
-         cx.setBindings(getEngineManager().getBindings(), ScriptContext.GLOBAL_SCOPE);
-         currentContext.set(cx);
-      }
-      return cx;
-   }
-
-   @Override
-   public boolean closeScriptContext(ScriptContext context) {
-      if (currentContext.get() == context) {
-         currentContext.set(null);
-         return true;
-      }
-      return false;
-   }
-
-   @Override
-   public <T> T convert(Object value, Class<T> type) {
-      if (type == null || Void.class.isAssignableFrom(type))
-         return null;
-      Class valueType = (value == null) ? Void.class : value.getClass();
-      if (type.isAssignableFrom(valueType))
-         return (T)value;
-      if (CharSequence.class.isAssignableFrom(type))
-         return (T)toString(value);
-      if (URL.class.isAssignableFrom(type))
-         return (T)toUrl(value);
-      if (Class.class.isAssignableFrom(type))
-         return (T)toClass(value);
-      if (InputStream.class.isAssignableFrom(type))
-         return (T)toInputStream(value);
-      if (Reader.class.isAssignableFrom(type))
-         return (T)toReader(value);
-      if (Collection.class.isAssignableFrom(type))
-         return (T)(value instanceof Collection ? value : toArray(value, Object.class));
-      if (Map.class.isAssignableFrom(type)) {
-         if (value instanceof Map)
-            return (T)value;
-         try {
-            Class beanClass = getClassLoader().loadClass("org.apache.commons.beanutils.BeanMap");
-            return (T)beanClass.getConstructor(Object.class).newInstance(value);
-         }
-         catch (Exception e) { return null; }
-      }
-      if (type.isPrimitive())
-         return (T)convert((value == null) ? "0" : value.toString(), PRIMITIVES_MAP.get(type));
-      if (type.isArray())
-         return (T)toArray(value, type.getComponentType());
-      if (type.isInterface() || Modifier.isAbstract(type.getModifiers()))
-         return (T)newInstance(toClass(value));
-      for (Constructor c : type.getConstructors()) {
-         try {
-            Class[] params = c.getParameterTypes();
-            switch (params.length) {
-               case 0:
-                  if (value == null)
-                     return (T)c.newInstance();
-                  break;
-               case 1:
-                  if (value != null && params[0].isAssignableFrom(valueType))
-                     return (T)c.newInstance(value);
-            }
-         }
-         catch (Exception e) {}
-      }
-      return null;
    }
 
    @Override
@@ -201,11 +201,8 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
 
    @Override
    public ScriptContextFactory getContextFactory() {
-      if (contextFactory == null) {
+      if (contextFactory == null)
          contextFactory = findProperty(ScriptContextFactory.class, "contextFactory");
-         if (contextFactory == null)
-            contextFactory = this;
-      }
       return contextFactory;
    }
 
@@ -245,10 +242,10 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
    }
 
    @Override
-   public PropertyFactory getPropertyFactory() {
-      if (propertyFactory == null)
-         propertyFactory = findProperty(PropertyFactory.class, "propertyFactory");
-      return propertyFactory;
+   public PropertyManager getPropertyManager() {
+      if (propertyManager == null)
+         propertyManager = findProperty(PropertyManager.class, "propertyManager");
+      return propertyManager;
    }
 
    @Override
@@ -266,6 +263,49 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
             typeMap = FileTypeMap.getDefaultFileTypeMap();
       }
       return typeMap;
+   }
+
+   @Override
+   public <T> T convert(Object value, Class<T> type) {
+      if (type == null || Void.class.isAssignableFrom(type))
+         return null;
+      Class valueType = (value == null) ? Void.class : value.getClass();
+      if (type.isAssignableFrom(valueType))
+         return (T)value;
+      if (CharSequence.class.isAssignableFrom(type))
+         return (T)toString(value);
+      if (URL.class.isAssignableFrom(type))
+         return (T)toUrl(value);
+      if (Class.class.isAssignableFrom(type))
+         return (T)toClass(value);
+      if (InputStream.class.isAssignableFrom(type))
+         return (T)toInputStream(value);
+      if (Reader.class.isAssignableFrom(type))
+         return (T)toReader(value);
+      if (Collection.class.isAssignableFrom(type))
+         return (T)(value instanceof Collection ? value : toArray(value, Object.class));
+      if (Map.class.isAssignableFrom(type))
+         return (T)(value instanceof Map ? value : toMap(value));
+      if (type.isPrimitive())
+         return (T)convert((value == null) ? "0" : value.toString(), PRIMITIVES_MAP.get(type));
+      if (type.isArray())
+         return (T)toArray(value, type.getComponentType());
+      for (Constructor c : type.getConstructors()) {
+         try {
+            Class[] params = c.getParameterTypes();
+            switch (params.length) {
+               case 0:
+                  if (value == null)
+                     return (T)c.newInstance();
+                  break;
+               case 1:
+                  if (value != null && params[0].isAssignableFrom(valueType))
+                     return (T)c.newInstance(value);
+            }
+         }
+         catch (Exception e) {}
+      }
+      return (T)newInstance(toClass(value));
    }
 
    private ClassLoader getClassLoader() {
@@ -363,6 +403,46 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
       return dst;
    }
 
+   private Map toMap(Object value) {
+      if (value instanceof Map)
+         return (Map)value;
+      if (value == null)
+         return new LinkedHashMap();
+      if (value instanceof Collection) {
+         Map map = new LinkedHashMap();
+         for (Object e : (Collection)value)
+            addEntry(map, e);
+         return map;
+      }
+      if (value.getClass().isArray()) {
+         Map map = new LinkedHashMap();
+         int length = Array.getLength(value);
+         for (int i = 0; i < length; i++)
+            addEntry(map, Array.get(value, i));
+         return map;
+      }
+      try {
+         Class beanClass = getClassLoader().loadClass("org.apache.commons.beanutils.BeanMap");
+         return (Map)beanClass.getConstructor(Object.class).newInstance(value);
+      }
+      catch (Exception e) { return null; }
+   }
+
+   private void addEntry(Map map, Object value) {
+      if (value instanceof Expression)
+         addEntry(map, ((Expression)value).getValue());
+      else if (value instanceof Reference) {
+         Reference r = (Reference)value;
+         map.put(r.getName(), r.getValue());
+      }
+      else if (value instanceof Map.Entry) {
+         Map.Entry e = (Map.Entry)value;
+         map.put(e.getKey(), e.getValue());
+      }
+      else
+         map.put(map.size(), value);
+   }
+
    private String toString(Object value) {
       if (value == null)
          return "null";
@@ -435,18 +515,6 @@ public class Bootstrap implements ScriptContextFactory, Converter, Configuration
       if (value instanceof InputStream)
          return new InputStreamReader((InputStream)value);
       return new InputStreamReader(toInputStream(value));
-   }
-
-   private static void printDebugInfo(Configuration config) {
-      System.out.println("configuration = "+getProperties(config));
-      config.getEngineManager().getBindings().put(Configuration.class.getName(), config);
-      System.out.println("handlers = "+config.getHandlerFactory().getMimetypes());
-      Collection<String> mimetypes = new ArrayList<>();
-      for (ScriptEngineFactory factory : config.getEngineManager().getEngineFactories())
-         mimetypes.addAll(factory.getMimeTypes());
-      System.out.println("engines = "+mimetypes);
-      Map map = config.getConverter().convert(config.getTypeMap(), Map.class);
-      System.out.println("type mapping = "+map.get("mapping"));
    }
 
    private static Map getProperties(Object obj) {

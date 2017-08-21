@@ -1,10 +1,10 @@
 package org.regadou.factory;
 
-import com.google.inject.Inject;
 import org.regadou.reference.UrlReference;
 import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.List;
+import javax.inject.Inject;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
 import org.regadou.damai.ResourceFactory;

@@ -21,7 +21,7 @@ public interface Configuration {
 
    MimeHandlerFactory getHandlerFactory();
 
-   PropertyFactory getPropertyFactory();
+   PropertyManager getPropertyManager();
 
    ResourceManager getResourceManager();
 

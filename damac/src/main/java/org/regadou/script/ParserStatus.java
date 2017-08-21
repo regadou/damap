@@ -1,18 +1,19 @@
 package org.regadou.script;
 
 import java.util.*;
-import javax.script.ScriptContext;
 
+/*
+This class is really not thread-safe and must only be used
+     on a single thread for a single parsing phase
+*/
 public class ParserStatus {
-   public ScriptContext cx;
    public int pos;
-   public char end;
+   public char end, end2;
    public char[] chars;
    public Object previousToken;
    public Set<Integer> lines = new TreeSet<>();
 
-   public ParserStatus(ScriptContext cx, String txt) {
-      this.cx = cx;
+   public ParserStatus(String txt) {
       this.chars = (txt == null) ? new char[0] : txt.toCharArray();
    }
 

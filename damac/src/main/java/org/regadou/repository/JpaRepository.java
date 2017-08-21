@@ -1,10 +1,10 @@
 package org.regadou.repository;
 
-import com.google.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
+import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
@@ -13,6 +13,7 @@ import javax.persistence.Query;
 import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.script.Bindings;
+import org.regadou.damai.Expression;
 import org.regadou.damai.Repository;
 
 public class JpaRepository implements Repository {
@@ -60,6 +61,15 @@ public class JpaRepository implements Repository {
    @Override
    public Collection<Bindings> getAll(String type) {
       return query(type, "select e from " + type + " e", null);
+   }
+
+   @Override
+   public Collection<Bindings> getAny(String type, Expression filter) {
+      String jpql = "select e from " + type + " e";
+      List params = null;
+      if (filter != null)
+         jpql += " where " + getClause(filter);
+      return query(type, jpql, params);
    }
 
    @Override
@@ -144,5 +154,9 @@ public class JpaRepository implements Repository {
       } catch (NoSuchMethodException | SecurityException | IllegalAccessException | InvocationTargetException e) {
          throw new RuntimeException(e);
       }
+   }
+
+   private String getClause(Expression exp) {
+      throw new RuntimeException("Filter not supported in JpaRepository");
    }
 }

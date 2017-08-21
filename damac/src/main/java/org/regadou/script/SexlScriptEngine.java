@@ -116,7 +116,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
    @Override
    public CompiledScript compile(String script) throws ScriptException {
-      return parseExpression(new ParserStatus(getContext(), script));
+      return parseExpression(new ParserStatus(script));
     }
 
    @Override
@@ -124,43 +124,43 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       return compile(new StringInput(reader).toString());
    }
 
-   public boolean isAlpha(char c) {
+   private boolean isAlpha(char c) {
       return alphaSymbols.indexOf(c) >= 0 || isLetter(c) || isAccent(c);
    }
 
-   public boolean isSymbol(char c) {
+   private boolean isSymbol(char c) {
       return symbolChars.indexOf(c) >= 0;
    }
 
-   public boolean isOpener(char c) {
+   private boolean isOpener(char c) {
       return openingChars.indexOf(c) >= 0;
    }
 
-   public boolean isCloser(char c) {
+   private boolean isCloser(char c) {
       return closingChars.indexOf(c) >= 0;
    }
 
-   public boolean isQuote(char c) {
+   private boolean isQuote(char c) {
       return quotingChars.indexOf(c) >= 0;
    }
 
-   public boolean isPunctuation(char c) {
+   private boolean isPunctuation(char c) {
       return punctuationChars.indexOf(c) >= 0;
    }
 
-   public boolean isBlank(char c) {
+   private boolean isBlank(char c) {
       return c <= 0x20 || (c >= 0x7F && c <= 0xA0);
    }
 
-   public boolean isDigit(char c) {
+   private boolean isDigit(char c) {
       return (c >= '0' && c <= '9');
    }
 
-   public boolean isLetter(char c) {
+   private boolean isLetter(char c) {
       return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
    }
 
-   public boolean isAccent(char c) {
+   private boolean isAccent(char c) {
       return c >= 0xC0 && c <= 0x2AF;
    }
 
@@ -172,11 +172,11 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
          cx = new SimpleScriptContext();
          cx.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
       }
-      return parseExpression(new ParserStatus(cx, txt)).getValue(cx);
+      return parseExpression(new ParserStatus(txt)).getValue(cx);
    }
 
    private Object execute(String txt, ScriptContext context) {
-      return parseExpression(new ParserStatus(context, txt)).getValue(getContext());
+      return parseExpression(new ParserStatus(txt)).getValue(context);
    }
 
    private CompiledExpression parseExpression(ParserStatus status) {
@@ -218,8 +218,6 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       else if (isCloser(c)) {
          throw new RuntimeException("Invalid end of sequence "+c);
       }
-      else if (isDigit(c))
-         return parseNumber(status);
       else if (isDigit(c))
          return parseNumber(status);
       else if (isAlpha(c))
@@ -502,7 +500,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
       String txt = new String(status.chars, start, length);
 
-      return new ScriptContextReference(status.cx, txt);
+      return new ScriptContextProperty(configuration.getContextFactory(), txt);
    }
 
    private Object parseSymbol(ParserStatus status) {
@@ -524,7 +522,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       }
 
       String txt = new String(status.chars, start, length);
-      return new ScriptContextReference(status.cx, txt);
+      return new ScriptContextProperty(configuration.getContextFactory(), txt);
    }
 
    private Object parseComment(ParserStatus status, char end) {

@@ -16,25 +16,28 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import org.regadou.damai.Configuration;
+import org.regadou.damai.ScriptContextFactory;
+import org.regadou.reference.ReferenceHolder;
 import org.regadou.script.InteractiveScript;
 
 public class TcpServer implements Closeable {
 
    private String address;
-   private Configuration configuration;
+   private ScriptContextFactory contextFactory;
+   private ScriptEngineManager engineManager;
    private ServerSocket server;
    private Map<Socket,InteractiveScript> clients = new LinkedHashMap<>();
    private long sleep = 1000;
    private AtomicBoolean running = new AtomicBoolean(false);
 
-   public TcpServer(String address, Configuration configuration) {
-      this(address, configuration, true);
+   public TcpServer(String address, ScriptEngineManager engineManager, ScriptContextFactory contextFactory) {
+      this(address, engineManager, contextFactory, true);
    }
 
-   public TcpServer(String address, Configuration configuration, boolean listen) {
+   public TcpServer(String address, ScriptEngineManager engineManager, ScriptContextFactory contextFactory, boolean listen) {
       this.address = address;
-      this.configuration = configuration;
+      this.engineManager = engineManager;
+      this.contextFactory = contextFactory;
       if (listen)
          listen();
    }
@@ -128,10 +131,12 @@ public class TcpServer implements Closeable {
          ScriptEngine engine = getScriptEngine(reader, writer);
          if (engine != null) {
             String name = s.getRemoteSocketAddress().toString().replace("/", "");
-            ScriptContext cx = engine.getContext();
-            cx.setReader(reader);
-            cx.setWriter(writer);
-            InteractiveScript repl = new InteractiveScript(configuration, engine, "\n? ", "= ", new String[]{"exit", "quit"});
+            ScriptContext cx = contextFactory.getScriptContext(
+               new ReferenceHolder("reader", reader),
+               new ReferenceHolder("writer", writer),
+               new ReferenceHolder("errorWriter", writer)
+            );
+            InteractiveScript repl = new InteractiveScript(contextFactory, engine, "\n? ", "= ", new String[]{"exit", "quit"});
             clients.put(s, repl);
             repl.run(cx);
          }
@@ -140,7 +145,6 @@ public class TcpServer implements Closeable {
    }
 
    private ScriptEngine getScriptEngine(BufferedReader reader, Writer writer) throws IOException {
-      ScriptEngineManager manager = configuration.getEngineManager();
       ScriptEngine engine = null;
       while (engine == null) {
          writer.write("\nLanguage: ");
@@ -150,9 +154,9 @@ public class TcpServer implements Closeable {
             break;
          lang = lang.trim();
          if (!lang.isEmpty()) {
-            engine = manager.getEngineByExtension(lang);
+            engine = engineManager.getEngineByExtension(lang);
             if (engine == null) {
-               engine = manager.getEngineByName(lang);
+               engine = engineManager.getEngineByName(lang);
                if (engine == null) {
                   writer.write("Invalid language "+lang+"\n");
                   writer.flush();

@@ -3,6 +3,7 @@ package org.regadou.system;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -10,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
+import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -28,9 +30,12 @@ public class Main {
       Map<String,String> options = new LinkedHashMap<>();
       args = parseArgs(args, options);
       if (args != null) {
-         Configuration conf = new Context(new ReferenceHolder("input", System.in),
-                                          new ReferenceHolder("output", System.out),
-                                          new ReferenceHolder("error", System.err));
+         Configuration conf = new GuiceConfiguration();
+         ScriptContext cx = conf.getContextFactory().getScriptContext(
+            new ReferenceHolder("reader", new BufferedReader(new InputStreamReader(System.in))),
+            new ReferenceHolder("writer", new OutputStreamWriter(System.out)),
+            new ReferenceHolder("errorWriter", new OutputStreamWriter(System.err))
+         );
          ScriptEngineManager scriptManager = conf.getEngineManager();
          for (int a = 0; a < args.length; a++) {
             Reference r = conf.getResourceManager().getResource(args[a]);
@@ -69,7 +74,7 @@ public class Main {
          if (script != null)
             engine.eval(script);
          if (interactive)
-            new InteractiveScript(conf, engine, "\n? ", "= ", new String[]{"exit", "quit"}).run(conf.getContextFactory().getScriptContext());
+            new InteractiveScript(conf.getContextFactory(), engine, "\n? ", "= ", new String[]{"exit", "quit"}).run(conf.getContextFactory().getScriptContext());
       }
       else {
          StringBuilder buffer = new StringBuilder();

@@ -23,6 +23,7 @@ import org.regadou.damai.MimeHandler;
 import org.regadou.damai.MimeHandlerFactory;
 import org.regadou.script.ScriptEngineMimeHandler;
 import org.regadou.util.CsvHandler;
+import org.regadou.util.HtmlHandler;
 import org.regadou.util.JsonHandler;
 import org.regadou.util.StringInput;
 import org.w3c.dom.Node;
@@ -77,7 +78,7 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
          }, (output, charset, value) -> {
                output.write(String.valueOf(value).getBytes(charset));
                output.flush();
-         }, "text/plain", "text/html"),
+         }, "text/plain"),
 
          new DefaultMimeHandler((input, charset) -> {
             Properties p = new Properties();
@@ -116,9 +117,11 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
                output.flush();
          }, new TreeSet<>(Arrays.asList(ImageIO.getReaderMIMETypes())).toArray(new String[0])),
 
-         new JsonHandler(configuration),
+         new HtmlHandler(configuration),
 
-         new CsvHandler(configuration)
+         new JsonHandler(),
+
+         new CsvHandler(configuration.getConverter())
       };
    }
 }

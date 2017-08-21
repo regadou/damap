@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import org.regadou.damai.Configuration;
+import org.regadou.damai.Converter;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.MimeHandlerInput;
 import org.regadou.damai.MimeHandlerOutput;
@@ -17,10 +17,10 @@ public class CsvHandler implements MimeHandler {
 
    private static final String[] mimetypes = new String[]{"text/csv"};
    private final char[] splitters = new char[]{',', ';', '\t'};
-   private Configuration configuration;
+   private Converter converter;
 
-   public CsvHandler(Configuration configuration) {
-      this.configuration = configuration;
+   public CsvHandler(Converter converter) {
+      this.converter = converter;
    }
 
    @Override
@@ -117,9 +117,9 @@ public class CsvHandler implements MimeHandler {
       else if (obj instanceof byte[])
          return (byte[])obj;
       else if (obj.getClass().isArray())
-         rows = configuration.getConverter().convert(obj, Collection.class).toArray();
+         rows = converter.convert(obj, Collection.class).toArray();
       else if (obj instanceof Iterable)
-         rows = configuration.getConverter().convert(obj, Collection.class).toArray();
+         rows = converter.convert(obj, Collection.class).toArray();
       else if (obj instanceof Number || obj instanceof Boolean)
          return obj.toString().getBytes(charset);
       else
@@ -140,13 +140,13 @@ public class CsvHandler implements MimeHandler {
       else if (first instanceof byte[])
          dst.add(splitString(new String((byte[])first, charset), splitter));
       else if (first.getClass().isArray())
-         dst.add(configuration.getConverter().convert(obj, Collection.class).toArray());
+         dst.add(converter.convert(obj, Collection.class).toArray());
       else if (obj instanceof Iterable)
-         dst.add(configuration.getConverter().convert(obj, Collection.class).toArray());
+         dst.add(converter.convert(obj, Collection.class).toArray());
       else if (obj instanceof Number || obj instanceof Boolean)
          dst.add(new Object[]{obj.toString()});
       else {
-         Map map = configuration.getConverter().convert(first, Map.class);
+         Map map = converter.convert(first, Map.class);
          fields = new ArrayList(map.keySet());
          dst.add(map.values().toArray());
       }
@@ -155,7 +155,7 @@ public class CsvHandler implements MimeHandler {
          Object row = rows[r];
          if (fields != null) {
             List cells = new ArrayList();
-            Map map = configuration.getConverter().convert(row, Map.class);
+            Map map = converter.convert(row, Map.class);
             for (Object f : fields)
                cells.add(map.get(f));
             for (Object key : map.keySet()) {
@@ -175,13 +175,13 @@ public class CsvHandler implements MimeHandler {
          else if (row instanceof byte[])
             dst.add(splitString(new String((byte[])row), splitter));
          else if (row.getClass().isArray())
-            dst.add(configuration.getConverter().convert(row, Collection.class).toArray());
+            dst.add(converter.convert(row, Collection.class).toArray());
          else if (row instanceof Iterable)
-            dst.add(configuration.getConverter().convert(row, Collection.class).toArray());
+            dst.add(converter.convert(row, Collection.class).toArray());
          else if (row instanceof Number || row instanceof Boolean)
             dst.add(new Object[]{row.toString()});
          else
-            dst.add(configuration.getConverter().convert(row, Map.class).values().toArray());
+            dst.add(converter.convert(row, Map.class).values().toArray());
       }
 
       if (fields != null)

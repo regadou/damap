@@ -1,10 +1,8 @@
 package org.regadou.damai;
 
-import java.util.Map;
+public interface PropertyFactory<T> {
 
-public interface PropertyFactory {
+   Property getProperty(T value, String name);
 
-   Map<String,Property> getProperties(Object value);
-
-   void setProperties(Class type, Action<Map<String,Property>> function);
+   String[] getProperties(T value);
 }

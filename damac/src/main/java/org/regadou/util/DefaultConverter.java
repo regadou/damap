@@ -1,12 +1,11 @@
-package org.regadou.factory;
+package org.regadou.util;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
-import org.regadou.util.ClassIterator;
 import org.regadou.damai.Converter;
 
-public class DefaultConverterManager implements Converter {
+public class DefaultConverter implements Converter {
 
    // first key is targetClass, second key is sourceClass
    private Map<Class,Map<Class,Function>> functionsMap = new LinkedHashMap<>();

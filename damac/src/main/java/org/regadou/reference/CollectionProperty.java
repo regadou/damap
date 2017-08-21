@@ -12,7 +12,8 @@ import org.regadou.damai.Property;
 
 public class CollectionProperty implements Property {
 
-   public static final List<String> lengthNames = Arrays.asList(new String[]{"length", "size", "count"});
+   public static final List<String> SIZE_NAMES = Arrays.asList(new String[]{"length", "size", "count"});
+   public static final String SUBTYPE_NAME = "subtype";
 
    private Collection collection;
    private Object array;
@@ -74,11 +75,17 @@ public class CollectionProperty implements Property {
    private void setNameAndFunctions(Object key) {
       String name = (key == null) ? null : key.toString();
       if (name != null) {
-         if (lengthNames.contains(name)) {
+         if (SIZE_NAMES.contains(name)) {
             if (collection != null)
                getter = () -> collection.size();
             else
                getter = () -> Array.getLength(array);
+         }
+         else if (SUBTYPE_NAME.contains(name)) {
+            if (collection != null)
+               getter = () -> Object.class;
+            else
+               getter = () -> array.getClass().getComponentType();
          }
          else if (setIndex(key)) {
             if (collection != null) {

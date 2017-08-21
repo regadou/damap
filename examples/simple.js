@@ -7,5 +7,9 @@ while (it.hasNext()) {
    if (m.getParameterCount() == 0 && m.getName().startsWith("get"))
       print(m.getName().substring(3)+" = "+m.invoke(conf));
 }
+print("context = "+conf.getContextFactory().getScriptContext());
+var global = this["nashorn.global"];
+for (var i in global)
+   print(i+" = "+global[i]);
 "";
 

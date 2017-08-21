@@ -1,28 +1,34 @@
 package org.regadou.reference;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import javax.script.ScriptContext;
 import org.regadou.damai.Action;
+import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Operator;
-import org.regadou.damai.Property;
-import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Reference;
+import org.regadou.script.GenericComparator;
 
 public class PathExpression implements Expression {
 
-   private PropertyFactory factory;
+   private Configuration configuration;
+   private GenericComparator comparator;
    private Object root;
-   private List path;
+   private List path = new ArrayList();
    private String text;
 
-   public PathExpression(PropertyFactory factory, Object root, Object[] path) {
-      this.factory = factory;
+   public PathExpression(Configuration configuration, Object root, Object[] path) {
+      this.configuration = configuration;
+      this.comparator = new GenericComparator(configuration);
       this.root = root;
-      this.path = new ArrayList(Arrays.asList((path == null) ? new Object[0] : path));
+      if (path != null) {
+         for (Object part : path)
+            this.path.add(normalizeElement(part));
+      }
    }
 
    @Override
@@ -46,22 +52,21 @@ public class PathExpression implements Expression {
 
    @Override
    public void addToken(Reference token) {
-      path.add(token);
+      path.add(normalizeElement(token));
       text = null;
    }
 
    @Override
    public Reference getValue(ScriptContext context) {
-      Object value = root;
-      if (!path.isEmpty()) {
-         for (Object part : path) {
-            if (value == null)
-               break;
-            Property p = getProperty(root, part);
-            value = (p == null) ? null : p.getValue();
-         }
+      Reference result = new ReferenceHolder(null, root, true);
+      for (Object part : path) {
+         if (context == null)
+            context = configuration.getContextFactory().getScriptContext();
+         result = getProperty(result.getValue(), part, context);
+         if (result == null)
+            return null;
       }
-      return (value instanceof Reference) ? (Reference)value : new ReferenceHolder(null, value);
+      return result;
    }
 
    @Override
@@ -95,11 +100,47 @@ public class PathExpression implements Expression {
          result.setValue(value);
    }
 
-   private Property getProperty(Object value, Object property) {
+   private Object normalizeElement(Object obj) {
+      if (obj instanceof CharSequence || obj instanceof Number || obj == null)
+         return obj;
+      if (obj.getClass().isArray())
+         return normalizeArray(obj);
+      if (obj instanceof Collection)
+         return normalizeArray(((Collection)obj).toArray());
+      if (obj instanceof Map)
+         return new MapExpression((Map)obj, configuration);
+      if (obj instanceof Expression)
+         return obj;
+      if (obj instanceof Reference)
+         return normalizeElement(((Reference)obj).getValue());
+      return obj;
+   }
+
+   private Object normalizeArray(Object obj) {
+      switch (Array.getLength(obj)) {
+         case 0:
+            return null;
+         case 1:
+            return Array.get(obj, 0);
+         default:
+            return obj;
+      }
+   }
+
+   private Reference getProperty(Object value, Object property, ScriptContext cx) {
       if (property == null)
          return null;
-      Map<String, Property> map = factory.getProperties(value);
-      return (map == null) ? null : map.get(property);
-      //TODO: check if property is a reference of a charsequence or an array|collection|map
+      if (property.getClass().isArray()) {
+         int length = Array.getLength(property);
+         List values = new ArrayList(length);
+         for (int i = 0; i < length; i++)
+            values.add(getProperty(value, Array.get(property, i), cx));
+         return new ReferenceHolder(null, values, true);
+      }
+      if (property instanceof Expression) {
+         Collection result = comparator.getFilteredCollection(value, (Expression)property);
+         return new ReferenceHolder(null, result, true);
+      }
+      return configuration.getPropertyManager().getProperty(value, String.valueOf(property));
    }
 }

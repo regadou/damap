@@ -14,20 +14,21 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
-import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
+import org.regadou.damai.Reference;
+import org.regadou.damai.ScriptContextFactory;
 
 public class InteractiveScript implements Closeable {
 
-   private Configuration configuration;
+   private ScriptContextFactory contextFactory;
    private ScriptEngine engine;
    private String inputPrompt;
    private String resultPrefix;
    private List<String> endWords;
    private AtomicBoolean running = new AtomicBoolean(false);
 
-   public InteractiveScript(Configuration configuration, ScriptEngine engine, String inputPrompt, String resultPrefix, String[] endWords) {
-      this.configuration = configuration;
+   public InteractiveScript(ScriptContextFactory contextFactory, ScriptEngine engine, String inputPrompt, String resultPrefix, String[] endWords) {
+      this.contextFactory = contextFactory;
       this.engine = engine;
       this.inputPrompt = (inputPrompt == null) ? "" : inputPrompt;
       this.resultPrefix = (resultPrefix == null) ? "" : resultPrefix;
@@ -46,7 +47,7 @@ public class InteractiveScript implements Closeable {
       if (context == null) {
          context = engine.getContext();
          if (context == null)
-            context = configuration.getContextFactory().getScriptContext();
+            context = contextFactory.getScriptContext();
       }
       BufferedReader reader = getReader(context);
       Writer writer = getWriter(context);
@@ -65,8 +66,12 @@ public class InteractiveScript implements Closeable {
                running.set(false);
             else if (!txt.isEmpty()) {
                Object result = engine.eval(txt, context);
-               while (result instanceof Expression)
-                  result = ((Expression)result).getValue(context);
+               while (result instanceof Reference) {
+                  if (result instanceof Expression)
+                     result = ((Expression)result).getValue(context);
+                  else
+                     result = ((Reference)result).getValue();
+               }
                if (result != null) {
                   writer.write(resultPrefix+result+"\n");
                   writer.flush();

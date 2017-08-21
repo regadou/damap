@@ -2,32 +2,41 @@ package org.regadou.repository;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
-import org.regadou.damai.ResourceFactory;
 import org.regadou.reference.ReferenceHolder;
+import org.regadou.script.GenericComparator;
 
 public class RepositoryMap implements Map<String,RepositoryType> {
 
    private Repository repo;
+   private Configuration configuration;
+   private Comparator comparator;
+
 
    public RepositoryMap(Repository repo) {
-      this.repo = repo;
+      this(repo, null);
    }
 
-   public RepositoryMap(String url, Configuration cfg) {
-      ResourceFactory f = cfg.getResourceManager().getFactory(url);
-      if (f != null) {
-         Reference r = f.getResource(url);
-         Object value = (r == null) ? null : r.getValue();
-         if (value instanceof Repository) {
-            this.repo = (Repository)value;
-            return;
-         }
+   public RepositoryMap(Repository repo, Configuration configuration) {
+      this.repo = repo;
+      this.configuration = configuration;
+      this.comparator = new GenericComparator(configuration);
+   }
+
+   public RepositoryMap(String url, Configuration configuration) {
+      this.configuration = configuration;
+      this.comparator = new GenericComparator(configuration);
+      Reference r = configuration.getResourceManager().getResource(url);
+      Object value = (r == null) ? null : r.getValue();
+      if (value instanceof Repository) {
+         this.repo = (Repository)value;
+         return;
       }
       throw new RuntimeException("Invalid url for refering a repository: "+url);
    }
@@ -71,7 +80,7 @@ public class RepositoryMap implements Map<String,RepositoryType> {
    public RepositoryType get(Object key) {
       String type = key.toString();
       if (repo.getTypes().contains(type))
-         return new RepositoryType(type, repo);
+         return new RepositoryType(type, repo, comparator);
       return null;
    }
 
@@ -100,7 +109,7 @@ public class RepositoryMap implements Map<String,RepositoryType> {
    public Collection<RepositoryType> values() {
       Collection<RepositoryType> types = new ArrayList<>();
       for (String type : repo.getTypes())
-         types.add(new RepositoryType(type, repo));
+         types.add(new RepositoryType(type, repo, comparator));
       return types;
    }
 
@@ -108,7 +117,7 @@ public class RepositoryMap implements Map<String,RepositoryType> {
    public Set<Entry<String, RepositoryType>> entrySet() {
       Set<Entry<String, RepositoryType>> entries = new LinkedHashSet<>();
       for (String type : repo.getTypes())
-         entries.add(new ReferenceHolder(type, new RepositoryType(type, repo)).toMapEntry());
+         entries.add(new ReferenceHolder(type, new RepositoryType(type, repo, comparator)).toMapEntry());
       return entries;
    }
 }

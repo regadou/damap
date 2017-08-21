@@ -14,20 +14,27 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import javax.script.Bindings;
 import javax.script.SimpleBindings;
-import org.regadou.damai.Configuration;
+import org.regadou.damai.Action;
+import org.regadou.damai.Converter;
+import org.regadou.damai.Expression;
+import org.regadou.damai.Operator;
+import org.regadou.damai.Property;
+import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
+import org.regadou.script.OperatorAction;
 
 public class JdbcRepository implements Repository, Closeable {
 
    private Map<String, String[]> primaryKeys = new LinkedHashMap<>();
+   private Map<String, Map<String, Class>> columnTypes = new LinkedHashMap<>();
    private JdbcConnectionInfo info;
-   private Configuration configuration;
+   private Converter converter;
    private Connection connection;
    private Statement statement;
 
-   public JdbcRepository(JdbcConnectionInfo info, Configuration configuration) {
+   public JdbcRepository(JdbcConnectionInfo info, Converter converter) {
       this.info = info;
-      this.configuration = configuration;
+      this.converter = converter;
       try {
          openConnection();
          DatabaseMetaData dmd = connection.getMetaData();
@@ -106,9 +113,18 @@ public class JdbcRepository implements Repository, Closeable {
    }
 
    @Override
+   public Collection<Bindings> getAny(String type, Expression filter) {
+      String sql = "select * from " + type;
+      if (filter != null && filter.getAction() != null)
+         sql += " where " + getClause(filter);
+      try { return getRows(statement.executeQuery(sql)); }
+      catch (SQLException e) { throw new RuntimeException(e); }
+   }
+
+   @Override
    public Bindings getOne(String type, Object id) {
-      Object[] params = configuration.getConverter().convert(id, Object[].class);
-      String sql = "select * from " + type +  getFilter(getMap(primaryKeys.get(type), params));
+      Object[] params = converter.convert(id, Object[].class);
+      String sql = "select * from " + type +  getFilter(type, getMap(primaryKeys.get(type), params));
       try {
          Collection<Bindings>  entities = getRows(statement.executeQuery(sql));
          return entities.isEmpty() ? null : entities.iterator().next();
@@ -118,7 +134,7 @@ public class JdbcRepository implements Repository, Closeable {
 
    @Override
    public Bindings save(String type, Bindings entity) {
-      String filter = getFilter(getKeys(primaryKeys.get(type), entity));
+      String filter = getFilter(type, getKeys(primaryKeys.get(type), entity));
       try {
          String sql = filter.isEmpty()
             ? "insert into " + type + " ("
@@ -133,8 +149,8 @@ public class JdbcRepository implements Repository, Closeable {
 
    @Override
    public boolean delete(String type, Object id) {
-      Object[] params = configuration.getConverter().convert(id, Object[].class);
-      String sql = "delete from " + type + getFilter(getMap(primaryKeys.get(type), params));
+      Object[] params = converter.convert(id, Object[].class);
+      String sql = "delete from " + type + getFilter(type, getMap(primaryKeys.get(type), params));
       try { return statement.executeUpdate(sql) > 0; }
       catch (SQLException e) { throw new RuntimeException(e); }
    }
@@ -169,12 +185,15 @@ public class JdbcRepository implements Repository, Closeable {
       return dst;
    }
 
-   private String getFilter(Bindings filter) {
+   private String getFilter(String table, Bindings filter) {
       String sql = "";
       for (String key : filter.keySet()) {
          Object value = filter.get(key);
          if (value == null)
             return "";
+         Class type = getColumnType(table, key);
+         if (!type.isAssignableFrom(value.getClass()))
+            value = converter.convert(value, type);
          sql += (sql.isEmpty() ? " where " : " and ")
               + key + printValue(value, true);
       }
@@ -199,23 +218,79 @@ public class JdbcRepository implements Repository, Closeable {
             Object val = rs.getObject(c);
             row.put(col, val);
          }
+         rows.add(row);
       }
       rs.close();
       return rows;
    }
 
+   private Class getColumnType(String table, String column) {
+      Map<String, Class> columns = columnTypes.get(table);
+      if (columns == null) {
+         try {
+            columnTypes.put(table, columns = new LinkedHashMap<>());
+            for (Bindings row : getRows(connection.getMetaData().getColumns(info.getDatabase(),null,table,null)))
+               columns.put(row.get("column_name").toString(), getJavaType(row.get("data_type")));
+         }
+         catch (SQLException e) {
+            String msg = "Error looking for type of "+table+"."+column;
+            throw new RuntimeException(msg, e);
+         }
+      }
+      Class type = columns.get(column);
+      return (type == null) ? Object.class : type;
+   }
+
+   private String getClause(Expression exp) {
+      Reference[] tokens = exp.getTokens();
+      if (tokens == null || tokens.length == 0)
+         tokens = new Reference[2];
+      else if (tokens.length < 2)
+         tokens = new Reference[]{tokens[0], null};
+      Action action = exp.getAction();
+      String sql = "";
+      for (Object token : tokens) {
+         if (!(token instanceof Expression) && !(token instanceof Property)) {
+            while (token instanceof Reference)
+               token = ((Reference)token).getValue();
+         }
+         if (!sql.isEmpty())
+            sql += getOperator(action, token);
+         sql += printValue(token, false);
+      }
+      return sql;
+   }
+
    private String printValue(Object value, boolean printOperator) {
-      if (value == null)
-         return printOperator ? " is null" : "null";
+      if (value instanceof Expression) {
+         Expression exp = (Expression)value;
+         if (exp.getAction() != null)
+            return (printOperator ? " = " : "") + "(" + getClause(exp) + ")";
+         value = exp.getTokens();
+      }
+      if (value instanceof Property)
+         return ((Property)value).getName();
+      while (value instanceof Reference)
+         value = ((Reference)value).getValue();
       if (value instanceof Collection)
          value = ((Collection)value).toArray();
       if (value.getClass().isArray()) {
-         StringJoiner joiner = new StringJoiner(", ", printOperator ? " in (" : "(", ")");
          int length = Array.getLength(value);
-         for (int i = 0; i < length; i++)
-            joiner.add(printValue(Array.get(value, i), false));
-         return joiner.toString();
+         switch (length) {
+            case 0:
+               value = null;
+               break;
+            case 1:
+               return printValue(Array.get(value, 0), printOperator);
+            default:
+               StringJoiner joiner = new StringJoiner(", ", printOperator ? " in (" : "(", ")");
+               for (int i = 0; i < length; i++)
+                  joiner.add(printValue(Array.get(value, i), false));
+               return joiner.toString();
+         }
       }
+      if (value == null)
+         return printOperator ? " IS NULL " : " NULL ";
       String op = printOperator ? " = " : "";
       if (value instanceof Boolean)
          return op + (info.getVendor().isHasBoolean() ? value.toString() : ((Boolean)value ? "1" : "0"));
@@ -262,6 +337,107 @@ public class JdbcRepository implements Repository, Closeable {
       }
       catch (Exception e) {
          throw new IOException("Connection to " + info.getUrl() + " failed: " + e.toString(), e);
+      }
+   }
+
+   private Class getJavaType(Object sqlType) {
+      switch (Integer.parseInt(sqlType.toString())) {
+         case java.sql.Types.ARRAY:
+            return Object[].class;
+         case java.sql.Types.BIGINT:
+            return Long.class;
+         case java.sql.Types.INTEGER:
+            return Integer.class;
+         case java.sql.Types.SMALLINT:
+            return Short.class;
+         case java.sql.Types.TINYINT:
+            return Byte.class;
+         case java.sql.Types.DECIMAL:
+         case java.sql.Types.DOUBLE:
+         case java.sql.Types.FLOAT:
+         case java.sql.Types.NUMERIC:
+         case java.sql.Types.REAL:
+            return Double.class;
+         case java.sql.Types.BINARY:
+         case java.sql.Types.BLOB:
+         case java.sql.Types.VARBINARY:
+            return byte[].class;
+         case java.sql.Types.BIT:
+         case java.sql.Types.BOOLEAN:
+            return Boolean.class;
+         case java.sql.Types.CHAR:
+         case java.sql.Types.CLOB:
+         case java.sql.Types.LONGNVARCHAR:
+         case java.sql.Types.LONGVARBINARY:
+         case java.sql.Types.LONGVARCHAR:
+         case java.sql.Types.NCHAR:
+         case java.sql.Types.NCLOB:
+         case java.sql.Types.NVARCHAR:
+         case java.sql.Types.VARCHAR:
+            return String.class;
+         case java.sql.Types.NULL:
+            return Void.class;
+         case java.sql.Types.DATE:
+            return java.sql.Date.class;
+         case java.sql.Types.TIMESTAMP:
+         case java.sql.Types.TIMESTAMP_WITH_TIMEZONE:
+            return java.util.Date.class;
+         case java.sql.Types.TIME:
+         case java.sql.Types.TIME_WITH_TIMEZONE:
+            return java.sql.Time.class;
+         case java.sql.Types.DATALINK:
+         case java.sql.Types.DISTINCT:
+         case java.sql.Types.JAVA_OBJECT:
+         case java.sql.Types.OTHER:
+         case java.sql.Types.REF:
+         case java.sql.Types.REF_CURSOR:
+         case java.sql.Types.ROWID:
+         case java.sql.Types.SQLXML:
+         case java.sql.Types.STRUCT:
+         default:
+            return Object.class;
+      }
+   }
+
+   private String getOperator(Action action, Object value) {
+      Operator op;
+      if (action instanceof Operator)
+         op = (Operator)action;
+      else if (action instanceof OperatorAction)
+         op = ((OperatorAction)action).getOperator();
+      else
+         op = Operator.valueOf(action.getName().toUpperCase());
+      switch (op) {
+         case ADD: return " + ";
+         case SUBTRACT: return " - ";
+         case MULTIPLY: return " * ";
+         case DIVIDE: return " / ";
+         case MODULO: return " % ";
+         case LESSER: return " < ";
+         case LESSEQ: return " <= ";
+         case GREATER: return " > ";
+         case GREATEQ: return " >= ";
+         case NOTEQUAL: return " <> ";
+         case AND: return " AND ";
+         case OR: return " OR ";
+         case NOT: return " NOT ";
+         case IN: return " IN ";
+         case IS:
+         case EQUAL:
+            return (value == null) ? " IS " : " = ";
+         case EXPONANT:
+         case ROOT:
+         case LOG:
+         case FROM:
+         case TO:
+         case DO:
+         case HAVE:
+         case IF:
+         case ELSE:
+         case WHILE:
+            throw new RuntimeException("Operator "+op+" is not supported for JDBC");
+         default:
+            throw new RuntimeException("Unknown operator "+op);
       }
    }
 }
