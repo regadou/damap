@@ -4,13 +4,13 @@ import java.lang.reflect.Array;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public class PrimitiveArrayIterator<T> implements Iterator<T> {
+public class ArrayIterator<T> implements Iterator<T> {
 
    private Object array;
    private int length;
    private int at;
 
-   public PrimitiveArrayIterator(Object obj) {
+   public ArrayIterator(Object obj) {
       length = Array.getLength(obj);
       array = obj;
    }

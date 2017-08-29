@@ -43,13 +43,11 @@ public class Bootstrap implements Configuration, Converter {
    public static void main(String[] args) throws IOException {
       BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
       Writer writer = new OutputStreamWriter(System.out);
-      Writer error = new OutputStreamWriter(System.err);
       Configuration config = new Bootstrap(checkDebugArg(args, reader));
-      ScriptContext cx = config.getContextFactory().getScriptContext(
-         newReference("reader", reader),
-         newReference("writer", writer),
-         newReference("errorWriter", error)
-      );
+      ScriptContext cx = config.getContextFactory().getScriptContext();
+      cx.setReader(reader);
+      cx.setWriter(writer);
+      cx.setErrorWriter(new OutputStreamWriter(System.err));
       if (DEBUG)
          printDebugInfo(config, writer);
       URL init = config.getInitScript();
@@ -142,6 +140,8 @@ public class Bootstrap implements Configuration, Converter {
          return src;
    }
 
+   // first key is targetClass, second key is sourceClass
+   private Map<Class,Map<Class,Function>> converters = new LinkedHashMap<>();
    private final Map<String,Object> properties = new LinkedHashMap<>();
    private URL[] classpath;
    private Bindings globalScope;
@@ -175,7 +175,12 @@ public class Bootstrap implements Configuration, Converter {
 
    @Override
    public <S, T> void registerFunction(Class<S> sourceClass, Class<T> targetClass, Function<S, T> function) {
-      throw new RuntimeException("Bootstrap class does not support conversion function registration");
+      Map<Class,Function> functions = converters.get(targetClass);
+      if (functions == null) {
+         functions = new LinkedHashMap<>();
+         converters.put(targetClass, functions);
+      }
+      functions.put(sourceClass, function);
    }
 
    @Override
@@ -272,6 +277,13 @@ public class Bootstrap implements Configuration, Converter {
       Class valueType = (value == null) ? Void.class : value.getClass();
       if (type.isAssignableFrom(valueType))
          return (T)value;
+      Map<Class,Function> functions = converters.get(type);
+      if (functions != null) {
+         for (Class srcType : functions.keySet()) {
+            if (srcType.isInstance(valueType))
+               return (T)functions.get(srcType).apply(value);
+         }
+      }
       if (CharSequence.class.isAssignableFrom(type))
          return (T)toString(value);
       if (URL.class.isAssignableFrom(type))

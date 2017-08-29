@@ -9,8 +9,8 @@ import java.net.URL;
 import javax.activation.FileTypeMap;
 import javax.script.Bindings;
 import javax.script.ScriptEngineManager;
+import org.regadou.damai.Bootstrap;
 import org.regadou.damai.Configuration;
-import org.regadou.util.DefaultConverter;
 import org.regadou.factory.DefaultPropertyManager;
 import org.regadou.factory.DefaultResourceManager;
 import org.regadou.damai.MimeHandlerFactory;
@@ -33,7 +33,6 @@ public class GuiceConfiguration extends AbstractModule implements Configuration 
 
    @Override
    public void configure() {
-      bind(Converter.class).to(DefaultConverter.class).in(Singleton.class);
       bind(PropertyManager.class).to(DefaultPropertyManager.class).in(Singleton.class);
       bind(ResourceManager.class).to(DefaultResourceManager.class).in(Singleton.class);
       bind(FileTypeMap.class).to(DefaultFileTypeMap.class).in(Singleton.class);
@@ -42,11 +41,19 @@ public class GuiceConfiguration extends AbstractModule implements Configuration 
    }
 
    @Provides
+   @Singleton
    public Configuration getConfiguration() {
       return this;
    }
 
    @Provides
+   @Singleton
+   public Converter getDefaultConverter() {
+      return new Bootstrap();
+   }
+
+   @Provides
+   @Singleton
    public ScriptEngineManager getScriptEngineManager(Configuration configuration) {
       ScriptEngineManager manager = new ExtendedScriptEngineManager(configuration);
       manager.getBindings().put(Configuration.class.getName(), this);

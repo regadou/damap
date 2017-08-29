@@ -24,10 +24,16 @@ import org.apache.commons.beanutils.BeanMap;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Filterable;
+import org.regadou.damai.Property;
+import org.regadou.damai.PropertyFactory;
+import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Reference;
+import org.regadou.damai.Repository;
+import org.regadou.reference.CollectionProperty;
+import org.regadou.reference.MapProperty;
 import org.regadou.util.ClassIterator;
 import org.regadou.util.EnumerationSet;
-import org.regadou.util.PrimitiveArrayIterator;
+import org.regadou.util.ArrayIterator;
 
 public class GenericComparator implements Comparator {
 
@@ -49,10 +55,8 @@ public class GenericComparator implements Comparator {
 
    @Override
    public int compare(Object o1, Object o2) {
-      while (o1 instanceof Reference)
-         o1 = ((Reference)o1).getValue();
-      while (o2 instanceof Reference)
-         o2 = ((Reference)o2).getValue();
+      o1 = getValue(o1);
+      o2 = getValue(o2);
       if (isStringable(o1) && isStringable(o2))
          return compareStringables(o1, o2);
       List<String> l1 = getSortedStringList(o1);
@@ -70,8 +74,7 @@ public class GenericComparator implements Comparator {
    }
 
    public boolean isEmpty(Object src) {
-      while (src instanceof Reference)
-         src = ((Reference)src).getValue();
+      src = getValue(src);
       if (src == null)
          return true;
       if (src instanceof Boolean)
@@ -94,8 +97,7 @@ public class GenericComparator implements Comparator {
    }
 
    public boolean isStringable(Object src) {
-      while (src instanceof Reference)
-         src = ((Reference)src).getValue();
+      src = getValue(src);
       ClassIterator it = new ClassIterator(src);
       while (it.hasNext()) {
          Class c = it.next();
@@ -106,8 +108,7 @@ public class GenericComparator implements Comparator {
    }
 
    public boolean isIterable(Object src) {
-      while (src instanceof Reference)
-         src = ((Reference)src).getValue();
+      src = getValue(src);
       if (src != null && src.getClass().isArray())
          return true;
       ClassIterator it = new ClassIterator(src);
@@ -144,8 +145,7 @@ public class GenericComparator implements Comparator {
    }
 
    public Double getNumeric(Object src, Double defaultValue) {
-      while (src instanceof Reference)
-         src = ((Reference)src).getValue();
+      src = getValue(src);
       if (src instanceof Number)
          return ((Number)src).doubleValue();
       if (src instanceof Boolean)
@@ -187,6 +187,7 @@ public class GenericComparator implements Comparator {
    }
 
    public Iterator getIterator(Object src) {
+      src = getValue(src);
       if (src instanceof Iterator)
          return (Iterator)src;
       if (src instanceof Enumeration)
@@ -198,7 +199,9 @@ public class GenericComparator implements Comparator {
       if (src == null)
          return Collections.EMPTY_LIST.iterator();
       if (src.getClass().isArray())
-         return new PrimitiveArrayIterator(src);
+         return new ArrayIterator(src);
+      if (src instanceof Repository)
+         return ((Repository)src).getItems().iterator();
       if (src instanceof ScriptContext) {
          ScriptContext cx = (ScriptContext)src;
          Set keys = new TreeSet();
@@ -220,6 +223,7 @@ public class GenericComparator implements Comparator {
    }
 
    public Map getMap(Object src) {
+      src = getValue(src);
       if (src instanceof Map)
          return (Map)src;
       if (src == null)
@@ -228,8 +232,7 @@ public class GenericComparator implements Comparator {
    }
 
    public List<String> getSortedStringList(Object src) {
-      while (src instanceof Reference)
-         src = ((Reference)src).getValue();
+      src = getValue(src);
       List<String> list = new ArrayList<>();
       Iterator it = getIterator(src);
       while (it.hasNext())
@@ -239,8 +242,7 @@ public class GenericComparator implements Comparator {
    }
 
    public Collection getFilteredCollection(Object src, Expression filter) {
-      while (src instanceof Reference)
-         src = ((Reference)src).getValue();
+      src = getValue(src);
       if (src instanceof Filterable)
          return ((Filterable)src).filter(filter);
       Iterator it;
@@ -266,11 +268,69 @@ public class GenericComparator implements Comparator {
       List dst = new ArrayList();
       while (it.hasNext()) {
          Object item = it.next();
-         ScriptContext cx = new PropertiesScriptContext(item, configuration);
+         ScriptContext cx = new PropertiesScriptContext(item, configuration.getPropertyManager(),
+                                                              configuration.getContextFactory());
          if (!isEmpty(filter.getValue(cx)))
             dst.add(item);
       }
       return dst;
+   }
+
+   public Object getValue(Object value) {
+      while (value instanceof Reference)
+         value = ((Reference)value).getValue();
+      return value;
+   }
+
+   public Object setValue(Reference ref, Object value) {
+      while (ref instanceof Expression)
+         ref = ((Expression)ref).getValue();
+      Class srcType = (value == null) ? Object.class : value.getClass();
+      Class dstType = ref.getType();
+      if (!dstType.isAssignableFrom(srcType))
+         value = configuration.getConverter().convert(value, dstType);
+      ref.setValue(value);
+      return ref;
+   }
+
+   public Object addValue(Reference ref, Object value) {
+      while (ref instanceof Expression)
+         ref = ((Expression)ref).getValue();
+      Object target = getValue(ref);
+      Class type = (target == null) ? Void.class : target.getClass();
+      PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(type);
+      return (factory == null) ? null : factory.addProperty(target, ref.getName(), value);
+   }
+
+   public Object mergeValue(Reference ref, Object value) {
+      while (ref instanceof Expression)
+         ref = ((Expression)ref).getValue();
+      Object target = getValue(ref);
+      Class srcType = (value == null) ? Void.class : value.getClass();
+      Class dstType = (target == null) ? Void.class : target.getClass();
+      PropertyManager manager = configuration.getPropertyManager();
+      PropertyFactory srcFactory = manager.getPropertyFactory(srcType);
+      PropertyFactory dstFactory = manager.getPropertyFactory(dstType);
+      Double index;
+      for (String name : srcFactory.getProperties(value)) {
+         Property p = dstFactory.getProperty(target, name);
+         if (p != null)
+            setValue(p, srcFactory.getProperty(value, name).getValue());
+         else if (target instanceof Map)
+            setValue(new MapProperty((Map)target, name, null), srcFactory.getProperty(value, name).getValue());
+         else if (target instanceof Collection && (index = getNumeric(name, null)) != null)
+            setValue(new CollectionProperty((Collection)target, index.intValue(), null), srcFactory.getProperty(value, name).getValue());
+      }
+      return ref;
+   }
+
+   public boolean removeValue(Reference ref) {
+      while (ref instanceof Expression)
+         ref = ((Expression)ref).getValue();
+      Object target = getValue(ref);
+      Class type = (target == null) ? Void.class : target.getClass();
+      PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(type);
+      return (factory == null) ? false : factory.removeProperty(target, ref.getName());
    }
 
    private int compareStringables(Object o1, Object o2) {

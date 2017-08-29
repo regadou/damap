@@ -28,8 +28,11 @@ function init(scope) {
             if (folder != null)
                session.folder = new java.io.File(folder);
             var dburl = (data == null) ? null : data.database;
-            if (dburl != null)
-               db = new org.regadou.repository.RepositoryMap(dburl, conf);
+            if (dburl != null) {
+               ref = conf.getResourceManager().getResource(dburl);
+               if (ref != null)
+                  db = ref.getValue();
+            }
          }
       }
       session.database = db;

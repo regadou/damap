@@ -2,16 +2,22 @@ package org.regadou.reference;
 
 import org.regadou.damai.Property;
 
-public class ReadOnlyProperty<P,T> implements Property<P,T> {
+public class PropertyHolder<P,T> implements Property<P,T> {
 
    private P parent;
    private String name;
    private T value;
+   private boolean readonly;
 
-   public ReadOnlyProperty(P parent, String name, T value) {
+   public PropertyHolder(P parent, String name, T value) {
+      this(parent, name, value, false);
+   }
+
+   public PropertyHolder(P parent, String name, T value, boolean readonly) {
       this.parent = parent;
       this.name = name;
       this.value = value;
+      this.readonly = readonly;
    }
 
    @Override
@@ -40,6 +46,8 @@ public class ReadOnlyProperty<P,T> implements Property<P,T> {
    }
 
    @Override
-   public void setValue(T value) {}
-
+   public void setValue(T value) {
+      if (!readonly)
+         this.value = value;
+   }
 }

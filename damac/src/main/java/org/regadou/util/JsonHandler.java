@@ -7,6 +7,9 @@ import javax.script.ScriptContext;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.MimeHandlerInput;
 import org.regadou.damai.MimeHandlerOutput;
+import org.regadou.script.DefaultScriptContext;
+import org.regadou.script.HttpScriptContext;
+import org.regadou.script.PropertiesScriptContext;
 
 public class JsonHandler implements MimeHandler {
 
@@ -14,9 +17,13 @@ public class JsonHandler implements MimeHandler {
    private Gson gson;
 
    public JsonHandler() {
+      ScriptContextGsonSerializer serializer = new ScriptContextGsonSerializer();
       this.gson  = new GsonBuilder().setPrettyPrinting()
                                     .setDateFormat("YYYY-MM-dd HH:mm:ss")
-                                    .registerTypeAdapter(ScriptContext.class, new ScriptContextGsonSerializer())
+                                    .registerTypeAdapter(HttpScriptContext.class, serializer)
+                                    .registerTypeAdapter(DefaultScriptContext.class, serializer)
+                                    .registerTypeAdapter(PropertiesScriptContext.class, serializer)
+                                    .registerTypeAdapter(ScriptContext.class, serializer)
                                     .create();
    }
 

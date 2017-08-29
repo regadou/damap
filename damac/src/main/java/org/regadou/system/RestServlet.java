@@ -4,10 +4,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
-import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import javax.script.Bindings;
 import javax.script.Compilable;
@@ -25,23 +23,35 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.regadou.damai.Bootstrap;
+import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.Reference;
 import org.regadou.damai.ScriptContextFactory;
+import org.regadou.reference.InputStreamReference;
 import org.regadou.reference.PathExpression;
 import org.regadou.reference.ReferenceHolder;
-import org.regadou.reference.SimpleExpression;
 import org.regadou.reference.UrlReference;
 import org.regadou.script.DefaultCompiledScript;
 import org.regadou.util.EnumerationSet;
 import org.regadou.script.GenericComparator;
 import org.regadou.util.HtmlHandler;
 import org.regadou.util.MapAdapter;
+import org.regadou.util.StaticMap;
 
 public class RestServlet implements Servlet {
 
+   private static final int NOT_FOUND = 404;
+   private static final int NO_CONTENT = 204;
+   private static final Reference EMPTY_REFERENCE = new ReferenceHolder(null, null, true);
    private static final String DEFAULT_MIMETYPE = "text/html";
+   private static final Map COMMAND_MAPPING = new StaticMap(
+           "get",    Command.GET,
+           "put",    Command.SET,
+           "post",   Command.CREATE,
+           "patch",  Command.MODIFY,
+           "delete", Command.DESTROY
+   );
 
    private ServletConfig servletConfig;
    private Configuration configuration;
@@ -126,9 +136,13 @@ public class RestServlet implements Servlet {
             else
                mimetype = mimetype.split(";")[0].split(",")[0];
          }
-         Object value = getValue(request, cx);
-         while (value instanceof Reference)
-            value = ((Reference)value).getValue();
+         Command command = (Command)COMMAND_MAPPING.get(request.getMethod().toLowerCase());
+         Object data = command.isDataNeeded() ? new InputStreamReference(configuration.getHandlerFactory(), request.getInputStream(), mimetype, charset) : null;
+         Object value = new PathExpression(configuration, command, request.getPathInfo(), data).getValue(cx);
+         if (value == null)
+            response.setStatus(NOT_FOUND);
+         else
+            value = comparator.getValue(value);
          response.setContentType(mimetype);
          response.setCharacterEncoding(charset);
          MimeHandler handler = configuration.getHandlerFactory().getHandler(mimetype);
@@ -143,48 +157,6 @@ public class RestServlet implements Servlet {
                 .save(response.getOutputStream(), charset, value);
       }
       finally { factory.setScriptContext(null); }
-   }
-
-   private Object getValue(HttpServletRequest request, ScriptContext cx) {
-      String path = request.getPathInfo();
-      if (path == null)
-         path = "";
-      while (path.startsWith("/"))
-         path = path.substring(1);
-      while (path.endsWith("/"))
-         path = path.substring(0, path.length()-1);
-      path = path.trim();
-      Reference result;
-      switch (request.getMethod().toLowerCase()) {
-         case "delete":
-            if (path.isEmpty())
-               return null;
-            List<String> parent = new ArrayList<>(Arrays.asList(path.split("/")));
-            String id = parent.remove(parent.size()-1);
-            result = getReference(String.join("/", parent), cx);
-            //TODO: remove the last part, use it as key to remove from map of result expression
-         case "post":
-            //TODO: should be a map or a collection to add DATA to
-         case "put":
-            //TODO: would call setValue(DATA) on result expression
-         case "patch":
-            //TODO: would merge result value with DATA and setValue the resulting object
-         case "get":
-         default:
-            return getReference(path, cx);
-      }
-   }
-
-   private Reference getReference(String path, ScriptContext cx) {
-      if (path.isEmpty())
-         return new ReferenceHolder(null, comparator.getSortedStringList(cx), true);
-      List parts = new ArrayList();
-      for (String part : path.split("/")) {
-         String txt = part.trim();
-         parts.add((!txt.startsWith("(") || !txt.endsWith(")")) ? txt
-                   : new SimpleExpression(txt.substring(1, txt.length()-1), configuration));
-      }
-      return new PathExpression(configuration, cx, parts.toArray()).getValue(cx);
    }
 
    private void checkInitScript() {

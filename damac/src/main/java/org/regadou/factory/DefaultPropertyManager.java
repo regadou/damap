@@ -9,6 +9,8 @@ import org.regadou.util.ClassIterator;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
+import org.regadou.damai.Repository;
+import org.regadou.repository.RepositoryItem;
 
 public class DefaultPropertyManager implements PropertyManager {
 
@@ -21,7 +23,10 @@ public class DefaultPropertyManager implements PropertyManager {
    public DefaultPropertyManager() {
       factories.put(Map.class, new MapPropertyFactory());
       factories.put(Collection.class, new CollectionPropertyFactory());
+      factories.put(Object[].class, new ArrayPropertyFactory());
       factories.put(ScriptContext.class, new ScriptContextPropertyFactory());
+      factories.put(Repository.class, new RepositoryPropertyFactory());
+      factories.put(RepositoryItem.class, new RepositoryItemPropertyFactory());
    }
 
    @Override

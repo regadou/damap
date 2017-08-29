@@ -4,83 +4,123 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
+import java.util.StringJoiner;
 import javax.script.ScriptContext;
 import org.regadou.damai.Action;
+import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
-import org.regadou.damai.Operator;
 import org.regadou.damai.Reference;
 import org.regadou.script.GenericComparator;
 
 public class PathExpression implements Expression {
 
+   private static final String START_EXPRESSION = "([{";
+   private static final String END_EXPRESSION = ")]}";
    private Configuration configuration;
    private GenericComparator comparator;
-   private Object root;
+   private Command command;
    private List path = new ArrayList();
+   private Object data;
    private String text;
 
-   public PathExpression(Configuration configuration, Object root, Object[] path) {
+   public PathExpression(Configuration configuration, Command command, String path, Object data) {
       this.configuration = configuration;
       this.comparator = new GenericComparator(configuration);
-      this.root = root;
+      this.command = (command == null) ? Command.GET : command;
+      this.data = data;
       if (path != null) {
-         for (Object part : path)
-            this.path.add(normalizeElement(part));
+         while (path.startsWith("/"))
+            path = path.substring(1);
+         while (path.endsWith("/"))
+            path = path.substring(0, path.length()-1);
+         path = path.trim();
+         if (!path.isEmpty()) {
+            for (String part : path.split("/")) {
+               Object p = isExpression(part) ? new SimpleExpression(configuration, part.substring(1,part.length()-1)) : part;
+               this.path.add(p);
+            }
+         }
       }
    }
 
    @Override
    public String toString() {
-      return getName();
+      if (text == null) {
+         StringJoiner joiner = new StringJoiner(" ", "(", ")");
+         joiner.add(command.getName());
+         StringJoiner parts = new StringJoiner(" ", "[", "]");
+         for (Object part : path)
+            joiner.add(part.toString());
+         joiner.add(parts.toString());
+         if (data != null)
+            joiner.add(comparator.getString(data));
+         text = joiner.toString();
+      }
+      return text;
    }
 
    @Override
    public Action getAction() {
-      return Operator.HAVE;
+      return command;
    }
 
    @Override
    public Reference[] getTokens() {
       List<Reference> tokens = new ArrayList<>();
-      tokens.add((root instanceof Reference) ? (Reference)root : new ReferenceHolder(null, root));
-      for (Object token : path)
-         tokens.add((token instanceof Reference) ? (Reference)token : new ReferenceHolder(null, token));
+      tokens.add(new ReferenceHolder(null, path, true));
+      if (data != null)
+         tokens.add((data instanceof Reference) ? (Reference)data : new ReferenceHolder(null, data, true));
       return tokens.toArray(new Reference[tokens.size()]);
    }
 
    @Override
    public void addToken(Reference token) {
-      path.add(normalizeElement(token));
-      text = null;
+      throw new UnsupportedOperationException("adding tokens is not supported for CommandExpression");
    }
 
    @Override
    public Reference getValue(ScriptContext context) {
-      Reference result = new ReferenceHolder(null, root, true);
-      for (Object part : path) {
-         if (context == null)
-            context = configuration.getContextFactory().getScriptContext();
-         result = getProperty(result.getValue(), part, context);
-         if (result == null)
-            return null;
+      ScriptContext oldContext = configuration.getContextFactory().getScriptContext();
+      if (context == null) {
+         context = oldContext;
+         oldContext = null;
       }
-      return result;
+      else
+         configuration.getContextFactory().setScriptContext(context);
+
+      try {
+         Reference result = new ReferenceHolder(null, context, true);
+         for (Object part : path) {
+            result = getProperty(result.getValue(), part, context);
+            if (result == null)
+               return null;
+         }
+         switch (command) {
+            case SET:
+               comparator.setValue(result, data);
+            case GET:
+               return result;
+            case CREATE:
+               return getReference(comparator.addValue(result, data));
+            case MODIFY:
+               return getReference(comparator.mergeValue(result, data));
+            case DESTROY:
+               comparator.removeValue(result);
+               return new ReferenceHolder(null, null, true);
+            default:
+               throw new RuntimeException("Unknown command "+command);
+         }
+      }
+      finally {
+         if (oldContext != null)
+            configuration.getContextFactory().setScriptContext(oldContext);
+      }
    }
 
    @Override
    public String getName() {
-      if (text == null) {
-         text = Operator.HAVE.getName();
-         for (Object token : path) {
-            if (!text.isEmpty())
-               text += " ";
-            text += String.valueOf(token);
-         }
-         text = "("+text+")";
-      }
-      return text;
+      return null;
    }
 
    @Override
@@ -100,33 +140,6 @@ public class PathExpression implements Expression {
          result.setValue(value);
    }
 
-   private Object normalizeElement(Object obj) {
-      if (obj instanceof CharSequence || obj instanceof Number || obj == null)
-         return obj;
-      if (obj.getClass().isArray())
-         return normalizeArray(obj);
-      if (obj instanceof Collection)
-         return normalizeArray(((Collection)obj).toArray());
-      if (obj instanceof Map)
-         return new MapExpression((Map)obj, configuration);
-      if (obj instanceof Expression)
-         return obj;
-      if (obj instanceof Reference)
-         return normalizeElement(((Reference)obj).getValue());
-      return obj;
-   }
-
-   private Object normalizeArray(Object obj) {
-      switch (Array.getLength(obj)) {
-         case 0:
-            return null;
-         case 1:
-            return Array.get(obj, 0);
-         default:
-            return obj;
-      }
-   }
-
    private Reference getProperty(Object value, Object property, ScriptContext cx) {
       if (property == null)
          return null;
@@ -142,5 +155,18 @@ public class PathExpression implements Expression {
          return new ReferenceHolder(null, result, true);
       }
       return configuration.getPropertyManager().getProperty(value, String.valueOf(property));
+   }
+
+   private Reference getReference(Object value) {
+      return (value instanceof Reference) ? (Reference)value : new ReferenceHolder(null, value, true);
+   }
+
+   private boolean isExpression(String txt) {
+      if (txt == null || txt.length() < 2)
+         return false;
+      int index = START_EXPRESSION.indexOf(txt.charAt(0));
+      if (index < 0)
+         return false;
+      return END_EXPRESSION.charAt(index) == txt.charAt(txt.length()-1);
    }
 }

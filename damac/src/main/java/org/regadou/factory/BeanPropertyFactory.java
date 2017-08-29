@@ -2,7 +2,6 @@ package org.regadou.factory;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import org.apache.commons.beanutils.BeanMap;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
@@ -15,7 +14,7 @@ public class BeanPropertyFactory implements PropertyFactory {
       if (value == null)
          return null;
       BeanMap map = new BeanMap(value);
-      return map.containsKey(name) ? new MapProperty(map, name) : null;
+      return map.containsKey(name) ? new MapProperty(map, name, map.getType(name)) : null;
    }
 
    @Override
@@ -29,5 +28,15 @@ public class BeanPropertyFactory implements PropertyFactory {
          names[i] = it.next();
       return names;
 
+   }
+
+   @Override
+   public Property addProperty(Object parent, String name, Object value) {
+      return null;
+   }
+
+   @Override
+   public boolean removeProperty(Object parent, String name) {
+      return false;
    }
 }

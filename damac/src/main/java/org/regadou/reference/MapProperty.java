@@ -5,12 +5,19 @@ import org.regadou.damai.Property;
 
 public class MapProperty implements Property {
 
+   public static Class getMapValueType(Map map) {
+      try { return map.getClass().getMethod("get", Object.class).getReturnType(); }
+      catch (NoSuchMethodException|SecurityException e) { throw new RuntimeException(e); }
+   }
+
    Map parent;
    Object key;
+   Class type;
 
-   public MapProperty(Map parent, Object key) {
+   public MapProperty(Map parent, Object key, Class type) {
       this.parent = parent;
       this.key = key;
+      this.type = (type == null) ? getMapValueType(parent) : type;
    }
 
    @Override
@@ -35,8 +42,7 @@ public class MapProperty implements Property {
 
    @Override
    public Class getType() {
-      Object value = parent.get(key);
-      return (value == null) ? Void.class : value.getClass();
+      return type;
    }
 
    @Override

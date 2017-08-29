@@ -37,50 +37,50 @@ public class JpaRepository implements Repository {
    }
 
    @Override
-   public Collection<String> getTypes() {
+   public Collection<String> getItems() {
       return nameToClassMap.keySet();
    }
 
-   public Class getType(String name) {
-      return (name == null) ? null : nameToClassMap.get(name.toLowerCase());
+   public Class getType(String item) {
+      return (item == null) ? null : nameToClassMap.get(item.toLowerCase());
    }
 
    @Override
-   public Collection<String> getPrimaryKeys(String type) {
+   public Collection<String> getPrimaryKeys(String item) {
       return Collections.singleton("id");
    }
 
    @Override
-   public Collection<Object> getIds(String type) {
+   public Collection<Object> getIds(String item) {
       Collection<Object> ids = new ArrayList<>();
-      for (Bindings row : query(type, "select e.id from " + type + " e", null))
+      for (Map row : query("select e.id from " + item + " e", null))
          ids.add(row.get("id"));
       return ids;
    }
 
    @Override
-   public Collection<Bindings> getAll(String type) {
-      return query(type, "select e from " + type + " e", null);
+   public Collection<Map> getAll(String item) {
+      return query("select e from " + item + " e", null);
    }
 
    @Override
-   public Collection<Bindings> getAny(String type, Expression filter) {
-      String jpql = "select e from " + type + " e";
+   public Collection<Map> getAny(String item, Expression filter) {
+      String jpql = "select e from " + item + " e";
       List params = null;
       if (filter != null)
          jpql += " where " + getClause(filter);
-      return query(type, jpql, params);
+      return query(jpql, params);
    }
 
    @Override
-   public Bindings getOne(String type, Object id) {
-      String jpql = "select e from " + type + " e where e.id = ?1";
-      Collection<Bindings> entities = query(type, jpql, Arrays.asList(id));
+   public Map getOne(String item, Object id) {
+      String jpql = "select e from " + item + " e where e.id = ?1";
+      Collection<Map> entities = query(jpql, Arrays.asList(id));
       return entities.isEmpty() ? null : entities.iterator().next();
    }
 
    @Override
-   public Bindings save(String type, Bindings entity) {
+   public Map save(String item, Map entity) {
       return transaction(manager -> {
          Set ids = manager.getMetamodel().entity(entity.getClass()).getIdClassAttributes();
          for (Object id : ids) {
@@ -94,9 +94,9 @@ public class JpaRepository implements Repository {
    }
 
    @Override
-   public boolean delete(String type, Object id) {
+   public boolean delete(String item, Object id) {
       return null != transaction(manager -> {
-         Object entity = manager.find(nameToClassMap.get(type.toLowerCase()), id);
+         Object entity = manager.find(nameToClassMap.get(item.toLowerCase()), id);
          if (entity != null) {
             manager.remove(entity);
          }
@@ -130,7 +130,7 @@ public class JpaRepository implements Repository {
       }
    }
 
-   private Collection<Bindings> query(String type, String jpql, List params) {
+   private Collection<Map> query(String jpql, List params) {
       EntityManager manager = factory.createEntityManager();
       Query query = manager.createQuery(jpql);
       if (params != null) {

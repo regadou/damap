@@ -21,6 +21,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.MimeHandlerFactory;
+import org.regadou.script.GenericComparator;
 import org.regadou.script.ScriptEngineMimeHandler;
 import org.regadou.util.CsvHandler;
 import org.regadou.util.HtmlHandler;
@@ -33,10 +34,12 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
 
    private final Map<String, MimeHandler> handlers = new LinkedHashMap<>();
    private Configuration configuration;
+   private GenericComparator comparator;
 
    @Inject
    public DefaultMimeHandlerFactory(Configuration configuration) {
       this.configuration = configuration;
+      this.comparator = new GenericComparator(configuration);
       for (MimeHandler handler : createDefaultHandlers())
          registerHandler(handler);
       for (ScriptEngineFactory factory : configuration.getEngineManager().getEngineFactories())
@@ -76,7 +79,8 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
          new DefaultMimeHandler((input, charset) -> {
             return new StringInput(input, charset).toString();
          }, (output, charset, value) -> {
-               output.write(String.valueOf(value).getBytes(charset));
+               String txt = (value == null) ? "null" : comparator.getString(value);
+               output.write(txt.getBytes(charset));
                output.flush();
          }, "text/plain"),
 

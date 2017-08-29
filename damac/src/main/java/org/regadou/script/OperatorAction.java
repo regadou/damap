@@ -170,12 +170,6 @@ public class OperatorAction implements Action {
       return (type == null) ? Type.COLLECTION : type;
    }
 
-   private Object getValue(Object value) {
-      while (value instanceof Reference)
-         value = ((Reference)value).getValue();
-      return value;
-   }
-
    private Object merge(Object p1, Object p2) {
       if (comparator.isEmpty(p1))
          return comparator.isEmpty(p2) ? Collections.EMPTY_MAP : p2;
@@ -193,8 +187,8 @@ public class OperatorAction implements Action {
    }
 
    private final BiFunction ADD_FUNCTION = (p1, p2) -> {
-      p1 = getValue(p1);
-      p2 = getValue(p2);
+      p1 = comparator.getValue(p1);
+      p2 = comparator.getValue(p2);
       switch (getType(p1, p2)) {
          case NUMERIC:
             return comparator.getNumeric(p1, 0d) + comparator.getNumeric(p2, 0d);
@@ -216,8 +210,8 @@ public class OperatorAction implements Action {
    };
 
    private final BiFunction SUBTRACT_FUNCTION = (p1, p2) -> {
-      p1 = getValue(p1);
-      p2 = getValue(p2);
+      p1 = comparator.getValue(p1);
+      p2 = comparator.getValue(p2);
       switch (getType(p1, p2)) {
          case NUMERIC:
             return comparator.getNumeric(p1, 0d) - comparator.getNumeric(p2, 0d);

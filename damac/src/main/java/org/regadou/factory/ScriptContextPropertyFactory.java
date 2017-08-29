@@ -1,9 +1,11 @@
 package org.regadou.factory;
 
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import javax.script.Bindings;
 import javax.script.ScriptContext;
+import javax.script.SimpleBindings;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.script.ScriptContextProperty;
@@ -25,5 +27,31 @@ public class ScriptContextPropertyFactory implements PropertyFactory<ScriptConte
             names.addAll(b.keySet());
       }
       return names.toArray(new String[names.size()]);
+   }
+
+   @Override
+   public Property addProperty(ScriptContext cx, String name, Object value) {
+      int scope = cx.getAttributesScope(name);
+      if (scope < 0) {
+         List<Integer> scopes = cx.getScopes();
+         if (scopes.isEmpty()) {
+            scope = ScriptContext.ENGINE_SCOPE;
+            cx.setBindings(new SimpleBindings(), scope);
+         }
+         scope = scopes.get(0);
+         cx.setAttribute(name, value, scope);
+         return new ScriptContextProperty(cx, name, scope);
+      }
+      return null;
+   }
+
+   @Override
+   public boolean removeProperty(ScriptContext cx, String name) {
+      int scope = cx.getAttributesScope(name);
+      if (scope >= 0) {
+         cx.removeAttribute(name, scope);
+         return cx.getAttributesScope(name) != scope;
+      }
+      return false;
    }
 }

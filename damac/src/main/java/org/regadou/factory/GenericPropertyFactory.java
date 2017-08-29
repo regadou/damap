@@ -10,7 +10,7 @@ import org.regadou.damai.Action;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
-import org.regadou.reference.ReadOnlyProperty;
+import org.regadou.reference.PropertyHolder;
 import org.regadou.util.ClassIterator;
 
 public class GenericPropertyFactory implements PropertyFactory {
@@ -41,11 +41,11 @@ public class GenericPropertyFactory implements PropertyFactory {
    public Property getProperty(Object value, String name) {
       switch (name) {
          case "type":
-            return new ReadOnlyProperty(value, "type", getTypeLevel(getType(value)));
+            return new PropertyHolder(value, "type", getTypeLevel(getType(value)), true);
          case "class":
-            return new ReadOnlyProperty(value, "class", getType(value).getName());
+            return new PropertyHolder(value, "class", getType(value).getName(), true);
          case "properties":
-            return new ReadOnlyProperty(value, "properties", getProperties(value));
+            return new PropertyHolder(value, "properties", getProperties(value), true);
          default:
             return null;
       }
@@ -58,6 +58,16 @@ public class GenericPropertyFactory implements PropertyFactory {
       if (factory != null)
          names.addAll(Arrays.asList(factory.getProperties(value)));
       return names.toArray(new String[names.size()]);
+   }
+
+   @Override
+   public Property addProperty(Object parent, String name, Object value) {
+      return null;
+   }
+
+   @Override
+   public boolean removeProperty(Object parent, String name) {
+      return false;
    }
 
    private String getTypeLevel(Class type) {

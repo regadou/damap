@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.TreeMap;
 import javax.script.ScriptContext;
 import org.regadou.damai.Action;
@@ -31,14 +32,14 @@ public class SimpleExpression implements Expression {
    private Action action;
    private Object param1, param2;
 
-   public SimpleExpression(Action action, Object param1, Object param2, Configuration configuration) {
+   public SimpleExpression(Configuration configuration, Action action, Object param1, Object param2) {
       this.configuration = configuration;
       this.action = action;
       this.param1 = param1;
       this.param2 = param2;
    }
 
-   public SimpleExpression(String text, Configuration configuration) {
+   public SimpleExpression(Configuration configuration, String text) {
       this.configuration = configuration;
       this.text = text;
       if (text != null) {
@@ -50,8 +51,26 @@ public class SimpleExpression implements Expression {
    }
 
    @Override
-   public String getName() {
+   public String toString() {
+      if (text == null) {
+         StringJoiner joiner = new StringJoiner(" ", "(", ")");
+         if (action != null)
+            joiner.add(action.getName());
+         if (param1 != null) {
+            joiner.add(param1.toString());
+            if (param2 != null)
+               joiner.add(param2.toString());
+         }
+         else if (param2 != null)
+            joiner.add("()").add(param2.toString());
+         text = joiner.toString();
+      }
       return text;
+   }
+
+   @Override
+   public String getName() {
+      return null;
    }
 
    @Override
@@ -92,13 +111,13 @@ public class SimpleExpression implements Expression {
 
    @Override
    public Reference getValue(ScriptContext context) {
-      ScriptContext oldContext = configuration.getContextFactory().getScriptContext();
-      if (context == null) {
-         context = oldContext;
+      ScriptContext oldContext;
+      if (context == null)
          oldContext = null;
-      }
-      else
+      else {
+         oldContext = configuration.getContextFactory().getScriptContext();
          configuration.getContextFactory().setScriptContext(context);
+      }
 
       try {
          if (action != null)
@@ -206,9 +225,9 @@ public class SimpleExpression implements Expression {
             int oldprec = (action instanceof OperatorAction) ? ((OperatorAction)action).getPrecedence() : 0;
             int newprec = (token instanceof OperatorAction) ? ((OperatorAction)token).getPrecedence() : 0;
             if (newprec > oldprec)
-               param2 = new SimpleExpression((Action)token, param2, null, configuration);
+               param2 = new SimpleExpression(configuration, (Action)token, param2, null);
             else {
-               param1 = new SimpleExpression(action, param1, param2, configuration);
+               param1 = new SimpleExpression(configuration, action, param1, param2);
                action = (Action)token;
                param2 = null;
             }

@@ -16,9 +16,11 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import org.regadou.damai.Configuration;
+import org.regadou.damai.Converter;
 import org.regadou.damai.Reference;
 import org.regadou.reference.ReferenceHolder;
 import org.regadou.reference.UrlReference;
+import org.regadou.script.GenericComparator;
 import org.regadou.script.InteractiveScript;
 import org.regadou.util.StringInput;
 
@@ -31,6 +33,7 @@ public class Main {
       args = parseArgs(args, options);
       if (args != null) {
          Configuration conf = new GuiceConfiguration();
+         registerConverterFunctions(conf);
          ScriptContext cx = conf.getContextFactory().getScriptContext(
             new ReferenceHolder("reader", new BufferedReader(new InputStreamReader(System.in))),
             new ReferenceHolder("writer", new OutputStreamWriter(System.out)),
@@ -169,4 +172,11 @@ public class Main {
       });
       System.out.println("Available languages: "+languages);
    }
+
+   private static void registerConverterFunctions(Configuration conf) {
+      Converter converter = conf.getConverter();
+      GenericComparator comparator = new GenericComparator(conf);
+      //TODO: register some functions from the GenericComparator instance
+   }
+
 }

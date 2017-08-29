@@ -33,7 +33,16 @@ public class CompiledExpression extends CompiledScript implements Expression {
 
    @Override
    public String toString() {
-      return getName();
+      if (text == null) {
+         text = (action == null) ? "" : action.getName();
+         for (Object token : tokens) {
+            if (!text.isEmpty())
+               text += " ";
+            text += String.valueOf(token);
+         }
+         text = "("+text+")";
+      }
+      return text;
    }
 
    @Override
@@ -48,16 +57,7 @@ public class CompiledExpression extends CompiledScript implements Expression {
 
    @Override
    public String getName() {
-      if (text == null) {
-         text = (action == null) ? "" : action.getName();
-         for (Object token : tokens) {
-            if (!text.isEmpty())
-               text += " ";
-            text += String.valueOf(token);
-         }
-         text = "("+text+")";
-      }
-      return text;
+      return null;
    }
 
    @Override
