@@ -24,11 +24,15 @@ public class MapExpression extends CompiledExpression {
                addCondition(map.keySet().iterator().next(), map.values().iterator().next());
                break;
             default:
-               addToken(new ReferenceHolder(null, Operator.AND, true));
-               for (Object key : map.keySet())
-                  addCondition(key, map.get(key));
+               addConditions(map);
          }
       }
+   }
+
+   private void addConditions(Map map) {
+      addToken(new ReferenceHolder(null, Operator.AND, true));
+      for (Object key : map.keySet())
+         addCondition(key, map.get(key));
    }
 
    private void addCondition(Object key, Object value) {

@@ -294,17 +294,13 @@ public class GenericComparator implements Comparator {
    }
 
    public Object addValue(Reference ref, Object value) {
-      while (ref instanceof Expression)
-         ref = ((Expression)ref).getValue();
       Object target = getValue(ref);
       Class type = (target == null) ? Void.class : target.getClass();
       PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(type);
-      return (factory == null) ? null : factory.addProperty(target, ref.getName(), value);
+      return (factory == null) ? null : factory.addProperty(target, null, value);
    }
 
    public Object mergeValue(Reference ref, Object value) {
-      while (ref instanceof Expression)
-         ref = ((Expression)ref).getValue();
       Object target = getValue(ref);
       Class srcType = (value == null) ? Void.class : value.getClass();
       Class dstType = (target == null) ? Void.class : target.getClass();
@@ -320,17 +316,16 @@ public class GenericComparator implements Comparator {
             setValue(new MapProperty((Map)target, name, null), srcFactory.getProperty(value, name).getValue());
          else if (target instanceof Collection && (index = getNumeric(name, null)) != null)
             setValue(new CollectionProperty((Collection)target, index.intValue(), null), srcFactory.getProperty(value, name).getValue());
+         //TODO: do it for array, bean. script or find a generic way to do it
       }
-      return ref;
+      return target;
    }
 
-   public boolean removeValue(Reference ref) {
-      while (ref instanceof Expression)
-         ref = ((Expression)ref).getValue();
-      Object target = getValue(ref);
+   public boolean removeValue(Reference parent, String id) {
+      Object target = getValue(parent);
       Class type = (target == null) ? Void.class : target.getClass();
       PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(type);
-      return (factory == null) ? false : factory.removeProperty(target, ref.getName());
+      return (factory == null) ? false : factory.removeProperty(target, id);
    }
 
    private int compareStringables(Object o1, Object o2) {

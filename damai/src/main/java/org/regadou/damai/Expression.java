@@ -8,8 +8,10 @@ public interface Expression extends Reference<Reference> {
 
    Reference[] getTokens();
 
-   void addToken(Reference token);
-
    Reference getValue(ScriptContext context);
+
+   default void addToken(Reference token) {
+      throw new UnsupportedOperationException("Cannot add tokens with "+getClass().getName());
+   }
 
 }

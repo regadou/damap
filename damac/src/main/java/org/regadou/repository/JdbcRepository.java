@@ -11,8 +11,16 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.*;
-import javax.script.SimpleBindings;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
+import java.util.TreeSet;
 import org.regadou.damai.Action;
 import org.regadou.damai.Converter;
 import org.regadou.damai.Expression;
@@ -24,12 +32,13 @@ import org.regadou.script.OperatorAction;
 
 public class JdbcRepository implements Repository, Closeable {
 
-   private Map<String, String[]> primaryKeys = new LinkedHashMap<>();
+   private transient Map<String, String[]> primaryKeys = new LinkedHashMap<>();
    private transient Map<String, Map<String, Class>> columnTypes = new LinkedHashMap<>();
    private transient JdbcConnectionInfo info;
    private transient Converter converter;
    private transient Connection connection;
    private transient Statement statement;
+   private Collection<String> items;
 
    public JdbcRepository(JdbcConnectionInfo info, Converter converter) {
       this.info = info;
@@ -53,6 +62,7 @@ public class JdbcRepository implements Repository, Closeable {
          rs.close();
       }
       catch (SQLException | IOException e) { throw new RuntimeException(e); }
+      finally { items = new TreeSet<>(primaryKeys.keySet()); }
    }
 
    @Override
@@ -72,7 +82,7 @@ public class JdbcRepository implements Repository, Closeable {
 
    @Override
    public Collection<String> getItems() {
-      return primaryKeys.keySet();
+      return items;
    }
 
    @Override
@@ -132,29 +142,30 @@ public class JdbcRepository implements Repository, Closeable {
    }
 
    @Override
+   public Map insert(String item, Map entity) {
+      String[] keys = primaryKeys.get(item);
+      if (keys == null)
+         keys = new String[0];
+      try { return doInsert(item, entity, keys); }
+      catch (SQLException e) { throw new RuntimeException(e); }
+   }
+
+   @Override
    public Map save(String item, Map entity) {
       String[] keys = primaryKeys.get(item);
       if (keys == null)
          return null;
       String filter = getFilter(item, getKeys(keys, entity));
       try {
-         String sql;
-         int nb;
-         if (filter.isEmpty()) {
-            sql = "insert into " + item + " ("
-                + String.join(",", entity.keySet())
-                + ") values " + printValue(entity.values(), false);
-            nb = statement.executeUpdate(sql, keys);
-            ResultSet rs = statement.getGeneratedKeys();
-            if (rs.next()) {
-               entity = new SimpleBindings(new LinkedHashMap(entity));
-               for (String key : keys)
-                  entity.put(key, rs.getObject(key));
-            }
-         }
-         else
-            nb = statement.executeUpdate("update " + item + getUpdate(entity) + filter);
-         return (nb == 0) ? null : entity;
+         if (filter.isEmpty())
+            return doInsert(item, entity, keys);
+         int nb = statement.executeUpdate("update " + item + getUpdate(entity) + filter);
+         //TODO: entity might not be complete so we need to load the full object
+         if (nb == 0)
+            return null;
+         String sql = "select * from " + item + filter;
+         Collection<Map>  entities = getRows(statement.executeQuery(sql));
+         return entities.isEmpty() ? null : entities.iterator().next();
       }
       catch (SQLException e) { throw new RuntimeException(e); }
    }
@@ -181,8 +192,25 @@ public class JdbcRepository implements Repository, Closeable {
       }
    }
 
+   private Map doInsert(String item, Map entity, String[] keys) throws SQLException {
+      String sql = "insert into " + item + " ("
+                 + String.join(",", entity.keySet())
+                 + ") values " + printValue(entity.values(), false);
+      int nb = statement.executeUpdate(sql, keys);
+      if (nb == 0)
+         return null;
+      ResultSet rs = statement.getGeneratedKeys();
+      if (rs.next()) {
+         entity = new LinkedHashMap(entity);
+         int nc = Math.min(keys.length, rs.getMetaData().getColumnCount());
+         for (int c = 0; c < nc; c++)
+            entity.put(keys[c], rs.getObject(c+1));
+      }
+      return entity;
+   }
+
    private Map getMap(String[] keys, Object[] values) {
-      Map map = new SimpleBindings();
+      Map map = new LinkedHashMap();
       for (int k = 0; k < keys.length; k++) {
          Object value = (k >= values.length) ? null : values[k];
          map.put(keys[k], value);
@@ -191,7 +219,7 @@ public class JdbcRepository implements Repository, Closeable {
    }
 
    private Map getKeys(String keys[], Map src) {
-      Map dst = new SimpleBindings();
+      Map dst = new LinkedHashMap();
       for (String key : keys)
          dst.put(key, src.get(key));
       return dst;
@@ -215,7 +243,7 @@ public class JdbcRepository implements Repository, Closeable {
    private String getUpdate(Map entity) {
       String sql = "";
       for (Object key : entity.keySet())
-         sql += (sql.isEmpty() ? " set " : ", ") + key + printValue(entity.get(key), false);
+         sql += (sql.isEmpty() ? " set " : ", ") + key + " = " + printValue(entity.get(key), false);
       return sql;
    }
 
@@ -224,7 +252,7 @@ public class JdbcRepository implements Repository, Closeable {
       ResultSetMetaData meta = rs.getMetaData();
       int nc = meta.getColumnCount();
       while (rs.next()) {
-         Map row = new SimpleBindings();
+         Map row = new LinkedHashMap();
          for (int c = 1; c <= nc; c++) {
             String col = meta.getColumnName(c).toLowerCase();
             Object val = rs.getObject(c);
@@ -290,18 +318,10 @@ public class JdbcRepository implements Repository, Closeable {
          value = ((Collection)value).toArray();
       if (value.getClass().isArray()) {
          int length = Array.getLength(value);
-         switch (length) {
-            case 0:
-               value = null;
-               break;
-            case 1:
-               return printValue(Array.get(value, 0), printOperator);
-            default:
-               StringJoiner joiner = new StringJoiner(", ", printOperator ? " in (" : "(", ")");
-               for (int i = 0; i < length; i++)
-                  joiner.add(printValue(Array.get(value, i), false));
-               return joiner.toString();
-         }
+         StringJoiner joiner = new StringJoiner(", ", printOperator ? " in (" : "(", ")");
+         for (int i = 0; i < length; i++)
+            joiner.add(printValue(Array.get(value, i), false));
+         return joiner.toString();
       }
       String op = printOperator ? " = " : "";
       if (value instanceof Boolean)

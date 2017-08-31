@@ -1,5 +1,6 @@
 package org.regadou.reference;
 
+import java.io.IOException;
 import java.io.InputStream;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.MimeHandlerFactory;
@@ -33,7 +34,7 @@ public class InputStreamReference implements Reference {
             value = "";
          else {
             try { value = handler.getInputHandler(mimetype).load(inputStream, charset); }
-            catch (Exception e) { value = e; }
+            catch (IOException e) { throw new RuntimeException(e); }
          }
       }
       return value;

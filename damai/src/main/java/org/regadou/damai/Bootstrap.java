@@ -16,6 +16,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -100,6 +101,10 @@ public class Bootstrap implements Configuration, Converter {
 
    private static final String PROPERTY_PREFIX = Configuration.class.getName() + ".";
 
+   private static final List<Class> DECIMAL_NUMBERS = Arrays.asList(
+      Float.class, Double.class, BigDecimal.class
+   );
+
    private static final Map<Class, Class> PRIMITIVES_MAP = new LinkedHashMap<>();
    static {
       Class[] wrappers = new Class[]{
@@ -154,7 +159,6 @@ public class Bootstrap implements Configuration, Converter {
    private ResourceManager resourceManager;
    private FileTypeMap typeMap;
    private ClassLoader classLoader;
-   private boolean loadingClassLoader;
 
    public Bootstrap(String...args) {
       Properties properties = null;
@@ -274,6 +278,11 @@ public class Bootstrap implements Configuration, Converter {
    public <T> T convert(Object value, Class<T> type) {
       if (type == null || Void.class.isAssignableFrom(type))
          return null;
+      if (value instanceof Reference && !type.isAssignableFrom(value.getClass())) {
+         do {
+            value = ((Reference)value).getValue();
+         } while (value instanceof Reference);
+      }
       Class valueType = (value == null) ? Void.class : value.getClass();
       if (type.isAssignableFrom(valueType))
          return (T)value;
@@ -286,6 +295,10 @@ public class Bootstrap implements Configuration, Converter {
       }
       if (CharSequence.class.isAssignableFrom(type))
          return (T)toString(value);
+      if (Number.class.isAssignableFrom(type))
+         return (T)toNumber(value, type);
+      if (Boolean.class.isAssignableFrom(type))
+         return (T)toBoolean(value);
       if (URL.class.isAssignableFrom(type))
          return (T)toUrl(value);
       if (Class.class.isAssignableFrom(type))
@@ -294,8 +307,11 @@ public class Bootstrap implements Configuration, Converter {
          return (T)toInputStream(value);
       if (Reader.class.isAssignableFrom(type))
          return (T)toReader(value);
-      if (Collection.class.isAssignableFrom(type))
-         return (T)(value instanceof Collection ? value : toArray(value, Object.class));
+      if (Collection.class.isAssignableFrom(type)) {
+         if (value instanceof Collection)
+            return (T)value;
+         return (T)Arrays.asList((Object[])toArray(value, Object.class));
+      }
       if (Map.class.isAssignableFrom(type))
          return (T)(value instanceof Map ? value : toMap(value));
       if (type.isPrimitive())
@@ -320,18 +336,6 @@ public class Bootstrap implements Configuration, Converter {
       return (T)newInstance(toClass(value));
    }
 
-   private ClassLoader getClassLoader() {
-      if (classLoader == null) {
-         loadingClassLoader = true;
-         URL[] cp = getClasspath();
-         if (cp == null)
-            cp = new URL[0];
-         classLoader = new URLClassLoader(cp);
-         loadingClassLoader = false;
-      }
-      return classLoader;
-   }
-
    private void setProperties(Map properties) {
       if (properties == null || properties.isEmpty())
          properties = System.getProperties();
@@ -354,7 +358,7 @@ public class Bootstrap implements Configuration, Converter {
       if (value != null && value instanceof CharSequence && value.toString().trim().isEmpty())
          value = null;
       if (value == null && type.isInterface())
-         return null;
+         return (T)(type.isAssignableFrom(this.getClass()) ? this : null);
       try { return (T)convert(value, type); }
       catch (Exception e) {
          RuntimeException rte = (e instanceof RuntimeException) ? (RuntimeException)e : new RuntimeException(e);
@@ -422,8 +426,9 @@ public class Bootstrap implements Configuration, Converter {
          return new LinkedHashMap();
       if (value instanceof Collection) {
          Map map = new LinkedHashMap();
-         for (Object e : (Collection)value)
+         for (Object e : (Collection)value) {
             addEntry(map, e);
+         }
          return map;
       }
       if (value.getClass().isArray()) {
@@ -433,26 +438,9 @@ public class Bootstrap implements Configuration, Converter {
             addEntry(map, Array.get(value, i));
          return map;
       }
-      try {
-         Class beanClass = getClassLoader().loadClass("org.apache.commons.beanutils.BeanMap");
-         return (Map)beanClass.getConstructor(Object.class).newInstance(value);
-      }
+      Class beanClass = toClass("org.apache.commons.beanutils.BeanMap");
+      try { return (Map)beanClass.getConstructor(Object.class).newInstance(value); }
       catch (Exception e) { return null; }
-   }
-
-   private void addEntry(Map map, Object value) {
-      if (value instanceof Expression)
-         addEntry(map, ((Expression)value).getValue());
-      else if (value instanceof Reference) {
-         Reference r = (Reference)value;
-         map.put(r.getName(), r.getValue());
-      }
-      else if (value instanceof Map.Entry) {
-         Map.Entry e = (Map.Entry)value;
-         map.put(e.getKey(), e.getValue());
-      }
-      else
-         map.put(map.size(), value);
    }
 
    private String toString(Object value) {
@@ -466,6 +454,42 @@ public class Bootstrap implements Configuration, Converter {
       if (value instanceof Collection || value instanceof Map || type.isArray())
          return "("+String.join(" ", (String[])toArray(value, String.class))+")";
       return value.toString();
+   }
+
+   private Object toNumber(Object value, Class type) {
+      String txt = (value == null) ? "0" : value.toString();
+      try {
+         if (!DECIMAL_NUMBERS.contains(type)) {
+            int index = txt.indexOf('.');
+            if (index >= 0)
+               txt = txt.substring(0, index);
+         }
+         if (txt.trim().isEmpty())
+            txt = "0";
+         return type.getConstructor(String.class).newInstance(txt);
+      }
+      catch (Exception e) { return null; }
+   }
+
+   private Boolean toBoolean(Object value) {
+      if (value instanceof Boolean)
+         return (Boolean)value;
+      if (value instanceof Number)
+         return ((Number)value).doubleValue() != 0;
+      if (value == null)
+         return false;
+      String txt = value.toString().trim().toLowerCase();
+      switch (txt) {
+         case "true":
+         case "1":
+            return true;
+         case "false":
+         case "0":
+         case "":
+            return false;
+         default:
+            return null;
+      }
    }
 
    private URL toUrl(Object value) {
@@ -496,9 +520,12 @@ public class Bootstrap implements Configuration, Converter {
       String className = value.toString().trim();
       try { return Class.forName(className); }
       catch (ClassNotFoundException e) {
-         if (loadingClassLoader)
-            throw new RuntimeException("getClassLoader() is reentrant while converting "+className+" to class");
-         try { return getClassLoader().loadClass(className); }
+         if (classLoader == null) {
+            URL[] cp = getClasspath();
+            classLoader = (cp == null || cp.length == 0) ? this.getClass().getClassLoader()
+                                                         : new URLClassLoader(cp);
+         }
+         try { return classLoader.loadClass(className); }
          catch (ClassNotFoundException e2) { return null; }
       }
    }
@@ -527,6 +554,21 @@ public class Bootstrap implements Configuration, Converter {
       if (value instanceof InputStream)
          return new InputStreamReader((InputStream)value);
       return new InputStreamReader(toInputStream(value));
+   }
+
+   private void addEntry(Map map, Object value) {
+      if (value instanceof Expression)
+         addEntry(map, ((Expression)value).getValue());
+      else if (value instanceof Reference) {
+         Reference r = (Reference)value;
+         map.put(r.getName(), r.getValue());
+      }
+      else if (value instanceof Map.Entry) {
+         Map.Entry e = (Map.Entry)value;
+         map.put(e.getKey(), e.getValue());
+      }
+      else
+         map.put(map.size(), value);
    }
 
    private static Map getProperties(Object obj) {

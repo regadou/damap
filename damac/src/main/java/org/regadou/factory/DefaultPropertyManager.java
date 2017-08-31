@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.inject.Inject;
 import javax.script.ScriptContext;
+import org.regadou.damai.Converter;
 import org.regadou.util.ClassIterator;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
@@ -20,13 +21,13 @@ public class DefaultPropertyManager implements PropertyManager {
    private PropertyFactory genericFactory = new GenericPropertyFactory(this);
 
    @Inject
-   public DefaultPropertyManager() {
-      factories.put(Map.class, new MapPropertyFactory());
-      factories.put(Collection.class, new CollectionPropertyFactory());
+   public DefaultPropertyManager(Converter converter) {
+      factories.put(Map.class, new MapPropertyFactory(converter));
+      factories.put(Collection.class, new CollectionPropertyFactory(converter));
       factories.put(Object[].class, new ArrayPropertyFactory());
       factories.put(ScriptContext.class, new ScriptContextPropertyFactory());
       factories.put(Repository.class, new RepositoryPropertyFactory());
-      factories.put(RepositoryItem.class, new RepositoryItemPropertyFactory());
+      factories.put(RepositoryItem.class, new RepositoryItemPropertyFactory(converter));
    }
 
    @Override

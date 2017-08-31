@@ -5,11 +5,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import org.regadou.damai.Converter;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.reference.CollectionProperty;
 
 public class CollectionPropertyFactory implements PropertyFactory<Collection> {
+
+   private Converter converter;
+
+   public CollectionPropertyFactory(Converter converter) {
+      this.converter = converter;
+   }
 
    @Override
    public Property getProperty(Collection collection, String name) {
@@ -37,10 +44,10 @@ public class CollectionPropertyFactory implements PropertyFactory<Collection> {
    @Override
    public Property addProperty(Collection collection, String name, Object value) {
       try {
-         int index = Integer.parseInt(name);
+         int index = (name == null) ? collection.size() : Integer.parseInt(name);
          if (index >= collection.size()) {
             Property p = new CollectionProperty(collection, index, null);
-            p.setValue(value);
+            p.setValue(converter.convert(value, p.getType()));
             return p;
          }
       }

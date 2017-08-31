@@ -8,6 +8,7 @@ import javax.script.ScriptContext;
 import javax.script.SimpleBindings;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
+import org.regadou.damai.Reference;
 import org.regadou.script.ScriptContextProperty;
 
 public class ScriptContextPropertyFactory implements PropertyFactory<ScriptContext> {
@@ -31,6 +32,16 @@ public class ScriptContextPropertyFactory implements PropertyFactory<ScriptConte
 
    @Override
    public Property addProperty(ScriptContext cx, String name, Object value) {
+      if (name == null) {
+         if (value instanceof Reference) {
+            Reference ref = (Reference)value;
+            name = ref.getName();
+            if (name == null)
+               ref.getType().getName();
+         }
+         else
+            name = ((value == null) ? Void.class : value.getClass()).getName();
+      }
       int scope = cx.getAttributesScope(name);
       if (scope < 0) {
          List<Integer> scopes = cx.getScopes();

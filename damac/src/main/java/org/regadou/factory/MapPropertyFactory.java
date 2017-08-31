@@ -2,11 +2,19 @@ package org.regadou.factory;
 
 import java.util.Iterator;
 import java.util.Map;
+import org.regadou.damai.Converter;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
+import org.regadou.damai.Reference;
 import org.regadou.reference.MapProperty;
 
 public class MapPropertyFactory implements PropertyFactory<Map> {
+
+   private Converter converter;
+
+   public MapPropertyFactory(Converter converter) {
+      this.converter = converter;
+   }
 
    @Override
    public Property getProperty(Map map, String name) {
@@ -26,8 +34,18 @@ public class MapPropertyFactory implements PropertyFactory<Map> {
    public Property addProperty(Map map, String name, Object value) {
       if (!map.containsKey(name)) {
          try {
+            if (name == null) {
+               if (value instanceof Reference) {
+                  Reference ref = (Reference)value;
+                  name = ref.getName();
+                  if (name == null)
+                     ref.getType().getName();
+               }
+               else
+                  name = ((value == null) ? Void.class : value.getClass()).getName();
+            }
             Property p = new MapProperty(map, name, null);
-            p.setValue(value);
+            p.setValue(converter.convert(value, p.getType()));
             return p;
          }
          catch (Exception e) {}

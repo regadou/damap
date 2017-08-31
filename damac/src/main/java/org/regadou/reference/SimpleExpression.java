@@ -105,11 +105,6 @@ public class SimpleExpression implements Expression {
    }
 
    @Override
-   public void addToken(Reference token) {
-      throw new UnsupportedOperationException("adding tokens is not supported for SimpleExpression");
-   }
-
-   @Override
    public Reference getValue(ScriptContext context) {
       ScriptContext oldContext;
       if (context == null)

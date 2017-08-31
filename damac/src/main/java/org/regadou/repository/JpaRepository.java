@@ -2,7 +2,16 @@ package org.regadou.repository;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -12,15 +21,15 @@ import javax.persistence.Persistence;
 import javax.persistence.Query;
 import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
-import javax.script.Bindings;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Repository;
 
 public class JpaRepository implements Repository {
 
-   private EntityManagerFactory factory;
-   private Map<String, Class> nameToClassMap = new LinkedHashMap<>();
-   private Map<Class, String> classToNameMap = new LinkedHashMap<>();
+   private transient EntityManagerFactory factory;
+   private transient Map<String, Class> nameToClassMap = new LinkedHashMap<>();
+   private transient Map<Class, String> classToNameMap = new LinkedHashMap<>();
+   private Collection<String> items;
 
    @Inject
    public JpaRepository(Properties properties) throws ClassNotFoundException {
@@ -34,11 +43,12 @@ public class JpaRepository implements Repository {
          classToNameMap.put(c, n);
       }
       manager.close();
+      items = new TreeSet<>(nameToClassMap.keySet());
    }
 
    @Override
    public Collection<String> getItems() {
-      return nameToClassMap.keySet();
+      return items;
    }
 
    public Class getType(String item) {
@@ -77,6 +87,14 @@ public class JpaRepository implements Repository {
       String jpql = "select e from " + item + " e where e.id = ?1";
       Collection<Map> entities = query(jpql, Arrays.asList(id));
       return entities.isEmpty() ? null : entities.iterator().next();
+   }
+
+   @Override
+   public Map insert(String item, Map entity) {
+      return transaction(manager -> {
+         manager.persist(entity);
+         return entity;
+      });
    }
 
    @Override

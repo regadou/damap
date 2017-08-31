@@ -26,7 +26,6 @@ import org.regadou.damai.Bootstrap;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.MimeHandler;
-import org.regadou.damai.Reference;
 import org.regadou.damai.ScriptContextFactory;
 import org.regadou.reference.InputStreamReference;
 import org.regadou.reference.PathExpression;
@@ -42,8 +41,6 @@ import org.regadou.util.StaticMap;
 public class RestServlet implements Servlet {
 
    private static final int NOT_FOUND = 404;
-   private static final int NO_CONTENT = 204;
-   private static final Reference EMPTY_REFERENCE = new ReferenceHolder(null, null, true);
    private static final String DEFAULT_MIMETYPE = "text/html";
    private static final Map COMMAND_MAPPING = new StaticMap(
            "get",    Command.GET,

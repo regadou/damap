@@ -17,6 +17,8 @@ public interface Repository {
 
    Map getOne(String item, Object id);
 
+   Map insert(String item, Map entity);
+
    Map save(String item, Map entity);
 
    boolean delete(String item, Object id);

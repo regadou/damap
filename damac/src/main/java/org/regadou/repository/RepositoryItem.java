@@ -11,11 +11,13 @@ public class RepositoryItem implements Filterable {
    private transient Repository repo;
    private String name;
    private String repository;
+   private Collection<String> primaryKeys;
 
    public RepositoryItem(String name, Repository repo) {
       this.name = name;
       this.repo = repo;
       this.repository = repo.toString();
+      this.primaryKeys = repo.getPrimaryKeys(name);
    }
 
    @Override
@@ -47,11 +49,15 @@ public class RepositoryItem implements Filterable {
    }
 
    public Collection<String> getPrimaryKeys() {
-      return repo.getPrimaryKeys(name);
+      return primaryKeys;
    }
 
    public Map getOne(Object id) {
       return repo.getOne(name, id);
+   }
+
+   public Map insert(Map value) {
+      return repo.insert(name, value);
    }
 
    public Map save(Map value) {

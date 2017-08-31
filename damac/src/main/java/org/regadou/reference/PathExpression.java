@@ -4,6 +4,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 import javax.script.ScriptContext;
 import org.regadou.damai.Action;
@@ -75,11 +76,6 @@ public class PathExpression implements Expression {
    }
 
    @Override
-   public void addToken(Reference token) {
-      throw new UnsupportedOperationException("adding tokens is not supported for CommandExpression");
-   }
-
-   @Override
    public Reference getValue(ScriptContext context) {
       ScriptContext oldContext = configuration.getContextFactory().getScriptContext();
       if (context == null) {
@@ -91,7 +87,9 @@ public class PathExpression implements Expression {
 
       try {
          Reference result = new ReferenceHolder(null, context, true);
+         Reference parent = null;
          for (Object part : path) {
+            parent = result;
             result = getProperty(result.getValue(), part, context);
             if (result == null)
                return null;
@@ -106,7 +104,7 @@ public class PathExpression implements Expression {
             case MODIFY:
                return getReference(comparator.mergeValue(result, data));
             case DESTROY:
-               comparator.removeValue(result);
+               comparator.removeValue(parent, result.getName());
                return new ReferenceHolder(null, null, true);
             default:
                throw new RuntimeException("Unknown command "+command);
@@ -143,18 +141,25 @@ public class PathExpression implements Expression {
    private Reference getProperty(Object value, Object property, ScriptContext cx) {
       if (property == null)
          return null;
-      if (property.getClass().isArray()) {
-         int length = Array.getLength(property);
-         List values = new ArrayList(length);
-         for (int i = 0; i < length; i++)
-            values.add(getProperty(value, Array.get(property, i), cx));
-         return new ReferenceHolder(null, values, true);
-      }
+      if (property instanceof Collection)
+         return getArrayProperty(value, ((Collection)property).toArray(), cx);
+      if (property instanceof Map)
+         return getArrayProperty(value, ((Map)property).keySet().toArray(), cx);
+      if (property.getClass().isArray())
+         return getArrayProperty(value, property, cx);
       if (property instanceof Expression) {
          Collection result = comparator.getFilteredCollection(value, (Expression)property);
          return new ReferenceHolder(null, result, true);
       }
       return configuration.getPropertyManager().getProperty(value, String.valueOf(property));
+   }
+
+   private Reference getArrayProperty(Object value, Object property, ScriptContext cx) {
+      int length = Array.getLength(property);
+      List values = new ArrayList(length);
+      for (int i = 0; i < length; i++)
+         values.add(getProperty(value, Array.get(property, i), cx));
+      return new ReferenceHolder(null, values, true);
    }
 
    private Reference getReference(Object value) {
