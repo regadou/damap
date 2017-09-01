@@ -1,19 +1,18 @@
 package org.regadou.repository;
 
 import java.util.Collection;
-import java.util.Map;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Filterable;
 import org.regadou.damai.Repository;
 
-public class RepositoryItem implements Filterable {
+public class RepositoryItem<T> implements Filterable {
 
-   private transient Repository repo;
+   private transient Repository<T> repo;
    private String name;
    private String repository;
    private Collection<String> primaryKeys;
 
-   public RepositoryItem(String name, Repository repo) {
+   public RepositoryItem(String name, Repository<T> repo) {
       this.name = name;
       this.repo = repo;
       this.repository = repo.toString();
@@ -52,15 +51,15 @@ public class RepositoryItem implements Filterable {
       return primaryKeys;
    }
 
-   public Map getOne(Object id) {
+   public T getOne(Object id) {
       return repo.getOne(name, id);
    }
 
-   public Map insert(Map value) {
+   public T insert(T value) {
       return repo.insert(name, value);
    }
 
-   public Map save(Map value) {
+   public T save(T value) {
       return repo.save(name, value);
    }
 

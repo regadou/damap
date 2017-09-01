@@ -30,7 +30,7 @@ import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
 import org.regadou.script.OperatorAction;
 
-public class JdbcRepository implements Repository, Closeable {
+public class JdbcRepository implements Repository<Map>, Closeable {
 
    private transient Map<String, String[]> primaryKeys = new LinkedHashMap<>();
    private transient Map<String, Map<String, Class>> columnTypes = new LinkedHashMap<>();

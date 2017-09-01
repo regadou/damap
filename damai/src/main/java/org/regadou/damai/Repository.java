@@ -3,7 +3,7 @@ package org.regadou.damai;
 import java.util.Collection;
 import java.util.Map;
 
-public interface Repository {
+public interface Repository<T> {
 
    Collection<String> getItems();
 
@@ -11,15 +11,15 @@ public interface Repository {
 
    Collection<Object> getIds(String item);
 
-   Collection<Map> getAll(String item);
+   Collection<T> getAll(String item);
 
-   Collection<Map> getAny(String item, Expression exp);
+   Collection<T> getAny(String item, Expression exp);
 
-   Map getOne(String item, Object id);
+   T getOne(String item, Object id);
 
-   Map insert(String item, Map entity);
+   T insert(String item, T entity);
 
-   Map save(String item, Map entity);
+   T save(String item, T entity);
 
    boolean delete(String item, Object id);
 }

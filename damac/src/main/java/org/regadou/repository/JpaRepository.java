@@ -24,7 +24,7 @@ import javax.persistence.metamodel.SingularAttribute;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Repository;
 
-public class JpaRepository implements Repository {
+public class JpaRepository implements Repository<Map> {
 
    private transient EntityManagerFactory factory;
    private transient Map<String, Class> nameToClassMap = new LinkedHashMap<>();
