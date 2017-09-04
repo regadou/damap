@@ -2,18 +2,18 @@ package org.regadou.reference;
 
 import org.regadou.damai.Property;
 
-public class PropertyHolder<P,T> implements Property<P,T> {
+public class GenericProperty<P,T> implements Property<P,T> {
 
    private P parent;
    private String name;
    private T value;
    private boolean readonly;
 
-   public PropertyHolder(P parent, String name, T value) {
+   public GenericProperty(P parent, String name, T value) {
       this(parent, name, value, false);
    }
 
-   public PropertyHolder(P parent, String name, T value, boolean readonly) {
+   public GenericProperty(P parent, String name, T value, boolean readonly) {
       this.parent = parent;
       this.name = name;
       this.value = value;
@@ -42,7 +42,7 @@ public class PropertyHolder<P,T> implements Property<P,T> {
 
    @Override
    public Class<T> getType() {
-      return (Class<T>)((value == null) ? Void.class : value.getClass());
+      return (Class<T>)((value == null) ? Object.class : value.getClass());
    }
 
    @Override

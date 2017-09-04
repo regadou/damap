@@ -9,6 +9,7 @@ You can run the build-examples.sh script to build the project and then run scrip
 Damap is composed of several sub-projects:
 - Damai: DAta MAnager Interface
   - core library that contains generic interfaces that an application needs to implement
+  - contains a bootstrap main class that loads implementations from a properties file
 - Damac: DAta MAnager Classes
   - contains some basic implementation classes of Damai interfaces
   - uses Guice as dependency injection manager 
@@ -23,6 +24,7 @@ Damap is composed of several sub-projects:
 - Nalai: NAtural LAnguage Interpreter
   - provides computer programming with pseudo-natural language 
   - implements the ScriptEngine interface
+  - translate text to RDF structures
   - planned languages for now are french, english and spanish
 - Maleco: MAchine LEarning COntroller
   - scripting interface to run and monitor machine learning jobs

@@ -1,4 +1,4 @@
-package org.regadou.script;
+package org.regadou.reference;
 
 import javax.script.ScriptContext;
 import org.regadou.damai.Property;
@@ -46,7 +46,7 @@ public class ScriptContextProperty implements Property<ScriptContext,Object> {
    @Override
    public Class getType() {
       Object value = getValue();
-      return (value == null) ? Void.class : value.getClass();
+      return (value == null) ? Object.class : value.getClass();
    }
 
    @Override

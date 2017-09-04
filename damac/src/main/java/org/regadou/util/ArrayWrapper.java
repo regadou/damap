@@ -39,8 +39,4 @@ public class ArrayWrapper<T> extends AbstractList<T> {
    public int size() {
       return length;
    }
-
-   public Class<T> getComponentType() {
-      return (Class<T>) array.getClass().getComponentType();
-   }
 }

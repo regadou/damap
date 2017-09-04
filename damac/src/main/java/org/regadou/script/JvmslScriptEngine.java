@@ -1,5 +1,7 @@
 package org.regadou.script;
 
+import org.regadou.reference.ScriptContextProperty;
+import org.regadou.reference.CompiledExpression;
 import java.io.Reader;
 import java.util.*;
 import javax.script.Bindings;
@@ -19,15 +21,17 @@ import org.regadou.damai.Reference;
 import org.regadou.number.Complex;
 import org.regadou.number.Probability;
 import org.regadou.number.Time;
-import org.regadou.reference.ReferenceHolder;
+import org.regadou.reference.GenericReference;
 import org.regadou.util.StringInput;
 
 
 public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
 
    private static final int MINIMUM_TERMINALS = 3;
-   private static final String SYNTAX_SYMBOLS = "()[]{}\"'`,";
+   private static final String SYNTAX_SYMBOLS = "()[]{}\"'`,;";
    private static final String ALPHA_SYMBOLS = "_$";
+   private static final char FIRST_ACCENT = 0xC0;
+   private static final char LAST_ACCENT = 0x2AF;
    private static final Map<String,Reference> CONSTANT_KEYWORDS = new TreeMap<>();
    static {
       for (Object value : new Object[]{
@@ -37,7 +41,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
          float.class, double.class})
       {
          String name = (value instanceof Class) ? ((Class)value).getSimpleName() : String.valueOf(value);
-         CONSTANT_KEYWORDS.put(name, new ReferenceHolder(name, value, true));
+         CONSTANT_KEYWORDS.put(name, new GenericReference(name, value, true));
       }
    }
 
@@ -51,8 +55,10 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
       this.factory = factory;
       this.configuration = configuration;
       this.schemes = Arrays.asList(configuration.getResourceManager().getSchemes());
-      for (OperatorAction op : OperatorAction.createActions(configuration))
-         keywords.put(op.getName(), new ReferenceHolder(op.getName(), op, true));
+      for (OperatorAction op : OperatorAction.getActions(configuration))
+         keywords.put(op.getName(), new GenericReference(op.getName(), op, true));
+      for (CommandAction cmd : CommandAction.getActions(configuration))
+         keywords.put(cmd.getName(), new GenericReference(cmd.getName(), cmd, true));
    }
 
    @Override
@@ -164,7 +170,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
 
    private boolean isAlpha(char c) {
       return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
-          || (c >= 0xC0 && c <= 0x2AF) || ALPHA_SYMBOLS.indexOf(c) >= 0;
+          || (c >= FIRST_ACCENT && c <= LAST_ACCENT) || ALPHA_SYMBOLS.indexOf(c) >= 0;
    }
 
    private CompiledExpression parse(String txt, Bindings bindings) {
@@ -213,6 +219,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
          case '}':
             throw new RuntimeException("Invalid end of sequence "+c);
          case ',':
+         case ';':
             return null;
          default:
             if (isDigit(c))
@@ -225,6 +232,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
    }
 
    private CompiledExpression parseExpression(ParserStatus status) throws Exception {
+      List<Reference> expressions = null;
       CompiledExpression exp = new CompiledExpression(this, null, configuration);
       char end = status.end;
       char end2 = status.end2;
@@ -240,12 +248,18 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
                exp.addToken(token);
                status.previousToken = token;
             }
+            else if (!exp.isEmpty()) {
+               if (expressions == null)
+                  expressions = new ArrayList<>();
+               expressions.add(exp);
+               exp = new CompiledExpression(this, null, configuration);
+            }
          }
       }
 
       if (end > 0 && c != end)
          throw new RuntimeException("Syntax error: closing character "+end+" missing");
-      return exp;
+      return (expressions == null) ? exp : new CompiledExpression(this, expressions, configuration);
    }
 
    private Reference parseToken(ParserStatus status) throws Exception {
@@ -291,7 +305,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
          char c = status.chars[status.pos];
          if (c == end || c == end2) {
             if (terminals == 0 || terminals >= MINIMUM_TERMINALS)
-               return new ReferenceHolder(null, buffer.toString(), true);
+               return new GenericReference(null, buffer.toString(), true);
             else
                terminals++;
          }
@@ -414,7 +428,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
                break;
             case '%':
                if (digit && !hexa && !decimal && !exponent && !complex && !time)
-                  return new ReferenceHolder(null, new Probability(buffer.append(c).toString()), true);
+                  return new GenericReference(null, new Probability(buffer.append(c).toString()), true);
                else
                   end = true;
                break;
@@ -475,15 +489,15 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
       if (!digit)
          return null;
       else if (hexa)
-         return new ReferenceHolder(null, new Integer(Integer.parseInt(txt.substring(2), 16)), true);
+         return new GenericReference(null, new Integer(Integer.parseInt(txt.substring(2), 16)), true);
       else if (complex)
-         return new ReferenceHolder(null, new Complex(txt), true);
+         return new GenericReference(null, new Complex(txt), true);
       else if (decimal || exponent)
-         return new ReferenceHolder(null, new Double(txt), true);
+         return new GenericReference(null, new Double(txt), true);
       else if (time)
-         return new ReferenceHolder(null, new Time(txt), true);
+         return new GenericReference(null, new Time(txt), true);
       else
-         return new ReferenceHolder(null, new Long(txt), true);
+         return new GenericReference(null, new Long(txt), true);
    }
 
    private Reference parseArray(ParserStatus status) throws Exception {
@@ -510,7 +524,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
 
       if (c != ']')
          throw new RuntimeException("Missing end of array ]");
-      return new ReferenceHolder(null, lst, true);
+      return new GenericReference(null, lst, true);
    }
 
    private Reference parseObject(ParserStatus status) throws Exception {
@@ -573,7 +587,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
          catch (ClassNotFoundException e) {}
          catch (Exception e) { map.put("error", e.toString()); }
       }
-      return new ReferenceHolder(null, obj, true);
+      return new GenericReference(null, obj, true);
    }
 
    private Reference parseName(ParserStatus status) throws Exception {
@@ -612,7 +626,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
 
       String txt = new String(status.chars, start, length);
       if (uri) {
-         try { return new ReferenceHolder(txt, Class.forName(txt), true); }
+         try { return new GenericReference(txt, Class.forName(txt), true); }
          catch (ClassNotFoundException e) {
             Reference r = configuration.getResourceManager().getResource(txt);
             if (r != null)

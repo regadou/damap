@@ -6,5 +6,5 @@ public interface PropertyManager {
 
    <T> PropertyFactory<T> getPropertyFactory(Class<T> type);
 
-   <T> void registerPropertyFactory(Class<T> type, PropertyFactory<T> factory);
+   <T> boolean registerPropertyFactory(Class<T> type, PropertyFactory<T> factory);
 }

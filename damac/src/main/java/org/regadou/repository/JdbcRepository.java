@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import org.regadou.damai.Action;
 import org.regadou.damai.Converter;
 import org.regadou.damai.Expression;
@@ -29,6 +30,7 @@ import org.regadou.damai.Property;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
 import org.regadou.script.OperatorAction;
+import org.regadou.util.PersistableMap;
 
 public class JdbcRepository implements Repository<Map>, Closeable {
 
@@ -99,7 +101,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
          return ids;
       String sql = "select " +  String.join(", ", keys) + " from " + item;
       try {
-         for (Map row : getRows(statement.executeQuery(sql))) {
+         for (Map row : getRows(item, statement.executeQuery(sql))) {
             if (keys.length == 1)
                ids.add(row.get(keys[0]));
             else {
@@ -117,7 +119,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    @Override
    public Collection<Map> getAll(String item) {
       String sql = "select * from " + item;
-      try { return getRows(statement.executeQuery(sql)); }
+      try { return getRows(item, statement.executeQuery(sql)); }
       catch (SQLException e) { throw new RuntimeException(e); }
    }
 
@@ -126,7 +128,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
       String sql = "select * from " + item;
       if (filter != null && filter.getAction() != null)
          sql += " where " + getClause(filter);
-      try { return getRows(statement.executeQuery(sql)); }
+      try { return getRows(item, statement.executeQuery(sql)); }
       catch (SQLException e) { throw new RuntimeException(e); }
    }
 
@@ -135,7 +137,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
       Object[] params = converter.convert(id, Object[].class);
       String sql = "select * from " + item +  getFilter(item, getMap(primaryKeys.get(item), params));
       try {
-         Collection<Map>  entities = getRows(statement.executeQuery(sql));
+         Collection<Map>  entities = getRows(item, statement.executeQuery(sql));
          return entities.isEmpty() ? null : entities.iterator().next();
       }
       catch (SQLException e) { throw new RuntimeException(e); }
@@ -164,7 +166,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
          if (nb == 0)
             return null;
          String sql = "select * from " + item + filter;
-         Collection<Map>  entities = getRows(statement.executeQuery(sql));
+         Collection<Map> entities = getRows(item, statement.executeQuery(sql));
          return entities.isEmpty() ? null : entities.iterator().next();
       }
       catch (SQLException e) { throw new RuntimeException(e); }
@@ -201,7 +203,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
          return null;
       ResultSet rs = statement.getGeneratedKeys();
       if (rs.next()) {
-         entity = new LinkedHashMap(entity);
+         entity = new PersistableMap(entity, getUpdateFunction(item));
          int nc = Math.min(keys.length, rs.getMetaData().getColumnCount());
          for (int c = 0; c < nc; c++)
             entity.put(keys[c], rs.getObject(c+1));
@@ -247,12 +249,12 @@ public class JdbcRepository implements Repository<Map>, Closeable {
       return sql;
    }
 
-   private Collection<Map> getRows(ResultSet rs) throws SQLException {
+   private Collection<Map> getRows(String item, ResultSet rs) throws SQLException {
       Collection<Map> rows = new ArrayList<>();
       ResultSetMetaData meta = rs.getMetaData();
       int nc = meta.getColumnCount();
       while (rs.next()) {
-         Map row = new LinkedHashMap();
+         Map row = new PersistableMap(getUpdateFunction(item));
          for (int c = 1; c <= nc; c++) {
             String col = meta.getColumnName(c).toLowerCase();
             Object val = rs.getObject(c);
@@ -269,7 +271,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
       if (columns == null) {
          try {
             columnTypes.put(table, columns = new LinkedHashMap<>());
-            for (Map row : getRows(connection.getMetaData().getColumns(info.getDatabase(),null,table,null)))
+            for (Map row : getRows(table, connection.getMetaData().getColumns(info.getDatabase(),null,table,null)))
                columns.put(row.get("column_name").toString(), getJavaType(row.get("data_type")));
          }
          catch (SQLException e) {
@@ -282,23 +284,28 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    }
 
    private String getClause(Expression exp) {
-      Reference[] tokens = exp.getTokens();
+      Object[] tokens = exp.getTokens();
       if (tokens == null || tokens.length == 0)
          tokens = new Reference[2];
       else if (tokens.length < 2)
-         tokens = new Reference[]{tokens[0], null};
+         tokens = new Object[]{tokens[0], null};
       Action action = exp.getAction();
       String sql = "";
       for (Object token : tokens) {
-         if (!(token instanceof Expression) && !(token instanceof Property)) {
-            while (token instanceof Reference)
-               token = ((Reference)token).getValue();
+         while (token instanceof Reference) {
+            if (token instanceof Expression || token instanceof Property)
+               break;
+            token = ((Reference)token).getValue();
          }
          if (!sql.isEmpty())
             sql += getOperator(action, token);
          sql += printValue(token, false);
       }
       return sql;
+   }
+
+   private Predicate<Map> getUpdateFunction(String item) {
+      return map -> this.save(item, map) != null;
    }
 
    private String printValue(Object value, boolean printOperator) {
@@ -326,11 +333,13 @@ public class JdbcRepository implements Repository<Map>, Closeable {
       String op = printOperator ? " = " : "";
       if (value instanceof Boolean)
          return op + (info.getVendor().isHasBoolean() ? value.toString() : ((Boolean)value ? "1" : "0"));
-      if (value instanceof Number || value instanceof java.sql.Date
-            || value instanceof java.sql.Time || value instanceof java.sql.Timestamp)
-         return op + value.toString();
+      if (value instanceof Number)
+         return op + value;
+      //TODO: check for complex, probability and time which need escaping
+      if (value instanceof java.sql.Time || value instanceof java.sql.Date)
+         return op + "'" + value + "'";
       if (value instanceof Date)
-         return op + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(value);
+         return op + "'" + new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(value) + "'";
       return op + "'" + value.toString().replace("'", "''") + "'";
    }
 
@@ -408,7 +417,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
          case java.sql.Types.VARCHAR:
             return String.class;
          case java.sql.Types.NULL:
-            return Void.class;
+            return Object.class;
          case java.sql.Types.DATE:
             return java.sql.Date.class;
          case java.sql.Types.TIMESTAMP:

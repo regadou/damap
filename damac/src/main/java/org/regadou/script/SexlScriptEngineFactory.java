@@ -18,7 +18,7 @@ public class SexlScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public String getEngineName() {
-      return "sexl";
+      return "Regadou SEXL";
    }
 
    @Override

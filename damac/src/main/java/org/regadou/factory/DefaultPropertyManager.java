@@ -10,6 +10,7 @@ import org.regadou.util.ClassIterator;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
+import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
 import org.regadou.repository.RepositoryItem;
 
@@ -32,6 +33,8 @@ public class DefaultPropertyManager implements PropertyManager {
 
    @Override
    public Property getProperty(Object value, String name) {
+      while (value instanceof Reference)
+         value = ((Reference)value).getValue();
       Class type = (value == null) ? Void.class : value.getClass();
       PropertyFactory factory = getPropertyFactory(type);
       if (factory != null) {
@@ -55,7 +58,10 @@ public class DefaultPropertyManager implements PropertyManager {
    }
 
    @Override
-   public <T> void registerPropertyFactory(Class<T> type, PropertyFactory<T> factory) {
+   public <T> boolean registerPropertyFactory(Class<T> type, PropertyFactory<T> factory) {
+      if (factories.containsKey(type))
+         return false;
       factories.put(type, factory);
+      return true;
    }
 }

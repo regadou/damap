@@ -1,11 +1,15 @@
 package org.regadou.damai;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 public interface MimeHandler {
 
    String[] getMimetypes();
 
-   MimeHandlerInput getInputHandler(String mimetype);
+   Object load(InputStream input, String charset) throws IOException;
 
-   MimeHandlerOutput getOutputHandler(String mimetype);
+   void save(OutputStream output, String charset, Object value) throws IOException;
 
 }

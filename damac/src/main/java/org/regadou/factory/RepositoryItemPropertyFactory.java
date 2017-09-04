@@ -1,7 +1,6 @@
 package org.regadou.factory;
 
 import java.util.Collection;
-import java.util.Map;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
@@ -18,8 +17,7 @@ public class RepositoryItemPropertyFactory implements PropertyFactory<Repository
 
    @Override
    public Property getProperty(RepositoryItem item, String name) {
-      PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(item.getClass());
-      return new RepositoryItemProperty(item, name, factory);
+      return new RepositoryItemProperty(item, name, configuration.getPropertyManager());
    }
 
    @Override
@@ -30,8 +28,11 @@ public class RepositoryItemPropertyFactory implements PropertyFactory<Repository
 
    @Override
    public Property addProperty(RepositoryItem item, String name, Object value) {
-      Property<RepositoryItem,Map> p = new RepositoryItemProperty(item, name, configuration.getPropertyManager().getPropertyFactory(item.getClass()));
-      p.setValue(configuration.getConverter().convert(value, Map.class));
+      Property p = new RepositoryItemProperty(item, name, configuration.getPropertyManager());
+      Class type = p.getType();
+      if (!type.isAssignableFrom((value == null) ? Object.class : value.getClass()))
+         value = configuration.getConverter().convert(value, type);
+      p.setValue(value);
       return p;
    }
 

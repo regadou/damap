@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeSet;
 import java.util.function.Function;
 import javax.activation.FileTypeMap;
 import javax.script.Bindings;
@@ -50,53 +51,37 @@ public class Bootstrap implements Configuration, Converter {
       cx.setWriter(writer);
       cx.setErrorWriter(new OutputStreamWriter(System.err));
       if (DEBUG)
-         printDebugInfo(config, writer);
+         printDebugInfo(config);
       URL init = config.getInitScript();
       if (init != null) {
          Reference r = config.getResourceManager().getResource(init.toString());
          System.out.println(r.getValue());
       }
-      else
-         System.out.println("configuration = "+getProperties(config));
    }
 
-   public static void printDebugInfo(Configuration config, Writer writer) throws IOException {
-      if (writer == null)
-         writer = config.getContextFactory().getScriptContext().getWriter();
-      writer.write("configuration = "+getProperties(config)+"\n");
+   public static void printDebugInfo(Configuration config) throws IOException {
       for (Method m : config.getClass().getDeclaredMethods()) {
          int mod = m.getModifiers();
          if (m.getParameterCount() == 0 && Modifier.isPublic(mod) && !Modifier.isStatic(mod)) {
             Object value;
-            try { value = m.invoke(config); }
+            try {
+               value = m.invoke(config);
+               if (value instanceof Object[])
+                  value = Arrays.asList((Object[])value);
+            }
             catch (Exception e) { value = e; }
-            System.out.println("  "+m.getName()+" = "+value);
+            String name = m.getName();
+            if (name.startsWith("get"))
+               name = name.substring(3);
+            System.out.println(name+" = "+value);
          }
       }
-      config.getEngineManager().getBindings().put(Configuration.class.getName(), config);
-      writer.write("handlers = "+config.getHandlerFactory().getMimetypes()+"\n");
-      Collection<String> mimetypes = new ArrayList<>();
+      System.out.println("uri schemes = "+Arrays.asList(config.getResourceManager().getSchemes()));
+      System.out.println("mime types = "+config.getHandlerFactory().getMimetypes());
+      Collection<String> engines = new TreeSet<>();
       for (ScriptEngineFactory factory : config.getEngineManager().getEngineFactories())
-         mimetypes.addAll(factory.getMimeTypes());
-      writer.write("engines = "+mimetypes+"\n");
-      Map map = config.getConverter().convert(config.getTypeMap(), Map.class);
-      writer.write("type mapping = "+map.get("mapping")+"\n");
-   }
-
-   public static Reference newReference(String name, Object value) {
-      return new Reference() {
-         @Override
-         public String getName() { return name; }
-
-         @Override
-         public Object getValue() { return value; }
-
-         @Override
-         public Class getType() { return Object.class; }
-
-         @Override
-         public void setValue(Object value) {}
-      };
+         engines.add(factory.getEngineName());
+      System.out.println("script engines = "+engines);
    }
 
    private static final String PROPERTY_PREFIX = Configuration.class.getName() + ".";
@@ -121,7 +106,6 @@ public class Bootstrap implements Configuration, Converter {
    }
 
    private static String[] checkDebugArg(String[] src, BufferedReader reader) {
-      boolean gotDebug = false;
       List<String> dst = new ArrayList<>(Arrays.asList(src));
       Iterator<String> it = dst.iterator();
       while (it.hasNext()) {
@@ -130,10 +114,10 @@ public class Bootstrap implements Configuration, Converter {
             arg = arg.substring(1);
          if (arg.equals("debug")) {
             it.remove();
-            gotDebug = true;
+            DEBUG = true;
          }
       }
-      if (gotDebug) {
+      if (DEBUG) {
          try {
             System.out.println("*** press enter after starting debugger ***");
             reader.readLine();
@@ -389,11 +373,23 @@ public class Bootstrap implements Configuration, Converter {
       Class[] types = c.getParameterTypes();
       Object[] params = new Object[types.length];
       for (int p = 0; p < params.length; p++)
-         params[p] = findProperty(types[p], null);
+         params[p] = getConfig(types[p]);
       try { return c.newInstance(params); }
       catch (InstantiationException|IllegalAccessException|IllegalArgumentException|InvocationTargetException e) {
-         return null;
+         throw new RuntimeException(e);
       }
+   }
+
+   private Object getConfig(Class type) {
+      if (Configuration.class.isAssignableFrom(type))
+         return this;
+      for (Method method : getClass().getMethods()) {
+         if (method.getParameterCount() == 0 && method.getReturnType().isAssignableFrom(type)) {
+            try { return method.invoke(this); }
+            catch (Exception e) { throw new RuntimeException(e); }
+         }
+      }
+      return null;
    }
 
    private Object toArray(Object src, Class subtype) {

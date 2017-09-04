@@ -1,12 +1,16 @@
 package org.regadou.factory;
 
+import org.regadou.mime.DefaultMimeHandler;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
@@ -18,21 +22,25 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.eclipse.rdf4j.rio.RDFFormat;
 import org.regadou.damai.Configuration;
+import org.regadou.damai.Converter;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.MimeHandlerFactory;
 import org.regadou.script.GenericComparator;
-import org.regadou.script.ScriptEngineMimeHandler;
-import org.regadou.util.CsvHandler;
-import org.regadou.util.HtmlHandler;
-import org.regadou.util.JsonHandler;
+import org.regadou.mime.ScriptEngineMimeHandler;
+import org.regadou.mime.CsvHandler;
+import org.regadou.mime.HtmlHandler;
+import org.regadou.mime.ImageHandler;
+import org.regadou.mime.JsonHandler;
+import org.regadou.mime.RdfHandler;
 import org.regadou.util.StringInput;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
 
-   private final Map<String, MimeHandler> handlers = new LinkedHashMap<>();
+   private final Map<String, MimeHandler> handlers = new TreeMap<>();
    private Configuration configuration;
    private GenericComparator comparator;
 
@@ -40,19 +48,37 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
    public DefaultMimeHandlerFactory(Configuration configuration) {
       this.configuration = configuration;
       this.comparator = new GenericComparator(configuration);
+      Converter converter = configuration.getConverter();
       for (MimeHandler handler : createDefaultHandlers())
          registerHandler(handler);
+      for (String mimetype : new TreeSet<>(Arrays.asList(ImageIO.getReaderMIMETypes()))) {
+         if (!mimetype.startsWith("x-"))
+            registerHandler(new ImageHandler(mimetype, converter));
+      }
       for (ScriptEngineFactory factory : configuration.getEngineManager().getEngineFactories())
          registerHandler(new ScriptEngineMimeHandler(factory.getScriptEngine(), configuration));
+      for (Field field : RDFFormat.class.getFields()) {
+         int mod = field.getModifiers();
+         if (Modifier.isStatic(mod) && Modifier.isPublic(mod) && RDFFormat.class.isAssignableFrom(field.getType())) {
+            try {
+               RDFFormat format = (RDFFormat)field.get(null);
+               registerHandler(new RdfHandler(format, configuration));
+            }
+            catch (Exception e) { throw new RuntimeException(e); }
+         }
+      }
    }
 
    @Override
-   public void registerHandler(MimeHandler handler) {
+   public boolean registerHandler(MimeHandler handler) {
+      Map<String, MimeHandler> newHandlers = new HashMap<>();
       for (String type : handler.getMimetypes()) {
-         if (handlers.containsKey(type))
-            System.out.println("***** Warning: overriding content handler "+handlers.get(type)+" ("+type+") with "+handler);
-         handlers.put(type, handler);
+         if (handlers.containsKey(type) && handler != handlers.get(type))
+            return false;
+         newHandlers.put(type, handler);
       }
+      handlers.putAll(newHandlers);
+      return true;
    }
 
    @Override
@@ -113,13 +139,6 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
             }
             catch (TransformerException e) { throw new RuntimeException(e); }
          }, "application/xml", "text/xml"),
-
-         new DefaultMimeHandler((input, charset) -> {
-            return ImageIO.read(input);
-         }, (output, charset, value) -> {
-               output.write(String.valueOf(value).getBytes(charset));
-               output.flush();
-         }, new TreeSet<>(Arrays.asList(ImageIO.getReaderMIMETypes())).toArray(new String[0])),
 
          new HtmlHandler(configuration),
 

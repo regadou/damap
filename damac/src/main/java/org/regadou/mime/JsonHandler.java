@@ -1,15 +1,17 @@
-package org.regadou.util;
+package org.regadou.mime;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import javax.script.ScriptContext;
 import org.regadou.damai.MimeHandler;
-import org.regadou.damai.MimeHandlerInput;
-import org.regadou.damai.MimeHandlerOutput;
 import org.regadou.script.DefaultScriptContext;
 import org.regadou.script.HttpScriptContext;
 import org.regadou.script.PropertiesScriptContext;
+import org.regadou.script.ScriptContextGsonSerializer;
 
 public class JsonHandler implements MimeHandler {
 
@@ -33,15 +35,13 @@ public class JsonHandler implements MimeHandler {
    }
 
    @Override
-   public MimeHandlerInput getInputHandler(String mimetype) {
-      return (input, charset) -> gson.fromJson(new InputStreamReader(input, charset), Object.class);
+   public Object load(InputStream input, String charset) throws IOException {
+      return gson.fromJson(new InputStreamReader(input, charset), Object.class);
    }
 
    @Override
-   public MimeHandlerOutput getOutputHandler(String mimetype) {
-      return (output, charset, value) -> {
-         output.write(gson.toJson(value).getBytes(charset));
-         output.flush();
-      };
+   public void save(OutputStream output, String charset, Object value) throws IOException {
+      output.write(gson.toJson(value).getBytes(charset));
+      output.flush();
    }
 }

@@ -1,14 +1,16 @@
-package org.regadou.util;
+package org.regadou.mime;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import org.regadou.script.GenericComparator;
 import java.util.Iterator;
 import java.util.Map;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.MimeHandler;
-import org.regadou.damai.MimeHandlerInput;
-import org.regadou.damai.MimeHandlerOutput;
 import org.regadou.damai.Reference;
-import org.regadou.reference.MapEntryWrapper;
+import org.regadou.reference.MapEntryReference;
+import org.regadou.util.StringInput;
 
 public class HtmlHandler implements MimeHandler {
 
@@ -39,23 +41,21 @@ public class HtmlHandler implements MimeHandler {
    }
 
    @Override
-   public MimeHandlerInput getInputHandler(String mimetype) {
-      return (input, charset) -> new StringInput(input, charset).toString();
+   public Object load(InputStream input, String charset) throws IOException {
+      return new StringInput(input, charset).toString();
    }
 
    @Override
-   public MimeHandlerOutput getOutputHandler(String mimetype) {
-      return (output, charset, value) -> {
-         String uri = null;
-         if (value instanceof Link) {
-            Link link = (Link)value;
-            value = link.value;
-            if (value != null && !comparator.isStringable(value))
-               uri = link.uri;
-         }
-         output.write(printTag(value, uri).getBytes(charset));
-         output.flush();
-      };
+   public void save(OutputStream output, String charset, Object value) throws IOException {
+      String uri = null;
+      if (value instanceof Link) {
+         Link link = (Link)value;
+         value = link.value;
+         if (value != null && !comparator.isStringable(value))
+            uri = link.uri;
+      }
+      output.write(printTag(value, uri).getBytes(charset));
+      output.flush();
    }
 
    private String printTag(Object src, String uri) {
@@ -65,7 +65,7 @@ public class HtmlHandler implements MimeHandler {
          return printTag((name == null || name.trim().isEmpty()) ? r.getValue() : name, uri);
       }
       if (src instanceof Map.Entry)
-         return printTag(new MapEntryWrapper((Map.Entry)src), uri);
+         return printTag(new MapEntryReference((Map.Entry)src), uri);
       if (src instanceof Class)
          return ((Class)src).getName();
       if (comparator.isStringable(src)) {

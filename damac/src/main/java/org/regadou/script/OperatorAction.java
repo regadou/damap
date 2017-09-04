@@ -12,16 +12,17 @@ import java.util.function.BiFunction;
 import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
-import org.regadou.damai.Reference;
 
 public class OperatorAction implements Action {
 
    private static enum Type { COLLECTION, NUMERIC, ENTITY, STRING }
+   private static final Class[] PARAMETERS_TYPES = new Class[]{Object.class, Object.class};
 
-   public static Collection<OperatorAction> createActions(Configuration configuration) {
+   public static Collection<OperatorAction> getActions(Configuration configuration) {
+      GenericComparator comparator = new GenericComparator(configuration);
       Collection<OperatorAction> actions = new ArrayList<>();
       for (Operator op : Operator.values()) {
-         OperatorAction action = new OperatorAction(op, configuration);
+         OperatorAction action = new OperatorAction(op, comparator);
          actions.add(action);
       }
       return actions;
@@ -31,10 +32,10 @@ public class OperatorAction implements Action {
    private Operator operator;
    private BiFunction function;
 
-   private OperatorAction(Operator operator, Configuration configuration) {
+   private OperatorAction(Operator operator, GenericComparator comparator) {
       this.operator = operator;
+      this.comparator = comparator;
       function = getOperatorFunction();
-      comparator = new GenericComparator(configuration);
    }
 
    @Override
@@ -80,6 +81,51 @@ public class OperatorAction implements Action {
          case WHILE: return "*?";
          default: throw new RuntimeException("Unknown operator "+operator);
       }
+   }
+
+   @Override
+   public Class getReturnType() {
+      switch (operator) {
+         case EXPONANT:
+         case ROOT:
+         case LOG:
+         case MULTIPLY:
+         case DIVIDE:
+         case MODULO:
+            return Number.class;
+         case ADD:
+         case SUBTRACT:
+            return Object.class; //Collection|Number|String|Map
+         case FROM:
+            return Object.class;
+         case TO:
+            return Collection.class;
+         case LESSER:
+         case LESSEQ:
+         case GREATER:
+         case GREATEQ:
+         case EQUAL:
+         case NOTEQUAL:
+         case AND:
+         case OR:
+         case NOT:
+         case IN:
+         case IS:
+            return Boolean.class;
+         case IF:
+         case ELSE:
+         case WHILE:
+         case DO:
+         case HAVE:
+            return Object.class;
+         default:
+            return Object.class;
+      }
+   }
+
+   @Override
+   public Class[] getParameterTypes() {
+      return PARAMETERS_TYPES;
    }
 
    public int getPrecedence() {

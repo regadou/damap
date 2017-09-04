@@ -13,9 +13,8 @@ import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Reference;
 import org.regadou.script.OperatorAction;
-import org.regadou.script.ScriptContextProperty;
 
-public class SimpleExpression implements Expression {
+public class SimpleExpression implements Expression<Reference> {
 
    private static class TokenList extends ArrayList {
       public TokenList(Object t1, Object t2) {
@@ -25,9 +24,9 @@ public class SimpleExpression implements Expression {
 
    private static final String ALPHA_SYMBOLS = "_$.-";
    private static final String ESCAPE_CHARS = "'`\"";
+   private static final Map<String,OperatorAction> OPERATORS = new TreeMap<>();
 
    private Configuration configuration;
-   private Map<String,OperatorAction> operators;
    private String text;
    private Action action;
    private Object param1, param2;
@@ -42,12 +41,8 @@ public class SimpleExpression implements Expression {
    public SimpleExpression(Configuration configuration, String text) {
       this.configuration = configuration;
       this.text = text;
-      if (text != null) {
-         operators = new TreeMap<>();
-         for (OperatorAction op : OperatorAction.createActions(configuration))
-            operators.put(op.getName(), op);
+      if (text != null)
          parseExpression(text.toCharArray());
-      }
    }
 
    @Override
@@ -134,11 +129,11 @@ public class SimpleExpression implements Expression {
       if (value instanceof Reference)
          return (Reference)value;
       else if (value instanceof Map.Entry)
-         return new MapEntryWrapper((Map.Entry)value);
+         return new MapEntryReference((Map.Entry)value);
       else if (value == null)
          return null;
       else
-         return new ReferenceHolder(null, value);
+         return new GenericReference(null, value);
    }
 
    private void parseExpression(char[] chars) {
@@ -260,12 +255,16 @@ public class SimpleExpression implements Expression {
    private List<OperatorAction> getOperators(String word) {
       if (!isSymbol(word.charAt(0)))
          return Collections.EMPTY_LIST;
-      OperatorAction op = operators.get(word);
+      if (OPERATORS.isEmpty()) {
+         for (OperatorAction op : OperatorAction.getActions(configuration))
+            OPERATORS.put(op.getName(), op);
+      }
+      OperatorAction op = OPERATORS.get(word);
       if (op != null)
          return Arrays.asList(op);
       for (int i = word.length() - 1; i > 0; i--) {
-         OperatorAction op1 = operators.get(word.substring(0, i));
-         OperatorAction op2 = operators.get(word.substring(i));
+         OperatorAction op1 = OPERATORS.get(word.substring(0, i));
+         OperatorAction op2 = OPERATORS.get(word.substring(i));
          if (op1 != null && op2 != null)
             return Arrays.asList(op1, op2);
       }

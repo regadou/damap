@@ -1,4 +1,4 @@
-package org.regadou.factory;
+package org.regadou.mime;
 
 import java.io.BufferedReader;
 import java.io.File;

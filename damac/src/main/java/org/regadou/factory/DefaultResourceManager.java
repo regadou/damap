@@ -9,7 +9,7 @@ import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
-import org.regadou.script.ScriptContextProperty;
+import org.regadou.reference.ScriptContextProperty;
 
 public class DefaultResourceManager implements ResourceManager {
 
@@ -60,9 +60,15 @@ public class DefaultResourceManager implements ResourceManager {
    }
 
    @Override
-   public void registerFactory(ResourceFactory factory) {
-      for (String scheme : factory.getSchemes())
-         factories.put(scheme, factory);
+   public boolean registerFactory(ResourceFactory factory) {
+      Map<String,ResourceFactory> newFactories = new HashMap<>();
+      for (String scheme : factory.getSchemes()) {
+         if (factories.containsKey(scheme) && factory != factories.get(scheme))
+            return false;
+         newFactories.put(scheme, factory);
+      }
+      factories.putAll(newFactories);
+      return true;
    }
 
    private boolean canBeFile(String name) {

@@ -1,7 +1,10 @@
-package org.regadou.util;
+package org.regadou.mime;
 
 import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -10,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 import org.regadou.damai.Converter;
 import org.regadou.damai.MimeHandler;
-import org.regadou.damai.MimeHandlerInput;
-import org.regadou.damai.MimeHandlerOutput;
 
 public class CsvHandler implements MimeHandler {
 
@@ -29,24 +30,20 @@ public class CsvHandler implements MimeHandler {
    }
 
    @Override
-   public MimeHandlerInput getInputHandler(String mimetype) {
-      return (input, charset) -> {
-         List<Object[]> lines = new ArrayList<>();
-         BufferedReader reader = new BufferedReader(new InputStreamReader(input, charset));
-         String  line;
-         char[] separator = new char[1];
-         while ((line = reader.readLine()) != null)
-            lines.add(getLineColumns(line, separator));
-         return lines.toArray(new Object[lines.size()][]);
-      };
+   public Object load(InputStream input, String charset) throws IOException {
+      List<Object[]> lines = new ArrayList<>();
+      BufferedReader reader = new BufferedReader(new InputStreamReader(input, charset));
+      String  line;
+      char[] separator = new char[1];
+      while ((line = reader.readLine()) != null)
+         lines.add(getLineColumns(line, separator));
+      return lines.toArray(new Object[lines.size()][]);
    }
 
    @Override
-   public MimeHandlerOutput getOutputHandler(String mimetype) {
-      return (output, charset, value) -> {
-         output.write(print(value, charset));
-         output.flush();
-      };
+   public void save(OutputStream output, String charset, Object value) throws IOException {
+      output.write(print(value, charset));
+      output.flush();
    }
 
    private Object[] getLineColumns(String line,  char[] separator) {

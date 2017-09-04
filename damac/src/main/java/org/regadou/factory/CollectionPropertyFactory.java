@@ -25,7 +25,7 @@ public class CollectionPropertyFactory implements PropertyFactory<Collection> {
       try {
          int index = Integer.parseInt(name);
          if (index >= 0 && index < collection.size())
-            return new CollectionProperty(collection, name, null);
+            return new CollectionProperty(collection, name);
       }
       catch (Exception e) {}
       return null;
@@ -46,7 +46,7 @@ public class CollectionPropertyFactory implements PropertyFactory<Collection> {
       try {
          int index = (name == null) ? collection.size() : Integer.parseInt(name);
          if (index >= collection.size()) {
-            Property p = new CollectionProperty(collection, index, null);
+            Property p = new CollectionProperty(collection, index);
             p.setValue(converter.convert(value, p.getType()));
             return p;
          }

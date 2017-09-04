@@ -1,31 +1,21 @@
 package org.regadou.repository;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.StringJoiner;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
+import org.regadou.damai.PropertyManager;
+import org.regadou.reference.TypedProperty;
 
-public class RepositoryItemProperty<T> implements Property<RepositoryItem,T> {
+public class RepositoryItemProperty extends TypedProperty<RepositoryItem> {
 
-   private RepositoryItem<T> repoItem;
    private String name;
    private PropertyFactory factory;
 
-   public RepositoryItemProperty(RepositoryItem<T> repotype, String name, PropertyFactory factory) {
-      this.repoItem = repotype;
+   public RepositoryItemProperty(RepositoryItem item, String name, PropertyManager manager) {
+      super(item, RepositoryItem.class, item.getRepository().getClass(), "getOne", String.class, Object.class);
       this.name = name;
-      this.factory = factory;
-   }
-
-   @Override
-   public RepositoryItem<T> getParent() {
-      return repoItem;
-   }
-
-   @Override
-   public Class getParentType() {
-      return RepositoryItem.class;
+      this.factory = manager.getPropertyFactory(getType());
    }
 
    @Override
@@ -34,19 +24,15 @@ public class RepositoryItemProperty<T> implements Property<RepositoryItem,T> {
    }
 
    @Override
-   public T getValue() {
+   public Object getValue() {
       if (name == null)
          return null;
-      return repoItem.getOne(name);
+      return getParent().getOne(name);
    }
 
    @Override
-   public Class getType() {
-      return Map.class;
-   }
-
-   @Override
-   public void setValue(T value) {
+   public void setValue(Object value) {
+      RepositoryItem repoItem = getParent();
       if (name == null) {
          value = repoItem.insert(value);
          Collection<String> keys = repoItem.getPrimaryKeys();
@@ -55,12 +41,12 @@ public class RepositoryItemProperty<T> implements Property<RepositoryItem,T> {
                name = "";
                break;
             case 1:
-               name = factory.getProperty(value, keys.iterator().next()).toString();
+               name = getPropertyValue(value, keys.iterator().next());
                break;
             default:
                StringJoiner joiner = new StringJoiner(",");
                for (String key : keys)
-                  joiner.add(String.valueOf(factory.getProperty(value, key)));
+                  joiner.add(getPropertyValue(value, key));
                name = joiner.toString();
          }
       }
@@ -68,4 +54,10 @@ public class RepositoryItemProperty<T> implements Property<RepositoryItem,T> {
          repoItem.save(value);
    }
 
+   private String getPropertyValue(Object value, String key) {
+      Property p = factory.getProperty(value, key);
+      if (p == null)
+         return "";
+      return String.valueOf(p.getValue());
+   }
 }

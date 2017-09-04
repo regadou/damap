@@ -10,5 +10,5 @@ public interface ResourceManager {
 
    String[] getSchemes();
 
-   void registerFactory(ResourceFactory factory);
+   boolean registerFactory(ResourceFactory factory);
 }

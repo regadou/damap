@@ -17,7 +17,7 @@ import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import org.regadou.damai.ScriptContextFactory;
-import org.regadou.reference.ReferenceHolder;
+import org.regadou.reference.GenericReference;
 import org.regadou.script.InteractiveScript;
 
 public class TcpServer implements Closeable {
@@ -131,10 +131,9 @@ public class TcpServer implements Closeable {
          ScriptEngine engine = getScriptEngine(reader, writer);
          if (engine != null) {
             String name = s.getRemoteSocketAddress().toString().replace("/", "");
-            ScriptContext cx = contextFactory.getScriptContext(
-               new ReferenceHolder("reader", reader),
-               new ReferenceHolder("writer", writer),
-               new ReferenceHolder("errorWriter", writer)
+            ScriptContext cx = contextFactory.getScriptContext(new GenericReference("reader", reader),
+               new GenericReference("writer", writer),
+               new GenericReference("errorWriter", writer)
             );
             InteractiveScript repl = new InteractiveScript(contextFactory, engine, "\n? ", "= ", new String[]{"exit", "quit"});
             clients.put(s, repl);

@@ -14,7 +14,7 @@ import org.regadou.damai.Expression;
 import org.regadou.damai.Reference;
 import org.regadou.script.GenericComparator;
 
-public class PathExpression implements Expression {
+public class PathExpression implements Expression<Reference> {
 
    private static final String START_EXPRESSION = "([{";
    private static final String END_EXPRESSION = ")]}";
@@ -69,9 +69,9 @@ public class PathExpression implements Expression {
    @Override
    public Reference[] getTokens() {
       List<Reference> tokens = new ArrayList<>();
-      tokens.add(new ReferenceHolder(null, path, true));
+      tokens.add(new GenericReference(null, path, true));
       if (data != null)
-         tokens.add((data instanceof Reference) ? (Reference)data : new ReferenceHolder(null, data, true));
+         tokens.add((data instanceof Reference) ? (Reference)data : new GenericReference(null, data, true));
       return tokens.toArray(new Reference[tokens.size()]);
    }
 
@@ -86,7 +86,7 @@ public class PathExpression implements Expression {
          configuration.getContextFactory().setScriptContext(context);
 
       try {
-         Reference result = new ReferenceHolder(null, context, true);
+         Reference result = new GenericReference(null, context, true);
          Reference parent = null;
          for (Object part : path) {
             parent = result;
@@ -101,11 +101,11 @@ public class PathExpression implements Expression {
                return result;
             case CREATE:
                return getReference(comparator.addValue(result, data));
-            case MODIFY:
+            case UPDATE:
                return getReference(comparator.mergeValue(result, data));
             case DESTROY:
                comparator.removeValue(parent, result.getName());
-               return new ReferenceHolder(null, null, true);
+               return new GenericReference(null, null, true);
             default:
                throw new RuntimeException("Unknown command "+command);
          }
@@ -149,7 +149,7 @@ public class PathExpression implements Expression {
          return getArrayProperty(value, property, cx);
       if (property instanceof Expression) {
          Collection result = comparator.getFilteredCollection(value, (Expression)property);
-         return new ReferenceHolder(null, result, true);
+         return new GenericReference(null, result, true);
       }
       return configuration.getPropertyManager().getProperty(value, String.valueOf(property));
    }
@@ -159,11 +159,11 @@ public class PathExpression implements Expression {
       List values = new ArrayList(length);
       for (int i = 0; i < length; i++)
          values.add(getProperty(value, Array.get(property, i), cx));
-      return new ReferenceHolder(null, values, true);
+      return new GenericReference(null, values, true);
    }
 
    private Reference getReference(Object value) {
-      return (value instanceof Reference) ? (Reference)value : new ReferenceHolder(null, value, true);
+      return (value instanceof Reference) ? (Reference)value : new GenericReference(null, value, true);
    }
 
    private boolean isExpression(String txt) {

@@ -4,7 +4,7 @@ import java.util.Collection;
 
 public interface MimeHandlerFactory {
 
-   void registerHandler(MimeHandler handler);
+   boolean registerHandler(MimeHandler handler);
 
    MimeHandler getHandler(String mimetype);
 

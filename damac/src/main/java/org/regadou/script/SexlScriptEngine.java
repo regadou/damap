@@ -1,5 +1,7 @@
 package org.regadou.script;
 
+import org.regadou.reference.ScriptContextProperty;
+import org.regadou.reference.CompiledExpression;
 import org.regadou.number.Time;
 import org.regadou.number.Complex;
 import org.regadou.number.Probability;
@@ -499,7 +501,6 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       }
 
       String txt = new String(status.chars, start, length);
-
       return new ScriptContextProperty(configuration.getContextFactory(), txt);
    }
 

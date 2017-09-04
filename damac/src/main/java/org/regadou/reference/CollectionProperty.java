@@ -5,38 +5,26 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import org.regadou.damai.Property;
 
-public class CollectionProperty implements Property {
+public class CollectionProperty extends TypedProperty<Collection> {
 
    public static final List<String> SIZE_NAMES = Arrays.asList(new String[]{"size", "length", "count"});
 
-   public static Class getCollectionType(Collection collection) {
-      try { return collection.getClass().getMethod("get", Integer.TYPE).getReturnType(); }
-      catch (NoSuchMethodException|SecurityException e) { throw new RuntimeException(e); }
-   }
-
-   private Collection parent;
    private String name;
    private Integer index;
-   private Class type;
 
-   public CollectionProperty(Collection parent, Object key, Class type) {
-      this.parent = parent;
+   public CollectionProperty(Collection parent, Object key) {
+      super(parent, Collection.class, parent.iterator().getClass(), "next");
       this.name = key.toString();
-      this.type = (type == null) ? getCollectionType(parent) : type;
       if (!SIZE_NAMES.contains(name))
          index = Integer.parseInt(name);
    }
 
-   @Override
-   public Object getParent() {
-      return parent;
-   }
-
-   @Override
-   public Class getParentType() {
-      return parent.getClass();
+   public CollectionProperty(Collection parent, Object key, Class type) {
+      super(parent, Collection.class, type);
+      this.name = key.toString();
+      if (!SIZE_NAMES.contains(name))
+         index = Integer.parseInt(name);
    }
 
    @Override
@@ -46,6 +34,7 @@ public class CollectionProperty implements Property {
 
    @Override
    public Object getValue() {
+      Collection parent = getParent();
       if (index == null)
          return parent.size();
       if (index < 0 || index > parent.size())
@@ -62,14 +51,10 @@ public class CollectionProperty implements Property {
    }
 
    @Override
-   public Class getType() {
-      return type;
-   }
-
-   @Override
    public void setValue(Object value) {
       if (index == null || index < 0)
          return;
+      Collection parent = getParent();
       while (index > parent.size())
          parent.add(null);
       if (parent.size() == index)
@@ -80,7 +65,11 @@ public class CollectionProperty implements Property {
          Class t = parent.getClass();
          List l = new ArrayList(parent);
          l.set(index, value);
-         try { parent = (Collection) t.getConstructor(Collection.class).newInstance(l); }
+         try {
+            parent.clear();
+            for (Object e : l)
+               parent.add(e);
+         }
          catch (Exception e) { throw new RuntimeException(e); }
       }
    }

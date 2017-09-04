@@ -11,7 +11,7 @@ import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
-import org.regadou.reference.ReferenceHolder;
+import org.regadou.reference.GenericReference;
 import org.regadou.repository.JdbcConnectionInfo;
 import org.regadou.system.TcpServer;
 
@@ -47,9 +47,9 @@ public class ServerResourceFactory implements ResourceFactory {
       switch(uri.substring(0, uri.indexOf(':'))) {
          case "jdbc":
             JdbcConnectionInfo info = new JdbcConnectionInfo(uri, vendorMap);
-            return new ReferenceHolder(info.getUrl(), new JdbcRepository(info, configuration.getConverter()), true);
+            return new GenericReference(info.getUrl(), new JdbcRepository(info, configuration.getConverter()), true);
          case "tcp":
-            return new ReferenceHolder(uri, new TcpServer(uri, configuration.getEngineManager(), configuration.getContextFactory()), true);
+            return new GenericReference(uri, new TcpServer(uri, configuration.getEngineManager(), configuration.getContextFactory()), true);
       }
       return null;
    }

@@ -1,4 +1,4 @@
-package org.regadou.util;
+package org.regadou.script;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

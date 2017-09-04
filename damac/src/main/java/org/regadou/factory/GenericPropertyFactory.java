@@ -10,7 +10,7 @@ import org.regadou.damai.Action;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
-import org.regadou.reference.PropertyHolder;
+import org.regadou.reference.GenericProperty;
 import org.regadou.util.ClassIterator;
 
 public class GenericPropertyFactory implements PropertyFactory {
@@ -41,11 +41,11 @@ public class GenericPropertyFactory implements PropertyFactory {
    public Property getProperty(Object value, String name) {
       switch (name) {
          case "type":
-            return new PropertyHolder(value, "type", getTypeLevel(getType(value)), true);
+            return new GenericProperty(value, "type", getTypeLevel(getType(value)), true);
          case "class":
-            return new PropertyHolder(value, "class", getType(value).getName(), true);
+            return new GenericProperty(value, "class", getType(value).getName(), true);
          case "properties":
-            return new PropertyHolder(value, "properties", getProperties(value), true);
+            return new GenericProperty(value, "properties", getProperties(value), true);
          default:
             return null;
       }

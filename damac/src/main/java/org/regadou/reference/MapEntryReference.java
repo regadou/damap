@@ -1,14 +1,14 @@
 package org.regadou.reference;
 
 import java.util.Map;
-import org.regadou.damai.Reference;
 
-public class MapEntryWrapper implements  Reference {
+public class MapEntryReference extends TypedReference {
 
    private Map.Entry entry;
    private String name;
 
-   public MapEntryWrapper(Map.Entry entry) {
+   public MapEntryReference(Map.Entry entry) {
+      super(entry.getClass(), "getValue");
       this.entry = entry;
       Object key = entry.getKey();
       name = (key == null) ? null : key.toString();
@@ -28,11 +28,4 @@ public class MapEntryWrapper implements  Reference {
    public void setValue(Object value) {
       entry.setValue(value);
    }
-
-   @Override
-   public Class getType() {
-      Object value = entry.getValue();
-      return (value == null) ? Void.class : value.getClass();
-   }
-
 }

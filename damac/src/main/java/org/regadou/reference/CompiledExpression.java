@@ -1,4 +1,4 @@
-package org.regadou.script;
+package org.regadou.reference;
 
 import java.util.*;
 import javax.script.CompiledScript;
@@ -6,14 +6,13 @@ import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import org.regadou.damai.Reference;
-import org.regadou.reference.ReferenceHolder;
 import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Operator;
-import org.regadou.reference.MapEntryWrapper;
+import org.regadou.script.OperatorAction;
 
-public class CompiledExpression extends CompiledScript implements Expression {
+public class CompiledExpression extends CompiledScript implements Expression<Reference> {
 
    private Configuration configuration;
    private ScriptEngine engine;
@@ -93,7 +92,7 @@ public class CompiledExpression extends CompiledScript implements Expression {
       if (action == null && (action = isAction(token)) != null) {
          if (tokens.size() > 1) {
              //TODO: try to make an entity out of it
-            Reference subject = new ReferenceHolder(null, tokens);
+            Reference subject = new GenericReference(null, tokens);
             tokens = new ArrayList();
             tokens.add(subject);
          }
@@ -122,9 +121,9 @@ public class CompiledExpression extends CompiledScript implements Expression {
             if (value instanceof Reference)
                return (Reference)value;
             else if (value instanceof Map.Entry)
-               return new MapEntryWrapper((Map.Entry)value);
+               return new MapEntryReference((Map.Entry)value);
             else
-               return new ReferenceHolder(null, value);
+               return new GenericReference(null, value);
          }
          else {
             switch (tokens.size()) {
@@ -137,14 +136,14 @@ public class CompiledExpression extends CompiledScript implements Expression {
                      Reference result = null;
                      for (Reference token : tokens) {
                         if (token instanceof Expression)
-                           result = ((Expression)token).getValue(context);
+                           result = toReference(((Expression)token).getValue(context));
                         else
                            result = token;
                      }
                      return result;
                   }
                   //TODO: check if we have properties enumeration for an entity
-                  return new ReferenceHolder(null, tokens);
+                  return new GenericReference(null, tokens);
             }
          }
       }
@@ -154,11 +153,15 @@ public class CompiledExpression extends CompiledScript implements Expression {
       }
    }
 
+   public boolean isEmpty() {
+      return action == null && tokens.isEmpty();
+   }
+
    private Action isAction(Object token) {
       if (token instanceof Operator) {
          if (operators == null) {
             operators = new TreeMap<>();
-            for (OperatorAction op : OperatorAction.createActions(configuration))
+            for (OperatorAction op : OperatorAction.getActions(configuration))
                operators.put(op.getOperator(), op);
          }
          return operators.get((Operator)token);
@@ -168,5 +171,9 @@ public class CompiledExpression extends CompiledScript implements Expression {
       if (token instanceof Reference)
          return isAction(((Reference)token).getValue());
       return null;
+   }
+
+   private Reference toReference(Object value) {
+      return (value instanceof Reference) ? (Reference) value : new GenericReference(null, value, true);
    }
 }

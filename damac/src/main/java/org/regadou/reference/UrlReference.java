@@ -99,7 +99,6 @@ public class UrlReference implements Reference, Closeable {
                charset = Charset.defaultCharset().toString();
             content = configuration.getHandlerFactory()
                                    .getHandler(getMimetype())
-                                   .getInputHandler(mimetype)
                                    .load(input, charset);
          }
          catch (Exception e) {
@@ -124,7 +123,6 @@ public class UrlReference implements Reference, Closeable {
             charset = Charset.defaultCharset().toString();
          configuration.getHandlerFactory()
                       .getHandler(getMimetype())
-                      .getOutputHandler(mimetype)
                       .save(output, charset, value);
       }
       catch (Exception e) { throw new RuntimeException("Error setting value for "+url, e); }

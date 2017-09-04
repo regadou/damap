@@ -18,7 +18,7 @@ public class MapPropertyFactory implements PropertyFactory<Map> {
 
    @Override
    public Property getProperty(Map map, String name) {
-      return map.containsKey(name) ? new MapProperty(map, name, null) : null;
+      return map.containsKey(name) ? new MapProperty(map, name) : null;
    }
 
    @Override
@@ -42,9 +42,9 @@ public class MapPropertyFactory implements PropertyFactory<Map> {
                      ref.getType().getName();
                }
                else
-                  name = ((value == null) ? Void.class : value.getClass()).getName();
+                  name = (value == null) ? "value" : value.getClass().getName();
             }
-            Property p = new MapProperty(map, name, null);
+            Property p = new MapProperty(map, name);
             p.setValue(converter.convert(value, p.getType()));
             return p;
          }

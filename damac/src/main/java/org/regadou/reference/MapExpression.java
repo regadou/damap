@@ -6,8 +6,6 @@ import java.util.Map;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
 import org.regadou.damai.Reference;
-import org.regadou.script.CompiledExpression;
-import org.regadou.script.ScriptContextProperty;
 
 public class MapExpression extends CompiledExpression {
 
@@ -30,16 +28,16 @@ public class MapExpression extends CompiledExpression {
    }
 
    private void addConditions(Map map) {
-      addToken(new ReferenceHolder(null, Operator.AND, true));
+      addToken(new GenericReference(null, Operator.AND, true));
       for (Object key : map.keySet())
          addCondition(key, map.get(key));
    }
 
    private void addCondition(Object key, Object value) {
       Collection<Reference> tokens = Arrays.asList(
-         new ReferenceHolder(null, Operator.EQUAL, true),
+         new GenericReference(null, Operator.EQUAL, true),
          new ScriptContextProperty(configuration.getContextFactory(), key.toString()),
-         new ReferenceHolder(null, value, true)
+         new GenericReference(null, value, true)
       );
       if (getAction() == null) {
          for (Reference token : tokens)

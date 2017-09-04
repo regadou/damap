@@ -9,7 +9,7 @@ import javax.script.SimpleBindings;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Reference;
-import org.regadou.script.ScriptContextProperty;
+import org.regadou.reference.ScriptContextProperty;
 
 public class ScriptContextPropertyFactory implements PropertyFactory<ScriptContext> {
 
@@ -40,7 +40,7 @@ public class ScriptContextPropertyFactory implements PropertyFactory<ScriptConte
                ref.getType().getName();
          }
          else
-            name = ((value == null) ? Void.class : value.getClass()).getName();
+            name = (value == null) ? "value" : value.getClass().getName();
       }
       int scope = cx.getAttributesScope(name);
       if (scope < 0) {

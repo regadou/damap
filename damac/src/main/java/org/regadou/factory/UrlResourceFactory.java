@@ -14,6 +14,7 @@ public class UrlResourceFactory implements ResourceFactory {
 
    private Configuration configuration;
    private ResourceManager resourceManager;
+   //TODO: we should detect what protocols are registered in the system
    private List<String> schemes = Arrays.asList("http", "file", "mailto");
 
    @Inject

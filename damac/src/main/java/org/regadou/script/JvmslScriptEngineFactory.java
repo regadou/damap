@@ -18,7 +18,7 @@ public class JvmslScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public String getEngineName() {
-      return "jvmsl";
+      return "Regadou JVMSL";
    }
 
    @Override

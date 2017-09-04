@@ -3,22 +3,22 @@ package org.regadou.reference;
 import java.util.Map;
 import org.regadou.damai.Reference;
 
-public class ReferenceHolder<T> implements Reference<T> {
+public class GenericReference<T> implements Reference<T> {
 
    private String name;
    private T value;
    private boolean readonly;
 
-   public ReferenceHolder(String name) {
+   public GenericReference(String name) {
       this.name = name;
    }
 
-   public ReferenceHolder(String name, T value) {
+   public GenericReference(String name, T value) {
       this.name = name;
       this.value = value;
    }
 
-   public ReferenceHolder(String name, T value, boolean readonly) {
+   public GenericReference(String name, T value, boolean readonly) {
       this.name = name;
       this.value = value;
       this.readonly = readonly;
@@ -36,7 +36,7 @@ public class ReferenceHolder<T> implements Reference<T> {
 
    @Override
    public Class getType() {
-      return (value == null) ? Void.class : value.getClass();
+      return (value == null) ? Object.class : value.getClass();
    }
 
    @Override
@@ -46,7 +46,7 @@ public class ReferenceHolder<T> implements Reference<T> {
    }
 
    public Map.Entry<String,T> toMapEntry() {
-      ReferenceHolder<T> me = this;
+      GenericReference<T> me = this;
       return new Map.Entry<String,T>() {
          @Override
          public String getKey() {

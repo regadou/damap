@@ -33,7 +33,7 @@ public class InputStreamReference implements Reference {
          if (handler == null)
             value = "";
          else {
-            try { value = handler.getInputHandler(mimetype).load(inputStream, charset); }
+            try { value = handler.load(inputStream, charset); }
             catch (IOException e) { throw new RuntimeException(e); }
          }
       }

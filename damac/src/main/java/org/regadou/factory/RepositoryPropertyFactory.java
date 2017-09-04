@@ -4,14 +4,14 @@ import java.util.Collection;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Repository;
-import org.regadou.reference.PropertyHolder;
+import org.regadou.reference.GenericProperty;
 import org.regadou.repository.RepositoryItem;
 
 public class RepositoryPropertyFactory implements PropertyFactory<Repository> {
 
    @Override
    public Property getProperty(Repository repo, String name) {
-      return repo.getItems().contains(name) ? new PropertyHolder(repo, name, new RepositoryItem(name, repo), true) : null;
+      return repo.getItems().contains(name) ? new GenericProperty(repo, name, new RepositoryItem(name, repo), true) : null;
    }
 
    @Override

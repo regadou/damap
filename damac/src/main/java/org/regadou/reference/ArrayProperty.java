@@ -12,10 +12,12 @@ public class ArrayProperty<P,T> implements Property<P,T> {
    private P parent;
    private String name;
    private Integer index;
+   private Class type;
 
    public ArrayProperty(P parent, Object key) {
       this.parent = parent;
       name = key.toString();
+      type = parent.getClass().getComponentType();
       if (!LENGTH_NAMES.contains(name))
          index = Integer.parseInt(name);
    }
@@ -27,7 +29,7 @@ public class ArrayProperty<P,T> implements Property<P,T> {
 
    @Override
    public Class getParentType() {
-      return parent.getClass();
+      return type.isPrimitive() ? parent.getClass() : Object[].class;
    }
 
    @Override
@@ -46,7 +48,7 @@ public class ArrayProperty<P,T> implements Property<P,T> {
 
    @Override
    public Class<T> getType() {
-      return (Class<T>)parent.getClass().getComponentType();
+      return type;
    }
 
    @Override

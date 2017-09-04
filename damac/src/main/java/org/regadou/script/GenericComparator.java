@@ -31,9 +31,11 @@ import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
 import org.regadou.reference.CollectionProperty;
 import org.regadou.reference.MapProperty;
+import org.regadou.reference.GenericReference;
 import org.regadou.util.ClassIterator;
 import org.regadou.util.EnumerationSet;
 import org.regadou.util.ArrayIterator;
+import org.regadou.util.PersistableMap;
 
 public class GenericComparator implements Comparator {
 
@@ -283,17 +285,34 @@ public class GenericComparator implements Comparator {
    }
 
    public Object setValue(Reference ref, Object value) {
-      while (ref instanceof Expression)
-         ref = ((Expression)ref).getValue();
-      Class srcType = (value == null) ? Object.class : value.getClass();
-      Class dstType = ref.getType();
-      if (!dstType.isAssignableFrom(srcType))
-         value = configuration.getConverter().convert(value, dstType);
-      ref.setValue(value);
-      return ref;
+      value = getValue(value);
+      Object target = ref;
+      while (target instanceof Expression)
+         target = ((Expression)ref).getValue();
+      if (target instanceof Reference) {
+         ref = (Reference) target;
+         Class srcType = (value == null) ? Object.class : value.getClass();
+         Class dstType = ref.getType();
+         if (!dstType.isAssignableFrom(srcType))
+            value = configuration.getConverter().convert(value, dstType);
+         Object old = ref.getValue();
+         if (old instanceof PersistableMap) {
+            PersistableMap map = (PersistableMap)old;
+            map.clear();
+            PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(value.getClass());
+            for (String name : factory.getProperties(value))
+               map.put(name, factory.getProperty(value, name).getValue());
+            map.update();
+         }
+         else
+            ref.setValue(value);
+         return ref;
+      }
+      return new GenericReference(null, value, true);
    }
 
    public Object addValue(Reference ref, Object value) {
+      value = getValue(value);
       Object target = getValue(ref);
       Class type = (target == null) ? Void.class : target.getClass();
       PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(type);
@@ -301,6 +320,7 @@ public class GenericComparator implements Comparator {
    }
 
    public Object mergeValue(Reference ref, Object value) {
+      value = getValue(value);
       Object target = getValue(ref);
       Class srcType = (value == null) ? Void.class : value.getClass();
       Class dstType = (target == null) ? Void.class : target.getClass();
@@ -313,11 +333,13 @@ public class GenericComparator implements Comparator {
          if (p != null)
             setValue(p, srcFactory.getProperty(value, name).getValue());
          else if (target instanceof Map)
-            setValue(new MapProperty((Map)target, name, null), srcFactory.getProperty(value, name).getValue());
+            setValue(new MapProperty((Map)target, name), srcFactory.getProperty(value, name).getValue());
          else if (target instanceof Collection && (index = getNumeric(name, null)) != null)
-            setValue(new CollectionProperty((Collection)target, index.intValue(), null), srcFactory.getProperty(value, name).getValue());
-         //TODO: do it for array, bean. script or find a generic way to do it
+            setValue(new CollectionProperty((Collection)target, index.intValue()), srcFactory.getProperty(value, name).getValue());
+         //TODO: do it for array, bean, script or find a generic way to do it
       }
+      if (target instanceof PersistableMap)
+         ((PersistableMap)target).update();
       return target;
    }
 

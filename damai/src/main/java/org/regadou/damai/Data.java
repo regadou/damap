@@ -4,7 +4,7 @@ public interface Data {
 
     String getId();
 
-    DataType getDatatype();
+    DataType getType();
 
     Data getProperty(String property);
 

@@ -29,12 +29,12 @@ import org.regadou.damai.MimeHandler;
 import org.regadou.damai.ScriptContextFactory;
 import org.regadou.reference.InputStreamReference;
 import org.regadou.reference.PathExpression;
-import org.regadou.reference.ReferenceHolder;
+import org.regadou.reference.GenericReference;
 import org.regadou.reference.UrlReference;
 import org.regadou.script.DefaultCompiledScript;
 import org.regadou.util.EnumerationSet;
 import org.regadou.script.GenericComparator;
-import org.regadou.util.HtmlHandler;
+import org.regadou.mime.HtmlHandler;
 import org.regadou.util.MapAdapter;
 import org.regadou.util.StaticMap;
 
@@ -46,7 +46,7 @@ public class RestServlet implements Servlet {
            "get",    Command.GET,
            "put",    Command.SET,
            "post",   Command.CREATE,
-           "patch",  Command.MODIFY,
+           "patch",  Command.UPDATE,
            "delete", Command.DESTROY
    );
 
@@ -96,7 +96,19 @@ public class RestServlet implements Servlet {
          global.put(name, cx.getInitParameter(name));
       }
       global.put(Configuration.class.getName(), configuration);
-      checkInitScript();
+      try {
+         URL url = configuration.getInitScript();
+         if (url != null) {
+            UrlReference r = new UrlReference(url, configuration);
+            String mimetype = r.getMimetype();
+            ScriptEngine engine = configuration.getEngineManager().getEngineByMimeType(mimetype);
+            if (engine instanceof Compilable)
+               initScript = ((Compilable)engine).compile(new InputStreamReader(r.getInputStream()));
+            else if (engine != null)
+               initScript = new DefaultCompiledScript(engine, new InputStreamReader(r.getInputStream()), configuration);
+          }
+      }
+      catch (Exception ex) { ex.printStackTrace(); }
    }
 
    @Override
@@ -115,8 +127,8 @@ public class RestServlet implements Servlet {
 
    private void doRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
       ScriptContextFactory factory = configuration.getContextFactory();
-      ScriptContext cx = factory.getScriptContext(new ReferenceHolder("request", request),
-                                                  new ReferenceHolder("response", response));
+      ScriptContext cx = factory.getScriptContext(new GenericReference("request", request),
+                                                  new GenericReference("response", response));
       try {
          if (initScript != null) {
             try { initScript.eval(cx); }
@@ -150,25 +162,8 @@ public class RestServlet implements Servlet {
          }
          else if (handler instanceof HtmlHandler)
             value = new HtmlHandler.Link(request.getRequestURL().toString(), value);
-         handler.getOutputHandler(mimetype)
-                .save(response.getOutputStream(), charset, value);
+         handler.save(response.getOutputStream(), charset, value);
       }
       finally { factory.setScriptContext(null); }
-   }
-
-   private void checkInitScript() {
-      try {
-         URL url = configuration.getInitScript();
-         if (url != null) {
-            UrlReference r = new UrlReference(url, configuration);
-            String mimetype = r.getMimetype();
-            ScriptEngine engine = configuration.getEngineManager().getEngineByMimeType(mimetype);
-            if (engine instanceof Compilable)
-               initScript = ((Compilable)engine).compile(new InputStreamReader(r.getInputStream()));
-            else if (engine != null)
-               initScript = new DefaultCompiledScript(engine, new InputStreamReader(r.getInputStream()), configuration);
-          }
-      }
-      catch (Exception e) { e.printStackTrace(); }
    }
 }

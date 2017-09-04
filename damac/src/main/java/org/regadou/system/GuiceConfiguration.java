@@ -16,7 +16,7 @@ import org.regadou.factory.DefaultResourceManager;
 import org.regadou.damai.MimeHandlerFactory;
 import org.regadou.damai.ResourceManager;
 import org.regadou.damai.ScriptContextFactory;
-import org.regadou.factory.DefaultFileTypeMap;
+import org.regadou.mime.DefaultFileTypeMap;
 import org.regadou.factory.DefaultMimeHandlerFactory;
 import org.regadou.damai.Converter;
 import org.regadou.factory.DefaultScriptContextFactory;

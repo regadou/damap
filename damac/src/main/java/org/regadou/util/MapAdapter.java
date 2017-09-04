@@ -9,7 +9,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.regadou.reference.ReferenceHolder;
+import org.regadou.reference.GenericReference;
 
 public class MapAdapter<K,V> implements Map<K,V> {
 
@@ -131,7 +131,7 @@ public class MapAdapter<K,V> implements Map<K,V> {
       if (keys != null && getter != null) {
          Set<Entry<K, V>> entries = new LinkedHashSet<>();
          for (K key : keys.get())
-            entries.add(new ReferenceHolder(String.valueOf(key), getter.apply(key)).toMapEntry());
+            entries.add(new GenericReference(String.valueOf(key), getter.apply(key)).toMapEntry());
          return entries;
       }
       throw new UnsupportedOperationException("Not supported");

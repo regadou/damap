@@ -13,12 +13,13 @@ import java.util.Map;
 import java.util.TreeSet;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
+import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Converter;
 import org.regadou.damai.Reference;
-import org.regadou.reference.ReferenceHolder;
+import org.regadou.reference.GenericReference;
 import org.regadou.reference.UrlReference;
 import org.regadou.script.GenericComparator;
 import org.regadou.script.InteractiveScript;
@@ -34,10 +35,9 @@ public class Main {
       if (args != null) {
          Configuration conf = new GuiceConfiguration();
          registerConverterFunctions(conf);
-         ScriptContext cx = conf.getContextFactory().getScriptContext(
-            new ReferenceHolder("reader", new BufferedReader(new InputStreamReader(System.in))),
-            new ReferenceHolder("writer", new OutputStreamWriter(System.out)),
-            new ReferenceHolder("errorWriter", new OutputStreamWriter(System.err))
+         ScriptContext cx = conf.getContextFactory().getScriptContext(new GenericReference("reader", new BufferedReader(new InputStreamReader(System.in))),
+            new GenericReference("writer", new OutputStreamWriter(System.out)),
+            new GenericReference("errorWriter", new OutputStreamWriter(System.err))
          );
          ScriptEngineManager scriptManager = conf.getEngineManager();
          for (int a = 0; a < args.length; a++) {
@@ -61,9 +61,12 @@ public class Main {
          if (script == null && !interactive)
             return;
          String lang = options.get("lang");
-         if (lang == null)
-            lang = scriptManager.getEngineFactories().iterator().next().getLanguageName();
-         ScriptEngine engine = scriptManager.getEngineByExtension(lang);
+         if (lang == null) {
+            List<ScriptEngineFactory> factories = scriptManager.getEngineFactories();
+            if (!factories.isEmpty())
+               lang = factories.get(0).getLanguageName();
+         }
+         ScriptEngine engine = (lang == null) ? null : scriptManager.getEngineByExtension(lang);
          if (engine == null) {
             engine = scriptManager.getEngineByName(lang);
             if (engine == null) {
@@ -162,7 +165,7 @@ public class Main {
          return null;
       }
       options.put(name, value);
-      return new ReferenceHolder(name, value);
+      return new GenericReference(name, value);
    }
 
    private static void printAvailableLanguages(ScriptEngineManager manager) {
