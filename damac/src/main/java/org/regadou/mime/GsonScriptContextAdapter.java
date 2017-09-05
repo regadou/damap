@@ -1,7 +1,10 @@
-package org.regadou.script;
+package org.regadou.mime;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import java.lang.reflect.Type;
@@ -9,8 +12,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import javax.script.Bindings;
 import javax.script.ScriptContext;
+import javax.script.SimpleScriptContext;
 
-public class ScriptContextGsonSerializer implements JsonSerializer<ScriptContext> {
+public class GsonScriptContextAdapter implements JsonSerializer<ScriptContext>, JsonDeserializer<ScriptContext> {
 
    @Override
    public JsonElement serialize(ScriptContext cx, Type type, JsonSerializationContext jsc) {
@@ -27,4 +31,10 @@ public class ScriptContextGsonSerializer implements JsonSerializer<ScriptContext
          attributes.add(e);
       return attributes;
    }
+
+    @Override
+    public ScriptContext deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+       //TODO: we should serialize keys values to be able to restore them
+       return new SimpleScriptContext();
+    }
 }

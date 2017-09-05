@@ -226,7 +226,7 @@ public class RdfHandler implements MimeHandler {
          {Collection.class, "rdfs:Container"},
          {Set.class, "rdf:Bag"},
          {List.class, "rdf:Seq"},
-         {Action.class, "damai:Function"},
+         {Action.class, "damai:Action"},
          {Expression.class, "damai:Expression"}
       }) {
          Class type = (Class)mapping[0];

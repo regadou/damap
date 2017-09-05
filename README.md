@@ -2,7 +2,9 @@
 Welcome to Damap: the DAta MAnager Project
 
 This project regroups several sub-projects that have Maven defined dependencies.
-The objective is to have any expression in any language that can target any data source (file system, database, network, ...)
+The master project is Damai, a set of interfaces that act as a lingua franca for data management.
+Damai means "data manager interfaces" but also means "peace" in Indonesian".
+The main objective is to have any expression in any language that can target any data source (file system, database, network, ...)
 The main strategy is to always program against the Damai interfaces and then use configuration files to load the implementations.
 You can run the build-examples.sh script to build the project and then run scripts in the examples folder.
 

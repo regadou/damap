@@ -11,8 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -21,6 +24,7 @@ import javax.persistence.Persistence;
 import javax.persistence.Query;
 import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
+import org.apache.commons.beanutils.BeanMap;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Repository;
 
@@ -29,6 +33,7 @@ public class JpaRepository implements Repository<Map> {
    private transient EntityManagerFactory factory;
    private transient Map<String, Class> nameToClassMap = new LinkedHashMap<>();
    private transient Map<Class, String> classToNameMap = new LinkedHashMap<>();
+   private transient Map<Class,Map<String,Class>> keysMap = new LinkedHashMap<>();
    private Collection<String> items;
 
    @Inject
@@ -52,7 +57,31 @@ public class JpaRepository implements Repository<Map> {
    }
 
    public Class getType(String item) {
-      return (item == null) ? null : nameToClassMap.get(item.toLowerCase());
+      return nameToClassMap.get(item.toLowerCase());
+   }
+
+   @Override
+   public Map<String,Class> getKeys(String item) {
+      Class type = getType(item);
+      if (type == null)
+         return null;
+      Map<String,Class> keys = keysMap.get(type);
+      if (keys == null) {
+         try {
+            BeanMap bean = new BeanMap(type.newInstance());
+            keysMap.put(type, keys = new TreeMap<>());
+            for (Object key : bean.keySet()) {
+               String name = key.toString();
+               if (name.equals("class"))
+                  continue;
+               keys.put(name, bean.getType(name));
+            }
+         }
+         catch (InstantiationException|IllegalAccessException e) {
+            throw new RuntimeException(e);
+         }
+      }
+      return keys;
    }
 
    @Override

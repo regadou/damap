@@ -35,7 +35,7 @@ import org.regadou.util.PersistableMap;
 public class JdbcRepository implements Repository<Map>, Closeable {
 
    private transient Map<String, String[]> primaryKeys = new LinkedHashMap<>();
-   private transient Map<String, Map<String, Class>> columnTypes = new LinkedHashMap<>();
+   private transient Map<String, Map<String, Class>> keysMap = new LinkedHashMap<>();
    private transient JdbcConnectionInfo info;
    private transient Converter converter;
    private transient Connection connection;
@@ -85,6 +85,22 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    @Override
    public Collection<String> getItems() {
       return items;
+   }
+
+   @Override
+   public Map<String,Class> getKeys(String item) {
+      Map<String, Class> keys = keysMap.get(item);
+      if (keys == null) {
+         try {
+            keysMap.put(item, keys = new LinkedHashMap<>());
+            for (Map row : getRows(item, connection.getMetaData().getColumns(info.getDatabase(),null,item,null)))
+               keys.put(row.get("column_name").toString(), getJavaType(row.get("data_type")));
+         }
+         catch (SQLException e) {
+            throw new RuntimeException(e);
+         }
+      }
+      return keys;
    }
 
    @Override
@@ -229,12 +245,13 @@ public class JdbcRepository implements Repository<Map>, Closeable {
 
    private String getFilter(String table, Map filter) {
       String sql = "";
+      Map<String,Class> keys = getKeys(table);
       for (Object key : filter.keySet()) {
          Object value = filter.get(key);
          if (value == null)
             return "";
-         Class type = getColumnType(table, key.toString());
-         if (!type.isAssignableFrom(value.getClass()))
+         Class type = keys.get(key.toString());
+         if (type != null && !type.isAssignableFrom(value.getClass()))
             value = converter.convert(value, type);
          sql += (sql.isEmpty() ? " where " : " and ")
               + key + printValue(value, true);
@@ -264,23 +281,6 @@ public class JdbcRepository implements Repository<Map>, Closeable {
       }
       rs.close();
       return rows;
-   }
-
-   private Class getColumnType(String table, String column) {
-      Map<String, Class> columns = columnTypes.get(table);
-      if (columns == null) {
-         try {
-            columnTypes.put(table, columns = new LinkedHashMap<>());
-            for (Map row : getRows(table, connection.getMetaData().getColumns(info.getDatabase(),null,table,null)))
-               columns.put(row.get("column_name").toString(), getJavaType(row.get("data_type")));
-         }
-         catch (SQLException e) {
-            String msg = "Error looking for type of "+table+"."+column;
-            throw new RuntimeException(msg, e);
-         }
-      }
-      Class type = columns.get(column);
-      return (type == null) ? Object.class : type;
    }
 
    private String getClause(Expression exp) {

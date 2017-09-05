@@ -456,9 +456,8 @@ public class Bootstrap implements Configuration, Converter {
       String txt = (value == null) ? "0" : value.toString();
       try {
          if (!DECIMAL_NUMBERS.contains(type)) {
-            int index = txt.indexOf('.');
-            if (index >= 0)
-               txt = txt.substring(0, index);
+            if (txt.indexOf('.') >= 0)
+               txt = String.valueOf(new Double(txt).longValue());
          }
          if (txt.trim().isEmpty())
             txt = "0";

@@ -7,6 +7,8 @@ public interface Repository<T> {
 
    Collection<String> getItems();
 
+   Map<String,Class> getKeys(String item);
+
    Collection<String> getPrimaryKeys(String item);
 
    Collection<Object> getIds(String item);

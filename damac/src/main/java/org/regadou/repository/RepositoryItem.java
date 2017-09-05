@@ -1,6 +1,7 @@
 package org.regadou.repository;
 
 import java.util.Collection;
+import java.util.Map;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Filterable;
 import org.regadou.damai.Repository;
@@ -10,18 +11,20 @@ public class RepositoryItem<T> implements Filterable {
    private transient Repository<T> repo;
    private String name;
    private String repository;
+   private Map<String,Class> keys;
    private Collection<String> primaryKeys;
 
    public RepositoryItem(String name, Repository<T> repo) {
       this.name = name;
       this.repo = repo;
       this.repository = repo.toString();
+      this.keys = repo.getKeys(name);
       this.primaryKeys = repo.getPrimaryKeys(name);
    }
 
    @Override
    public String toString() {
-      return name+"@"+repo;
+      return name+"@"+repository;
    }
 
    @Override

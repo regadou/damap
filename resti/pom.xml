@@ -6,7 +6,7 @@
    <artifactId>resti</artifactId>
    <packaging>war</packaging>
 	<version>0.1-SNAPSHOT</version>
-   <name>damac</name>
+   <name>resti</name>
 
    <properties>
       <java.version>1.8</java.version>
