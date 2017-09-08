@@ -1,5 +1,7 @@
 package org.regadou.factory;
 
+import java.io.File;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -12,10 +14,13 @@ import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
 import org.regadou.reference.GenericReference;
 import org.regadou.property.ScriptContextProperty;
+import org.regadou.repository.RdfRepository;
+import org.regadou.resource.DefaultNamespace;
 
 public class DefaultResourceManager implements ResourceManager {
 
    private static final char[] FILE_CHARS = "./\\".toCharArray();
+   private static final String LOCALHOST = "http://localhost/";
 
    private Map<String,ResourceFactory> factories = new HashMap<>();
    private Map<String,Reference> namespaces = new HashMap<>();
@@ -27,6 +32,7 @@ public class DefaultResourceManager implements ResourceManager {
       registerFactory(new ServerResourceFactory(this, configuration));
       registerFactory(new UrlResourceFactory(this, configuration));
       registerFactory(new FileResourceFactory(this, configuration));
+      loadRdfSchema();
       //TODO: add class name factory
       //TODO: add javascript: and other script schemes with a ScriptEngineResourceFactory
    }
@@ -94,5 +100,14 @@ public class DefaultResourceManager implements ResourceManager {
             return true;
       }
       return false;
+   }
+
+   private void loadRdfSchema() {
+      Namespace ns = new DefaultNamespace("_", LOCALHOST, new RdfRepository(this));
+      registerFactory(new NamespaceResourceFactory(ns, this));
+      URL mimetypes = getClass().getResource("/mimetypes");
+      for (File file : new File(mimetypes.getPath()).getParentFile().listFiles()) {
+         //TODO: how to load files that gonna request resource manager that is not yet set ?
+      }
    }
 }
