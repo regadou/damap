@@ -32,7 +32,7 @@ public class OperatorAction implements Action {
    private Operator operator;
    private BiFunction function;
 
-   private OperatorAction(Operator operator, GenericComparator comparator) {
+   public OperatorAction(Operator operator, GenericComparator comparator) {
       this.operator = operator;
       this.comparator = comparator;
       function = getOperatorFunction();

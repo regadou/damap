@@ -11,4 +11,6 @@ public interface ResourceManager {
    String[] getSchemes();
 
    boolean registerFactory(ResourceFactory factory);
+
+   boolean registerNamespace(Namespace namespace);
 }

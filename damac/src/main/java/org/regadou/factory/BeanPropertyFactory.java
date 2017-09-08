@@ -5,7 +5,7 @@ import java.util.Map;
 import org.apache.commons.beanutils.BeanMap;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
-import org.regadou.reference.MapProperty;
+import org.regadou.property.MapProperty;
 
 public class BeanPropertyFactory implements PropertyFactory {
 

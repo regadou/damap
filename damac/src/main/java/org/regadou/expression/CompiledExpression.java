@@ -1,4 +1,4 @@
-package org.regadou.reference;
+package org.regadou.expression;
 
 import java.util.*;
 import javax.script.CompiledScript;
@@ -10,6 +10,8 @@ import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Operator;
+import org.regadou.reference.GenericReference;
+import org.regadou.reference.MapEntryReference;
 import org.regadou.script.OperatorAction;
 
 public class CompiledExpression extends CompiledScript implements Expression<Reference> {

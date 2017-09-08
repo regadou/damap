@@ -6,16 +6,19 @@ import java.util.Map;
 import java.util.Set;
 import javax.inject.Inject;
 import org.regadou.damai.Configuration;
+import org.regadou.damai.Namespace;
 import org.regadou.damai.Reference;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
-import org.regadou.reference.ScriptContextProperty;
+import org.regadou.reference.GenericReference;
+import org.regadou.property.ScriptContextProperty;
 
 public class DefaultResourceManager implements ResourceManager {
 
    private static final char[] FILE_CHARS = "./\\".toCharArray();
 
    private Map<String,ResourceFactory> factories = new HashMap<>();
+   private Map<String,Reference> namespaces = new HashMap<>();
    private Configuration configuration;
 
    @Inject
@@ -32,6 +35,9 @@ public class DefaultResourceManager implements ResourceManager {
    public Reference getResource(String name) {
       if (name == null || name.trim().isEmpty())
          return null;
+      Reference r = namespaces.get(name);
+      if (r != null)
+         return r;
       int index = name.indexOf(':');
       String scheme = (index < 0) ? null : name.substring(0, index);
       if (scheme != null || canBeFile(name)) {
@@ -68,6 +74,17 @@ public class DefaultResourceManager implements ResourceManager {
          newFactories.put(scheme, factory);
       }
       factories.putAll(newFactories);
+      return true;
+   }
+
+   @Override
+   public boolean registerNamespace(Namespace namespace) {
+      String iri = namespace.getIri();
+      if (namespaces.containsKey(iri))
+         return false;
+      if (!registerFactory(new NamespaceResourceFactory(namespace, this)))
+         return false;
+      namespaces.put(iri, new GenericReference(namespace.getPrefix()+":", namespace, true));
       return true;
    }
 

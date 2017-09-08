@@ -1,4 +1,4 @@
-package org.regadou.reference;
+package org.regadou.property;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;

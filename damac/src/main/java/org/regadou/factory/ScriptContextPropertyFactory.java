@@ -9,7 +9,7 @@ import javax.script.SimpleBindings;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Reference;
-import org.regadou.reference.ScriptContextProperty;
+import org.regadou.property.ScriptContextProperty;
 
 public class ScriptContextPropertyFactory implements PropertyFactory<ScriptContext> {
 

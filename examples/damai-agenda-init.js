@@ -24,14 +24,19 @@ function init(scope) {
          }
          if (user != null) {
             var data = nalasys[user];
-            var folder = (data == null) ? null : data.folder;
-            if (folder != null)
-               session.folder = new java.io.File(folder);
-            var dburl = (data == null) ? null : data.database;
-            if (dburl != null) {
-               ref = conf.getResourceManager().getResource(dburl);
-               if (ref != null)
-                  db = ref.getValue();
+            if (data != null) {
+               var folder = data.folder;
+               if (folder != null) {
+                  ref = conf.getResourceManager().getResource(folder);
+                  if (ref != null)
+                     session.folder = ref.getValue();
+               }
+               var dburl = data.database;
+               if (dburl != null) {
+                  ref = conf.getResourceManager().getResource(dburl);
+                  if (ref != null)
+                     db = ref.getValue();
+               }
             }
          }
       }

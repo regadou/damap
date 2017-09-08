@@ -11,5 +11,6 @@ print("context = "+conf.getContextFactory().getScriptContext());
 var global = this["nashorn.global"];
 for (var i in global)
    print(i+" = "+global[i]);
+print("mimetype file is "+conf.getContextFactory().getClass().getResource("/mimetypes"));
 "";
 

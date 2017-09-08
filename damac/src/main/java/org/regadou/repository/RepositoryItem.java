@@ -59,14 +59,14 @@ public class RepositoryItem<T> implements Filterable {
    }
 
    public T insert(T value) {
-      return repo.insert(name, value);
+      return repo.add(name, value);
    }
 
    public T save(T value) {
-      return repo.save(name, value);
+      return repo.update(name, value);
    }
 
    public boolean delete(Object id) {
-      return repo.delete(name, id);
+      return repo.remove(name, id);
    }
 }

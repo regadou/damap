@@ -8,7 +8,6 @@ public class ArrayWrapper<T> extends AbstractList<T> {
 
    private Object array;
    private int length;
-   private int at;
 
    public ArrayWrapper(Object obj) {
       length = Array.getLength(obj);

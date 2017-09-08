@@ -1,11 +1,13 @@
-package org.regadou.reference;
+package org.regadou.expression;
 
+import org.regadou.property.ScriptContextProperty;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
 import org.regadou.damai.Reference;
+import org.regadou.reference.GenericReference;
 
 public class MapExpression extends CompiledExpression {
 

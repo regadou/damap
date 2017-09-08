@@ -1,4 +1,4 @@
-package org.regadou.reference;
+package org.regadou.property;
 
 import org.regadou.damai.Property;
 

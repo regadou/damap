@@ -6,7 +6,7 @@ import org.regadou.damai.Converter;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Reference;
-import org.regadou.reference.MapProperty;
+import org.regadou.property.MapProperty;
 
 public class MapPropertyFactory implements PropertyFactory<Map> {
 

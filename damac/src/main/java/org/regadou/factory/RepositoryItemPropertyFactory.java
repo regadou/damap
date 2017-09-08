@@ -5,7 +5,7 @@ import org.regadou.damai.Configuration;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.repository.RepositoryItem;
-import org.regadou.repository.RepositoryItemProperty;
+import org.regadou.property.RepositoryItemProperty;
 
 public class RepositoryItemPropertyFactory implements PropertyFactory<RepositoryItem> {
 

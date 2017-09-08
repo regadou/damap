@@ -1,11 +1,11 @@
-package org.regadou.repository;
+package org.regadou.property;
 
 import java.util.Collection;
 import java.util.StringJoiner;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
-import org.regadou.reference.TypedProperty;
+import org.regadou.repository.RepositoryItem;
 
 public class RepositoryItemProperty extends TypedProperty<RepositoryItem> {
 

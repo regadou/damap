@@ -12,6 +12,8 @@ import java.net.URLConnection;
 import java.nio.charset.Charset;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
+import org.regadou.mime.DefaultFileTypeMap;
+import org.regadou.repository.FileSystemRepository;
 
 public class UrlReference implements Reference, Closeable {
 
@@ -47,8 +49,15 @@ public class UrlReference implements Reference, Closeable {
 
    public String getMimetype() {
       if (mimetype == null) {
-         try { mimetype = getConnection().getContentType(); }
-         catch (IOException e) { throw new RuntimeException(e); }
+         if ("file".equals(url.getProtocol())) {
+            File file = new File(url.getPath());
+            if (file.isDirectory())
+               mimetype = DefaultFileTypeMap.FOLDER_MIMETYPE;
+         }
+         else {
+            try { mimetype = getConnection().getContentType(); }
+            catch (IOException e) { throw new RuntimeException(e); }
+         }
          if (mimetype == null || mimetype.isEmpty() || mimetype.equals("content/unknown")) {
             String[] parts = url.toString().split("#")[0].split("\\?")[0].split("/");
             String last = parts[parts.length-1];
@@ -92,6 +101,8 @@ public class UrlReference implements Reference, Closeable {
    public Object getValue() {
       //TODO: check if resource was modified since last downloaded
       if (content == null) {
+         if (DefaultFileTypeMap.FOLDER_MIMETYPE.equals(getMimetype()))
+            return content = new FileSystemRepository(url, configuration);
          try {
             InputStream input = getConnection().getInputStream();
             String charset = connection.getContentEncoding();

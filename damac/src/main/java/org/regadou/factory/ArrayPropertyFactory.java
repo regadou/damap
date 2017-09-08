@@ -5,7 +5,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
-import org.regadou.reference.ArrayProperty;
+import org.regadou.property.ArrayProperty;
 
 public class ArrayPropertyFactory implements PropertyFactory {
 

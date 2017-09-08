@@ -1,5 +1,6 @@
 package org.regadou.factory;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,10 +26,11 @@ public class DefaultPropertyManager implements PropertyManager {
    public DefaultPropertyManager(Configuration configuration) {
       factories.put(Map.class, new MapPropertyFactory(configuration.getConverter()));
       factories.put(Collection.class, new CollectionPropertyFactory(configuration.getConverter()));
-      factories.put(Object[].class, new ArrayPropertyFactory());
+      factories.put(Object[].class, arrayFactory);
       factories.put(ScriptContext.class, new ScriptContextPropertyFactory());
       factories.put(Repository.class, new RepositoryPropertyFactory());
       factories.put(RepositoryItem.class, new RepositoryItemPropertyFactory(configuration));
+      factories.put(File.class, new FilePropertyFactory(configuration.getTypeMap()));
    }
 
    @Override

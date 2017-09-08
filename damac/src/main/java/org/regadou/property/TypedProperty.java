@@ -1,6 +1,7 @@
-package org.regadou.reference;
+package org.regadou.property;
 
 import org.regadou.damai.Property;
+import org.regadou.reference.TypedReference;
 
 public abstract class TypedProperty<P> extends TypedReference<Object> implements Property<P,Object> {
 

@@ -14,8 +14,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -30,6 +28,15 @@ import org.regadou.damai.Repository;
 
 public class JpaRepository implements Repository<Map> {
 
+/* example of needed properties to instantite this class with a MySQL database
+   name="javax.persistence.jdbc.url"      value="jdbc:mysql://localhost/my-database"
+   name="javax.persistence.jdbc.user"     value="my-user"
+   name="javax.persistence.jdbc.password" value="my-password"
+   name="hibernate.dialect"               value="org.hibernate.dialect.MySQL5Dialect"
+   name="hibernate.hbm2ddl.auto"          value="update"
+   name="javax.persistence.jdbc.driver"   value="com.mysql.jdbc.Driver"
+*/
+
    private transient EntityManagerFactory factory;
    private transient Map<String, Class> nameToClassMap = new LinkedHashMap<>();
    private transient Map<Class, String> classToNameMap = new LinkedHashMap<>();
@@ -39,7 +46,7 @@ public class JpaRepository implements Repository<Map> {
    @Inject
    public JpaRepository(Properties properties) throws ClassNotFoundException {
       Class.forName("org.hibernate.jpa.HibernatePersistenceProvider");
-      factory = Persistence.createEntityManagerFactory("javatest", properties);
+      factory = Persistence.createEntityManagerFactory("default", properties);
       EntityManager manager = factory.createEntityManager();
       for (EntityType type : manager.getMetamodel().getEntities()) {
          String n = type.getName().toLowerCase();
@@ -98,11 +105,6 @@ public class JpaRepository implements Repository<Map> {
    }
 
    @Override
-   public Collection<Map> getAll(String item) {
-      return query("select e from " + item + " e", null);
-   }
-
-   @Override
    public Collection<Map> getAny(String item, Expression filter) {
       String jpql = "select e from " + item + " e";
       List params = null;
@@ -119,7 +121,7 @@ public class JpaRepository implements Repository<Map> {
    }
 
    @Override
-   public Map insert(String item, Map entity) {
+   public Map add(String item, Map entity) {
       return transaction(manager -> {
          manager.persist(entity);
          return entity;
@@ -127,7 +129,7 @@ public class JpaRepository implements Repository<Map> {
    }
 
    @Override
-   public Map save(String item, Map entity) {
+   public Map update(String item, Map entity) {
       return transaction(manager -> {
          Set ids = manager.getMetamodel().entity(entity.getClass()).getIdClassAttributes();
          for (Object id : ids) {
@@ -141,7 +143,7 @@ public class JpaRepository implements Repository<Map> {
    }
 
    @Override
-   public boolean delete(String item, Object id) {
+   public boolean remove(String item, Object id) {
       return null != transaction(manager -> {
          Object entity = manager.find(nameToClassMap.get(item.toLowerCase()), id);
          if (entity != null) {

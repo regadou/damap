@@ -27,7 +27,7 @@ public class FileResourceFactory implements ResourceFactory {
       if (!f.exists() && !f.getParentFile().isDirectory())
          return null;
       try { return new UrlReference(f.toURI().toURL(), configuration); }
-      catch (MalformedURLException e) { return null; }
+      catch (MalformedURLException e) { throw new RuntimeException(e); }
    }
 
    @Override

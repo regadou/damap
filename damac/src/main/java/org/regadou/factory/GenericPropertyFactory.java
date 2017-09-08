@@ -10,7 +10,7 @@ import org.regadou.damai.Action;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
-import org.regadou.reference.GenericProperty;
+import org.regadou.property.GenericProperty;
 import org.regadou.util.ClassIterator;
 
 public class GenericPropertyFactory implements PropertyFactory {

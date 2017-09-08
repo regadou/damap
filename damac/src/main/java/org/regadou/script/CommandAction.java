@@ -38,7 +38,7 @@ public class CommandAction implements Action {
    private PropertyManager propertyManager;
    private Command command;
 
-   private CommandAction(Command command, GenericComparator comparator, ScriptContextFactory contextFactory, PropertyManager propertyManager) {
+   public CommandAction(Command command, GenericComparator comparator, ScriptContextFactory contextFactory, PropertyManager propertyManager) {
       this.command = command;
       this.comparator = comparator;
       this.contextFactory = contextFactory;

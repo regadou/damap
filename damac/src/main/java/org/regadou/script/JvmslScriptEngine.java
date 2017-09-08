@@ -1,7 +1,7 @@
 package org.regadou.script;
 
-import org.regadou.reference.ScriptContextProperty;
-import org.regadou.reference.CompiledExpression;
+import org.regadou.property.ScriptContextProperty;
+import org.regadou.expression.CompiledExpression;
 import java.io.Reader;
 import java.util.*;
 import javax.script.Bindings;

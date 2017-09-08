@@ -30,6 +30,7 @@ import org.regadou.damai.MimeHandlerFactory;
 import org.regadou.script.GenericComparator;
 import org.regadou.mime.ScriptEngineMimeHandler;
 import org.regadou.mime.CsvHandler;
+import org.regadou.mime.DefaultFileTypeMap;
 import org.regadou.mime.HtmlHandler;
 import org.regadou.mime.ImageHandler;
 import org.regadou.mime.JsonHandler;

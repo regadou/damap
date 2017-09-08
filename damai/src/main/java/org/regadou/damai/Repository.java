@@ -13,15 +13,13 @@ public interface Repository<T> {
 
    Collection<Object> getIds(String item);
 
-   Collection<T> getAll(String item);
-
-   Collection<T> getAny(String item, Expression exp);
+   Collection<T> getAny(String item, Expression filter);
 
    T getOne(String item, Object id);
 
-   T insert(String item, T entity);
+   T add(String item, T entity);
 
-   T save(String item, T entity);
+   T update(String item, T entity);
 
-   boolean delete(String item, Object id);
+   boolean remove(String item, Object id);
 }

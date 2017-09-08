@@ -8,7 +8,7 @@ import java.util.TreeSet;
 import org.regadou.damai.Converter;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
-import org.regadou.reference.CollectionProperty;
+import org.regadou.property.CollectionProperty;
 
 public class CollectionPropertyFactory implements PropertyFactory<Collection> {
 

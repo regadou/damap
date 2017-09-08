@@ -4,7 +4,7 @@ import java.util.Collection;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Repository;
-import org.regadou.reference.GenericProperty;
+import org.regadou.property.GenericProperty;
 import org.regadou.repository.RepositoryItem;
 
 public class RepositoryPropertyFactory implements PropertyFactory<Repository> {

@@ -28,7 +28,7 @@ import org.regadou.damai.Configuration;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.ScriptContextFactory;
 import org.regadou.reference.InputStreamReference;
-import org.regadou.reference.PathExpression;
+import org.regadou.expression.PathExpression;
 import org.regadou.reference.GenericReference;
 import org.regadou.reference.UrlReference;
 import org.regadou.script.DefaultCompiledScript;

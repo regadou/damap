@@ -133,13 +133,6 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    }
 
    @Override
-   public Collection<Map> getAll(String item) {
-      String sql = "select * from " + item;
-      try { return getRows(item, statement.executeQuery(sql)); }
-      catch (SQLException e) { throw new RuntimeException(e); }
-   }
-
-   @Override
    public Collection<Map> getAny(String item, Expression filter) {
       String sql = "select * from " + item;
       if (filter != null && filter.getAction() != null)
@@ -160,7 +153,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    }
 
    @Override
-   public Map insert(String item, Map entity) {
+   public Map add(String item, Map entity) {
       String[] keys = primaryKeys.get(item);
       if (keys == null)
          keys = new String[0];
@@ -169,7 +162,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    }
 
    @Override
-   public Map save(String item, Map entity) {
+   public Map update(String item, Map entity) {
       String[] keys = primaryKeys.get(item);
       if (keys == null)
          return null;
@@ -189,7 +182,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    }
 
    @Override
-   public boolean delete(String item, Object id) {
+   public boolean remove(String item, Object id) {
       Object[] params = converter.convert(id, Object[].class);
       String sql = "delete from " + item + getFilter(item, getMap(primaryKeys.get(item), params));
       try { return statement.executeUpdate(sql) > 0; }
@@ -305,7 +298,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    }
 
    private Predicate<Map> getUpdateFunction(String item) {
-      return map -> this.save(item, map) != null;
+      return map -> this.update(item, map) != null;
    }
 
    private String printValue(Object value, boolean printOperator) {
