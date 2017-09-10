@@ -395,8 +395,18 @@ public class Bootstrap implements Configuration, Converter {
    private Object toArray(Object src, Class subtype) {
       if (src instanceof Collection)
          src = ((Collection)src).toArray();
-      else if (src instanceof Map)
-         src = ((Map)src).entrySet().toArray();
+      else if (src instanceof Map) {
+         Map map = (Map)src;
+         if (Map.Entry.class.isAssignableFrom(subtype) || Reference.class.isAssignableFrom(subtype))
+            src = map.entrySet().toArray();
+         else if (CharSequence.class.isAssignableFrom(subtype))
+            src = map.keySet().toArray();
+         else
+            src = map.values().toArray();
+         //TODO: find other special cases we would want only keys or full entries
+      }
+      else if (src instanceof ScriptContext)
+         return toArray(toMap(src), subtype);
       else if (src instanceof CharSequence) {
          String txt = src.toString().trim();
          src = txt.isEmpty() ? new String[0] : txt.split(",");
@@ -420,6 +430,16 @@ public class Bootstrap implements Configuration, Converter {
          return (Map)value;
       if (value == null)
          return new LinkedHashMap();
+      if (value instanceof ScriptContext) {
+         ScriptContext cx = (ScriptContext)value;
+         Map map = new LinkedHashMap();
+         for (Integer scope : cx.getScopes()) {
+            Bindings b = cx.getBindings(scope);
+            if (b != null)
+               map.putAll(b);
+         }
+         return map;
+      }
       if (value instanceof Collection) {
          Map map = new LinkedHashMap();
          for (Object e : (Collection)value) {
@@ -556,7 +576,7 @@ public class Bootstrap implements Configuration, Converter {
          addEntry(map, ((Expression)value).getValue());
       else if (value instanceof Reference) {
          Reference r = (Reference)value;
-         map.put(r.getName(), r.getValue());
+         map.put(r.getId(), r.getValue());
       }
       else if (value instanceof Map.Entry) {
          Map.Entry e = (Map.Entry)value;

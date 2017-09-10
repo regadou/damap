@@ -28,7 +28,7 @@ public class CollectionProperty extends TypedProperty<Collection> {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return name;
    }
 

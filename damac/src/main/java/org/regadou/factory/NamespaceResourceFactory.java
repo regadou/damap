@@ -23,8 +23,8 @@ public class NamespaceResourceFactory implements ResourceFactory {
       String name;
       if (uri.startsWith(namespace.getPrefix()+":"))
          name = uri.substring(namespace.getPrefix().length()+1);
-      else if (uri.startsWith(namespace.getIri()))
-         name = uri.substring(namespace.getIri().length());
+      else if (uri.startsWith(namespace.getUri()))
+         name = uri.substring(namespace.getUri().length());
       else
          return null;
       Object value = namespace.getRepository().getOne(namespace.getPrefix(), name);

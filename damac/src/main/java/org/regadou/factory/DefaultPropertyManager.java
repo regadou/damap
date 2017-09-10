@@ -13,6 +13,7 @@ import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
+import org.regadou.damai.Resource;
 import org.regadou.repository.RepositoryItem;
 
 public class DefaultPropertyManager implements PropertyManager {
@@ -31,6 +32,7 @@ public class DefaultPropertyManager implements PropertyManager {
       factories.put(Repository.class, new RepositoryPropertyFactory());
       factories.put(RepositoryItem.class, new RepositoryItemPropertyFactory(configuration));
       factories.put(File.class, new FilePropertyFactory(configuration.getTypeMap()));
+      factories.put(Resource.class, new ResourcePropertyFactory(configuration));
    }
 
    @Override

@@ -17,7 +17,7 @@ public class MapProperty extends TypedProperty<Map> {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return String.valueOf(key);
    }
 

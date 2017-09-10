@@ -76,6 +76,7 @@ application/java-serialized-object		ser
 application/java-vm				class
 application/javascript				js
 application/json				json
+application/ld+json        jsonld
 application/m3g					m3g
 application/mac-binhex40			hqx
 application/mac-compactpro			cpt
@@ -86,6 +87,7 @@ application/ms-tnef
 application/msaccess				mdb
 application/msword				doc dot
 application/mxf					mxf
+application/n-quads            nquads
 application/news-message-id
 application/news-transmission
 application/ocsp-request
@@ -112,6 +114,7 @@ application/prs.cww
 application/prs.nprend
 application/qsig
 application/rar					rar
+application/rdf+json          rdfj
 application/rdf+xml				rdf
 application/remote-printing
 application/riscos
@@ -130,10 +133,15 @@ application/slate
 application/smil				smi smil
 application/timestamp-query
 application/timestamp-reply
+application/trig          trig
+application/trix          trix
 application/vemmi
 application/whoispp-query
 application/whoispp-response
 application/wita
+application/x-binary-rdf    rdfb
+application/x-trig          trig
+application/x-turtle        ttl
 application/x400-bp
 application/xhtml+xml				xhtml xht
 application/xml					xml xsl xsd
@@ -730,17 +738,21 @@ text/h323					323
 text/html					html htm shtml
 text/iuls					uls
 text/mathml					mml
+text/n3                  n3
+text/nquads             nquads
 text/parityfec
 text/plain					asc txt text pot brf
 text/prs.lines.tag
+text/rdf+n3              rdfn
 text/rfc822-headers
 text/richtext					rtx
 text/rtf
 text/scriptlet					sct wsc
 text/sexl					sexl
 text/t140
-text/texmacs					tm
 text/tab-separated-values			tsv
+text/texmacs					tm
+text/turtle                 ttl
 text/uri-list
 text/vnd.abc
 text/vnd.curl
@@ -774,16 +786,18 @@ text/x-diff					diff patch
 text/x-haskell					hs
 text/x-java					java
 text/x-java-properties        properties
+text/x-jvmsl           jvmsl
 text/x-literate-haskell				lhs
 text/x-log					log
 text/x-makefile
 text/x-moc					moc
+text/x-nquads             nquads
 text/x-pascal					p pas
 text/x-pcs-gcd					gcd
 text/x-perl					pl pm
 text/x-python					py
 text/x-scala					scala
-text/x-server-parsed-html
+text/x-server-parsed-html   shtml
 text/x-setext					etx
 text/x-sexl					sexl
 text/x-sfv					sfv

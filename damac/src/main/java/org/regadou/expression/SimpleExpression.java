@@ -4,6 +4,7 @@ import org.regadou.property.ScriptContextProperty;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -28,6 +29,12 @@ public class SimpleExpression implements Expression<Reference> {
    private static final String ALPHA_SYMBOLS = "_$.-";
    private static final String ESCAPE_CHARS = "'`\"";
    private static final Map<String,OperatorAction> OPERATORS = new TreeMap<>();
+   private static final Map<String,Reference> KEYWORDS = new LinkedHashMap<>();
+   static {
+      KEYWORDS.put("true", new GenericReference("true", true, true));
+      KEYWORDS.put("false", new GenericReference("false", false, true));
+      KEYWORDS.put("null", new GenericReference("null", null, true));
+   }
 
    private Configuration configuration;
    private String text;
@@ -67,7 +74,7 @@ public class SimpleExpression implements Expression<Reference> {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return null;
    }
 
@@ -188,9 +195,11 @@ public class SimpleExpression implements Expression<Reference> {
          List<OperatorAction> ops = symbol ? getOperators(word) : Collections.EMPTY_LIST;
          switch (ops.size()) {
             case 0:
-               Object token;
-               try { token = new Double(word); }
-               catch (Exception e) { token = new ScriptContextProperty(configuration.getContextFactory(), word); }
+               Object token = KEYWORDS.get(word);
+               if (token == null) {
+                  try { token = new Double(word); }
+                  catch (Exception e) { token = new ScriptContextProperty(configuration.getContextFactory(), word); }
+               }
                insertToken(token);
                break;
             case 1:

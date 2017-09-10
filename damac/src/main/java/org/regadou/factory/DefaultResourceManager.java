@@ -1,7 +1,5 @@
 package org.regadou.factory;
 
-import java.io.File;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -10,6 +8,7 @@ import javax.inject.Inject;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Namespace;
 import org.regadou.damai.Reference;
+import org.regadou.damai.Repository;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
 import org.regadou.reference.GenericReference;
@@ -23,7 +22,7 @@ public class DefaultResourceManager implements ResourceManager {
    private static final String LOCALHOST = "http://localhost/";
 
    private Map<String,ResourceFactory> factories = new HashMap<>();
-   private Map<String,Reference> namespaces = new HashMap<>();
+   private Map<String,Namespace> namespaces = new HashMap<>();
    private Configuration configuration;
 
    @Inject
@@ -32,8 +31,8 @@ public class DefaultResourceManager implements ResourceManager {
       registerFactory(new ServerResourceFactory(this, configuration));
       registerFactory(new UrlResourceFactory(this, configuration));
       registerFactory(new FileResourceFactory(this, configuration));
-      loadRdfSchema();
-      //TODO: add class name factory
+      Repository repo = new RdfRepository(this, configuration.getPropertyManager());
+      registerNamespace(new DefaultNamespace("_", LOCALHOST, repo));
       //TODO: add javascript: and other script schemes with a ScriptEngineResourceFactory
    }
 
@@ -41,11 +40,15 @@ public class DefaultResourceManager implements ResourceManager {
    public Reference getResource(String name) {
       if (name == null || name.trim().isEmpty())
          return null;
-      Reference r = namespaces.get(name);
-      if (r != null)
-         return r;
+      Namespace ns = namespaces.get(name);
+      if (ns != null)
+         return ns;
       int index = name.indexOf(':');
       String scheme = (index < 0) ? null : name.substring(0, index);
+      if (scheme == null) {
+         try { return new GenericReference(name, Class.forName(name), true); }
+         catch (ClassNotFoundException e) {}
+      }
       if (scheme != null || canBeFile(name)) {
          ResourceFactory factory = factories.get(scheme);
          if (factory != null)
@@ -85,12 +88,12 @@ public class DefaultResourceManager implements ResourceManager {
 
    @Override
    public boolean registerNamespace(Namespace namespace) {
-      String iri = namespace.getIri();
+      String iri = namespace.getUri();
       if (namespaces.containsKey(iri))
          return false;
       if (!registerFactory(new NamespaceResourceFactory(namespace, this)))
          return false;
-      namespaces.put(iri, new GenericReference(namespace.getPrefix()+":", namespace, true));
+      namespaces.put(iri, namespace);
       return true;
    }
 
@@ -100,14 +103,5 @@ public class DefaultResourceManager implements ResourceManager {
             return true;
       }
       return false;
-   }
-
-   private void loadRdfSchema() {
-      Namespace ns = new DefaultNamespace("_", LOCALHOST, new RdfRepository(this));
-      registerFactory(new NamespaceResourceFactory(ns, this));
-      URL mimetypes = getClass().getResource("/mimetypes");
-      for (File file : new File(mimetypes.getPath()).getParentFile().listFiles()) {
-         //TODO: how to load files that gonna request resource manager that is not yet set ?
-      }
    }
 }

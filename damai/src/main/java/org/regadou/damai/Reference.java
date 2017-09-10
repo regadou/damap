@@ -2,7 +2,7 @@ package org.regadou.damai;
 
 public interface Reference<T> {
 
-   String getName();
+   String getId();
 
    T getValue();
 

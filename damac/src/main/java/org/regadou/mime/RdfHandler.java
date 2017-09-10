@@ -3,21 +3,27 @@ package org.regadou.mime;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URISyntaxException;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.URI;
 import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.impl.LiteralImpl;
+import org.eclipse.rdf4j.model.impl.SimpleIRI;
+import org.eclipse.rdf4j.model.impl.SimpleLiteral;
+import org.eclipse.rdf4j.model.impl.URIImpl;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.RDFParser;
+import org.eclipse.rdf4j.rio.RDFParserFactory;
 import org.eclipse.rdf4j.rio.RDFWriter;
-import org.eclipse.rdf4j.rio.Rio;
+import org.eclipse.rdf4j.rio.RDFWriterFactory;
 import org.eclipse.rdf4j.rio.WriterConfig;
 import org.eclipse.rdf4j.rio.helpers.JSONLDMode;
 import org.eclipse.rdf4j.rio.helpers.JSONLDSettings;
@@ -42,12 +48,16 @@ public class RdfHandler implements MimeHandler {
    }
 
    private RDFFormat syntax;
+   private RDFParserFactory readerFactory;
+   private RDFWriterFactory writerFactory;
    private String[] mimetypes;
    private Configuration configuration;
    private WriterConfig config;
 
    public RdfHandler(RDFFormat syntax, Configuration configuration) {
       this.syntax = syntax;
+      this.readerFactory = getFactory(RDFParserFactory.class);
+      this.writerFactory = getFactory(RDFWriterFactory.class);
       Collection<String> types = syntax.getMIMETypes();
       this.mimetypes = types.toArray(new String[types.size()]);
       this.configuration = configuration;
@@ -68,12 +78,12 @@ public class RdfHandler implements MimeHandler {
 
    @Override
    public Object load(InputStream input, String charset) throws IOException {
-      RDFParser parser = Rio.createParser(syntax);
+      RDFParser parser = readerFactory.getParser();
       StatementCollector collector = new StatementCollector();
       parser.setRDFHandler(collector);
       parser.parse(input, "");
       ResourceManager resourceManager = configuration.getResourceManager();
-      Repository repo = new RdfRepository(resourceManager);
+      Repository repo = new RdfRepository(configuration.getResourceManager(), configuration.getPropertyManager());
       for (Map.Entry<String,String> ns : collector.getNamespaces().entrySet())
          resourceManager.registerNamespace(new DefaultNamespace(ns.getKey(), ns.getValue(), repo));
       for (Statement st : collector.getStatements()) {
@@ -87,7 +97,7 @@ public class RdfHandler implements MimeHandler {
 
    @Override
    public void save(OutputStream output, String charset, Object value) throws IOException {
-      RDFWriter writer = Rio.createWriter(syntax, output);
+      RDFWriter writer = writerFactory.getWriter(output);
       if (config != null)
          writer.setWriterConfig(config);
       writer.startRDF();
@@ -95,7 +105,7 @@ public class RdfHandler implements MimeHandler {
       for (Object node : configuration.getConverter().convert(value, Collection.class))
          extractData(cx, node);
       for (Namespace ns : cx.namespaces)
-         writer.handleNamespace(ns.getPrefix(), ns.getIri());
+         writer.handleNamespace(ns.getPrefix(), ns.getUri());
       for (Statement st : cx.statements)
          writer.handleStatement(st);
       writer.endRDF();
@@ -103,7 +113,7 @@ public class RdfHandler implements MimeHandler {
 
    private Resource getResource(Value v, ResourceManager resourceManager) {
       if (v instanceof Literal)
-         return getLiteral((Literal)v, resourceManager);
+         return new LiteralResource(v, resourceManager);
       Namespace ns;
       String id;
       if (v instanceof BNode) {
@@ -113,11 +123,15 @@ public class RdfHandler implements MimeHandler {
       else if (v instanceof IRI) {
          IRI iri = (IRI)v;
          ns = getNamespace(iri.getNamespace(), resourceManager);
+         if (ns == null)
+            return createLiteralUri(iri.stringValue(), resourceManager);
          id = iri.getLocalName();
       }
       else if (v instanceof URI) {
          URI uri = (URI)v;
          ns = getNamespace(uri.getNamespace(), resourceManager);
+         if (ns == null)
+            return createLiteralUri(uri.stringValue(), resourceManager);
          id = uri.getLocalName();
       }
       else
@@ -146,40 +160,7 @@ public class RdfHandler implements MimeHandler {
          r = resourceManager.getResource(uri);
       if (r == null)
          throw new RuntimeException("Unknown namespace: "+uri);
-      Object v = r.getValue();
-      if (v instanceof Namespace)
-         return (Namespace)v;
-      String type = (v == null) ? "null" : v.getClass().getName();
-      throw new RuntimeException("Resource is not a namespace: "+type);
-   }
-
-   private Resource getLiteral(Literal lit, ResourceManager resourceManager) {
-      Resource type = (Resource)resourceManager.getResource(lit.getDatatype().stringValue()).getValue();
-      switch (type.toString()) {
-         case "xsd:string":
-            return new LiteralResource(lit.getLabel(), type);
-         case "xsd:boolean":
-            return new LiteralResource(lit.booleanValue(), type);
-         case "xsd:double":
-            return new LiteralResource(lit.doubleValue(), type);
-         case "xsd:float":
-            return new LiteralResource(lit.floatValue(), type);
-         case "xsd:long":
-            return new LiteralResource(lit.longValue(), type);
-         case "xsd:int":
-            return new LiteralResource(lit.intValue(), type);
-         case "xsd:short":
-            return new LiteralResource(lit.shortValue(), type);
-         case "xsd:byte":
-            return new LiteralResource(lit.byteValue(), type);
-         case "xsd:dateTime":
-         case "xsd:date":
-         case "xsd:time":
-            return new LiteralResource(lit.calendarValue().toGregorianCalendar().getTime(), type);
-         default:
-            return new LiteralResource(lit.stringValue(), type);
-      }
-
+      return (r instanceof Namespace) ? (Namespace)r : null;
    }
 
    //TODO: how to convert any data to a RDF resource ?
@@ -192,4 +173,19 @@ public class RdfHandler implements MimeHandler {
             cx.statements.add(rdfFactory.createStatement(s, p, getRdfValue(value, cx)));
       }*/
    }
+
+   private <T> T getFactory(Class<T> type) {
+      String format = syntax.getName().replace("/", "").replace("-", "");
+      String folder = format.equals("BinaryRDF") ? "binary" : format.toLowerCase();
+      String action = type.getSimpleName().substring(3);
+      String name = "org.eclipse.rdf4j.rio." + folder + "." + format + action;
+      try { return (T) Class.forName(name).newInstance(); }
+      catch (Exception e) { throw new RuntimeException(e); }
+   }
+
+   private Resource createLiteralUri(String url, ResourceManager resourceManager) {
+      try { return new LiteralResource(new java.net.URI(url), resourceManager); }
+      catch (URISyntaxException e) { throw new RuntimeException(e); }
+   }
+
 }

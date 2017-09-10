@@ -61,7 +61,7 @@ public class HtmlHandler implements MimeHandler {
    private String printTag(Object src, String uri) {
       if (src instanceof Reference) {
          Reference r = (Reference)src;
-         String name = r.getName();
+         String name = r.getId();
          return printTag((name == null || name.trim().isEmpty()) ? r.getValue() : name, uri);
       }
       if (src instanceof Map.Entry)

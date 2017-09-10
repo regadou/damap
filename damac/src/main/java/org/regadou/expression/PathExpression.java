@@ -11,9 +11,12 @@ import org.regadou.damai.Action;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
+import org.regadou.damai.Filterable;
+import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
 import org.regadou.script.GenericComparator;
+import org.regadou.util.FilterableIterable;
 
 public class PathExpression implements Expression<Reference> {
 
@@ -105,7 +108,7 @@ public class PathExpression implements Expression<Reference> {
             case UPDATE:
                return getReference(comparator.mergeValue(result, data));
             case DESTROY:
-               comparator.removeValue(parent, result.getName());
+               comparator.removeValue(parent, result.getId());
                return new GenericReference(null, null, true);
             default:
                throw new RuntimeException("Unknown command "+command);
@@ -118,7 +121,7 @@ public class PathExpression implements Expression<Reference> {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return null;
    }
 
@@ -149,7 +152,15 @@ public class PathExpression implements Expression<Reference> {
       if (property.getClass().isArray())
          return getArrayProperty(value, property, cx);
       if (property instanceof Expression) {
-         Collection result = comparator.getFilteredCollection(value, (Expression)property);
+         Filterable filterable;
+         if (value instanceof Filterable)
+            filterable = (Filterable)value;
+         else {
+            PropertyManager manager = configuration.getPropertyManager();
+            Collection src = configuration.getConverter().convert(value, Collection.class);
+            filterable = new FilterableIterable(manager, src);
+         }
+         Collection result = filterable.filter((Expression)property);
          return new GenericReference(null, result, true);
       }
       return configuration.getPropertyManager().getProperty(value, String.valueOf(property));

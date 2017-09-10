@@ -10,11 +10,14 @@ import javax.script.ScriptContext;
 import org.regadou.damai.Action;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
+import org.regadou.damai.Converter;
 import org.regadou.damai.Expression;
+import org.regadou.damai.Filterable;
 import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Reference;
 import org.regadou.damai.ScriptContextFactory;
 import org.regadou.reference.GenericReference;
+import org.regadou.util.FilterableIterable;
 
 public class CommandAction implements Action {
 
@@ -25,9 +28,10 @@ public class CommandAction implements Action {
       GenericComparator comparator = new GenericComparator(configuration);
       ScriptContextFactory contextFactory = configuration.getContextFactory();
       PropertyManager propertyManager = configuration.getPropertyManager();
+      Converter converter = configuration.getConverter();
       Collection<CommandAction> actions = new ArrayList<>();
       for (Command cmd : Command.values()) {
-         CommandAction action = new CommandAction(cmd, comparator, contextFactory, propertyManager);
+         CommandAction action = new CommandAction(cmd, comparator, contextFactory, propertyManager, converter);
          actions.add(action);
       }
       return actions;
@@ -36,13 +40,15 @@ public class CommandAction implements Action {
    private GenericComparator comparator;
    private ScriptContextFactory contextFactory;
    private PropertyManager propertyManager;
+   private Converter converter;
    private Command command;
 
-   public CommandAction(Command command, GenericComparator comparator, ScriptContextFactory contextFactory, PropertyManager propertyManager) {
+   public CommandAction(Command command, GenericComparator comparator, ScriptContextFactory contextFactory, PropertyManager propertyManager, Converter converter) {
       this.command = command;
       this.comparator = comparator;
       this.contextFactory = contextFactory;
       this.propertyManager = propertyManager;
+      this.converter = converter;
    }
 
    @Override
@@ -81,7 +87,7 @@ public class CommandAction implements Action {
          case UPDATE:
             return comparator.mergeValue(result, data);
          case DESTROY:
-            return comparator.removeValue(parent, result.getName());
+            return comparator.removeValue(parent, result.getId());
          default:
             throw new RuntimeException("Unknown command "+command);
       }
@@ -138,7 +144,14 @@ public class CommandAction implements Action {
       if (property.getClass().isArray())
          return getArrayProperty(value, property, cx);
       if (property instanceof Expression) {
-         Collection result = comparator.getFilteredCollection(value, (Expression)property);
+         Filterable filterable;
+         if (value instanceof Filterable)
+            filterable = (Filterable)value;
+         else {
+            Collection src = converter.convert(value, Collection.class);
+            filterable = new FilterableIterable(propertyManager, src);
+         }
+         Collection result = filterable.filter((Expression)property);
          return new GenericReference(null, result, true);
       }
       return propertyManager.getProperty(value, String.valueOf(property));

@@ -34,7 +34,7 @@ public class ScriptContextProperty implements Property<ScriptContext,Object> {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return name;
    }
 

@@ -19,7 +19,7 @@ public class RepositoryItemProperty extends TypedProperty<RepositoryItem> {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return name;
    }
 

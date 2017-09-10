@@ -25,7 +25,7 @@ public class GenericReference<T> implements Reference<T> {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return name;
    }
 

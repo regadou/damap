@@ -33,7 +33,7 @@ public class ArrayProperty<P,T> implements Property<P,T> {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return name;
    }
 

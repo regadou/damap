@@ -112,7 +112,7 @@ public class Main {
             if (option == null) {
                gotErrors = true;
             }
-            else if (!gotErrors && option.getName().equals("debug") && option.getValue().equals("true")) {
+            else if (!gotErrors && option.getId().equals("debug") && option.getValue().equals("true")) {
                try {
                   System.out.println("*** press enter after starting debugger ***");
                   new BufferedReader(new InputStreamReader(System.in)).readLine();

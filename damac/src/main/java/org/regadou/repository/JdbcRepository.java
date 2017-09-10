@@ -121,7 +121,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
             if (keys.length == 1)
                ids.add(row.get(keys[0]));
             else {
-               Object[] id = new Object[keys.length];
+               Object[] id = new String[keys.length];
                for (int k = 0; k < keys.length; k++)
                   id[k] = row.get(keys[k]);
                ids.add(id);
@@ -309,7 +309,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
          value = exp.getTokens();
       }
       if (value instanceof Property)
-         return ((Property)value).getName();
+         return ((Property)value).getId();
       while (value instanceof Reference)
          value = ((Reference)value).getValue();
       if (value == null)

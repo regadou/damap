@@ -142,7 +142,7 @@ public class DefaultScriptContext implements ScriptContext {
    private Method getSetter(Reference property) {
       if (property == null)
          return null;
-      String name = property.getName();
+      String name = property.getId();
       if (name != null && !name.trim().isEmpty()) {
          if (name.indexOf('.') < 0) {
             Object value = property.getValue();

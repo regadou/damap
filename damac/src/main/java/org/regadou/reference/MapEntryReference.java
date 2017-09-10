@@ -15,7 +15,7 @@ public class MapEntryReference extends TypedReference {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return name;
    }
 

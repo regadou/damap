@@ -1,25 +1,25 @@
 package org.regadou.resource;
 
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.regadou.damai.Namespace;
+import org.regadou.damai.Reference;
 import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 
-public class MapResource implements Resource {
+public class MapResource implements Resource<Map<Resource,CollectionResource>> {
 
    private String id;
    private Namespace namespace;
-   private Map<Resource,CollectionResource> properties;
+   private Map<Resource,CollectionResource> properties = new LinkedHashMap<>();
    private transient String[] keys;
    private transient ResourceManager resourceManager;
-   private transient Namespace blankNamespace;
 
    public MapResource(String id, Namespace namespace, ResourceManager resourceManager) {
       this.id = id;
       this.namespace = namespace;
       this.resourceManager = resourceManager;
-      this.blankNamespace = (Namespace)resourceManager.getResource("_:").getValue();
    }
 
    @Override
@@ -38,12 +38,43 @@ public class MapResource implements Resource {
    }
 
    @Override
+   public Map<Resource,CollectionResource> getValue() {
+      return properties;
+   }
+
+   @Override
+   public Class getType() {
+      Reference type = resourceManager.getResource("rdf:type");
+      if (type instanceof Resource) {
+         CollectionResource values = properties.get((Resource)type);
+         if (values != null && !values.isEmpty()) {
+            for (Resource r : values) {
+               Object value = r.getValue();
+               if (value instanceof Class)
+                  return (Class)value;
+               if (value != null) {
+                  try { return Class.forName(value.toString()); }
+                  catch (ClassNotFoundException e) {}
+               }
+            }
+         }
+      }
+      return Object.class;
+   }
+
+   @Override
+   public void setValue(Map<Resource,CollectionResource> value) {
+      properties = value;
+      keys = null;
+   }
+
+   @Override
    public Namespace getNamespace() {
       return namespace;
    }
 
    @Override
-   public String getId() {
+   public String getLocalName() {
       return id;
    }
 

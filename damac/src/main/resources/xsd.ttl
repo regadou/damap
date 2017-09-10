@@ -3,11 +3,11 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 xsd:anyURI a rdfs:Datatype ;
-   rdfs:label ""uri@fr ;
+   rdfs:label "uri"@fr ;
    rdfs:label "uri"@en .
 
 xsd:string a rdfs:Datatype ;
-   rdfs:label ""texte@fr ;
+   rdfs:label "texte"@fr ;
    rdfs:label "text"@en .
 
 xsd:boolean a rdfs:Datatype ;

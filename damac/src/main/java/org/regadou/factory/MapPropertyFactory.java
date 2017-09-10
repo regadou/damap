@@ -37,7 +37,7 @@ public class MapPropertyFactory implements PropertyFactory<Map> {
             if (name == null) {
                if (value instanceof Reference) {
                   Reference ref = (Reference)value;
-                  name = ref.getName();
+                  name = ref.getId();
                   if (name == null)
                      ref.getType().getName();
                }

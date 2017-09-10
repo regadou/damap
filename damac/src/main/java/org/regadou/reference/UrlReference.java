@@ -93,7 +93,7 @@ public class UrlReference implements Reference, Closeable {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return url.toString();
    }
 

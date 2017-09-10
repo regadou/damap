@@ -23,7 +23,6 @@ import javax.script.ScriptContext;
 import org.apache.commons.beanutils.BeanMap;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
-import org.regadou.damai.Filterable;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
@@ -34,7 +33,7 @@ import org.regadou.property.MapProperty;
 import org.regadou.reference.GenericReference;
 import org.regadou.util.ClassIterator;
 import org.regadou.util.EnumerationSet;
-import org.regadou.util.ArrayIterator;
+import org.regadou.util.ArrayWrapper;
 import org.regadou.util.PersistableMap;
 
 public class GenericComparator implements Comparator {
@@ -61,18 +60,18 @@ public class GenericComparator implements Comparator {
       o2 = getValue(o2);
       if (isStringable(o1) && isStringable(o2))
          return compareStringables(o1, o2);
-      List<String> l1 = getSortedStringList(o1);
-      List<String> l2 = getSortedStringList(o2);
-      int size1 = l1.size();
-      int size2 = l2.size();
-      for (int i = 0; i < size1; i++) {
-         if (i >= size2)
-            return 1;
-         int dif = l1.get(i).compareTo(l2.get(i));
+      List<String> l1 = getStringList(o1);
+      List<String> l2 = getStringList(o2);
+      int size = l1.size();
+      int dif = l2.size() - size;
+      if (dif != 0)
+         return dif;
+      for (int i = 0; i < size; i++) {
+         dif = l1.get(i).compareTo(l2.get(i));
          if (dif != 0)
             return dif;
       }
-      return (size2 > size1) ? -1 : 0;
+      return 0;
    }
 
    public boolean isEmpty(Object src) {
@@ -131,7 +130,7 @@ public class GenericComparator implements Comparator {
          return "";
       if (obj instanceof Reference) {
          Reference r = (Reference)obj;
-         String name = r.getName();
+         String name = r.getId();
          return (name == null) ? getString(r.getValue()) : name;
       }
       if (obj instanceof Map.Entry) {
@@ -140,7 +139,7 @@ public class GenericComparator implements Comparator {
       }
 
       StringJoiner joiner = new StringJoiner(",");
-      List<String> list = getSortedStringList(obj);
+      List<String> list = getStringList(obj);
       for (String item : list)
          joiner.add(item);
       return joiner.toString();
@@ -201,7 +200,7 @@ public class GenericComparator implements Comparator {
       if (src == null)
          return Collections.EMPTY_LIST.iterator();
       if (src.getClass().isArray())
-         return new ArrayIterator(src);
+         return new ArrayWrapper(src).iterator();
       if (src instanceof Repository)
          return ((Repository)src).getItems().iterator();
       if (src instanceof ScriptContext) {
@@ -218,7 +217,7 @@ public class GenericComparator implements Comparator {
          return Collections.singletonList(src).iterator();
       if (src instanceof Reference) {
          Reference r = (Reference)src;
-         String name = r.getName();
+         String name = r.getId();
          return (name == null) ? getIterator(r.getValue()) : getIterator(name);
       }
       return new BeanMap(src).keySet().iterator();
@@ -233,49 +232,13 @@ public class GenericComparator implements Comparator {
       return new BeanMap(src);
    }
 
-   public List<String> getSortedStringList(Object src) {
+   public List<String> getStringList(Object src) {
       src = getValue(src);
       List<String> list = new ArrayList<>();
       Iterator it = getIterator(src);
       while (it.hasNext())
          list.add(getString(it.next()));
-      Collections.sort(list);
       return list;
-   }
-
-   public Collection getFilteredCollection(Object src, Expression filter) {
-      src = getValue(src);
-      if (src instanceof Filterable)
-         return ((Filterable)src).filter(filter);
-      Iterator it;
-      if (src instanceof Map)
-         it = ((Map)src).values().iterator();
-      else if (src instanceof ScriptContext) {
-         ScriptContext cx = (ScriptContext)src;
-         List values = new ArrayList();
-         for (Integer scope : cx.getScopes()) {
-            Bindings b = cx.getBindings(scope);
-            if (b != null)
-               values.addAll(b.values());
-         }
-         it = values.iterator();
-      }
-      else if (isIterable(src))
-         it = getIterator(src);
-      else if (isStringable(src))
-         it = Collections.singleton(src).iterator();
-      else
-         it = new BeanMap(src).values().iterator();
-
-      List dst = new ArrayList();
-      while (it.hasNext()) {
-         Object item = it.next();
-         ScriptContext cx = new PropertiesScriptContext(item, configuration.getPropertyManager(),
-                                                              configuration.getContextFactory());
-         if (!isEmpty(filter.getValue(cx)))
-            dst.add(item);
-      }
-      return dst;
    }
 
    public Object getValue(Object value) {

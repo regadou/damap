@@ -22,7 +22,7 @@ public class InputStreamReference implements Reference {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return null;
    }
 

@@ -24,7 +24,7 @@ public class ResourceProperty implements Property<Resource,Resource> {
    }
 
    @Override
-   public String getName() {
+   public String getId() {
       return property.toString();
    }
 

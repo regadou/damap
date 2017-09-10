@@ -1,6 +1,6 @@
 package org.regadou.factory;
 
-import java.util.Arrays;
+import org.regadou.damai.Configuration;
 import org.regadou.damai.Namespace;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
@@ -8,19 +8,24 @@ import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
 import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
+import org.regadou.property.GenericProperty;
 import org.regadou.property.ResourceProperty;
 import org.regadou.resource.MapResource;
 
 public class ResourcePropertyFactory implements PropertyFactory<Resource> {
 
-   private ResourceManager resourceManager;
+   public static final String ID_PROPERTY = "@id";
 
-   public ResourcePropertyFactory(ResourceManager resourceManager) {
-      this.resourceManager = resourceManager;
+   private Configuration configuration;
+
+   public ResourcePropertyFactory(Configuration configuration) {
+      this.configuration = configuration;
    }
 
    @Override
    public Property getProperty(Resource resource, String name) {
+      if (ID_PROPERTY.equals(name))
+         return new GenericProperty(resource, resource.getId(), true);
       if (hasResource(resource, name))
          return new ResourceProperty(resource, getResource(name));
       return null;
@@ -33,7 +38,7 @@ public class ResourcePropertyFactory implements PropertyFactory<Resource> {
 
    @Override
    public Property addProperty(Resource resource, String name, Object value) {
-      if (hasResource(resource, name))
+      if (ID_PROPERTY.equals(name) || hasResource(resource, name))
          return null;
       Property p = new ResourceProperty(resource, getResource(name));
       return p;
@@ -41,7 +46,7 @@ public class ResourcePropertyFactory implements PropertyFactory<Resource> {
 
    @Override
    public boolean removeProperty(Resource resource, String name) {
-      if (hasResource(resource, name)) {
+      if (!ID_PROPERTY.equals(name) && hasResource(resource, name)) {
          resource.setProperty(resource, null);
          return true;
       }
@@ -57,7 +62,7 @@ public class ResourcePropertyFactory implements PropertyFactory<Resource> {
    }
 
    private Resource getResource(String name) {
-      Reference r = resourceManager.getResource(name);
+      Reference r = configuration.getResourceManager().getResource(name);
       if (r == null)
          return createResource(name);
       Object v = r.getValue();
@@ -78,6 +83,7 @@ public class ResourcePropertyFactory implements PropertyFactory<Resource> {
          name = name.substring(index+1);
       }
 
+      ResourceManager resourceManager = configuration.getResourceManager();
       Reference ref = resourceManager.getResource(prefix+":");
       if (ref == null)
          throw new RuntimeException("Unknow namespace: "+prefix);
