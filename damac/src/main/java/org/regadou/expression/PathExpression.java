@@ -1,8 +1,7 @@
 package org.regadou.expression;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -11,42 +10,28 @@ import org.regadou.damai.Action;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
-import org.regadou.damai.Filterable;
-import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
+import org.regadou.script.CommandAction;
 import org.regadou.script.GenericComparator;
-import org.regadou.util.FilterableIterable;
 
 public class PathExpression implements Expression<Reference> {
 
-   private static final String START_EXPRESSION = "([{";
-   private static final String END_EXPRESSION = ")]}";
+   private static Map<Command, Action> COMMAND_ACTIONS;
+
    private Configuration configuration;
    private GenericComparator comparator;
-   private Command command;
-   private List path = new ArrayList();
+   private Action command;
+   private String path;
    private Object data;
    private String text;
 
    public PathExpression(Configuration configuration, Command command, String path, Object data) {
       this.configuration = configuration;
       this.comparator = new GenericComparator(configuration);
-      this.command = (command == null) ? Command.GET : command;
+      this.command = getAction(command);
+      this.path = path;
       this.data = data;
-      if (path != null) {
-         while (path.startsWith("/"))
-            path = path.substring(1);
-         while (path.endsWith("/"))
-            path = path.substring(0, path.length()-1);
-         path = path.trim();
-         if (!path.isEmpty()) {
-            for (String part : path.split("/")) {
-               Object p = isExpression(part) ? new SimpleExpression(configuration, part.substring(1,part.length()-1)) : part;
-               this.path.add(p);
-            }
-         }
-      }
    }
 
    @Override
@@ -54,10 +39,7 @@ public class PathExpression implements Expression<Reference> {
       if (text == null) {
          StringJoiner joiner = new StringJoiner(" ", "(", ")");
          joiner.add(command.getName());
-         StringJoiner parts = new StringJoiner(" ", "[", "]");
-         for (Object part : path)
-            joiner.add(part.toString());
-         joiner.add(parts.toString());
+         joiner.add(path);
          if (data != null)
             joiner.add(comparator.getString(data));
          text = joiner.toString();
@@ -82,37 +64,14 @@ public class PathExpression implements Expression<Reference> {
    @Override
    public Reference getValue(ScriptContext context) {
       ScriptContext oldContext = configuration.getContextFactory().getScriptContext();
-      if (context == null) {
-         context = oldContext;
+      if (context == null)
          oldContext = null;
-      }
       else
          configuration.getContextFactory().setScriptContext(context);
 
       try {
-         Reference result = new GenericReference(null, context, true);
-         Reference parent = null;
-         for (Object part : path) {
-            parent = result;
-            result = getProperty(result.getValue(), part, context);
-            if (result == null)
-               return null;
-         }
-         switch (command) {
-            case SET:
-               comparator.setValue(result, data);
-            case GET:
-               return result;
-            case CREATE:
-               return getReference(comparator.addValue(result, data));
-            case UPDATE:
-               return getReference(comparator.mergeValue(result, data));
-            case DESTROY:
-               comparator.removeValue(parent, result.getId());
-               return new GenericReference(null, null, true);
-            default:
-               throw new RuntimeException("Unknown command "+command);
-         }
+         Object value = command.execute(path, data);
+         return (value instanceof Reference) ? (Reference)value : new GenericReference(null, value, true);
       }
       finally {
          if (oldContext != null)
@@ -142,48 +101,14 @@ public class PathExpression implements Expression<Reference> {
          result.setValue(value);
    }
 
-   private Reference getProperty(Object value, Object property, ScriptContext cx) {
-      if (property == null)
-         return null;
-      if (property instanceof Collection)
-         return getArrayProperty(value, ((Collection)property).toArray(), cx);
-      if (property instanceof Map)
-         return getArrayProperty(value, ((Map)property).keySet().toArray(), cx);
-      if (property.getClass().isArray())
-         return getArrayProperty(value, property, cx);
-      if (property instanceof Expression) {
-         Filterable filterable;
-         if (value instanceof Filterable)
-            filterable = (Filterable)value;
-         else {
-            PropertyManager manager = configuration.getPropertyManager();
-            Collection src = configuration.getConverter().convert(value, Collection.class);
-            filterable = new FilterableIterable(manager, src);
-         }
-         Collection result = filterable.filter((Expression)property);
-         return new GenericReference(null, result, true);
+   private Action getAction(Command command) {
+      if (COMMAND_ACTIONS == null) {
+         COMMAND_ACTIONS = new LinkedHashMap<>();
+         for (CommandAction action : CommandAction.getActions(configuration))
+            COMMAND_ACTIONS.put(action.getCommand(), action);
       }
-      return configuration.getPropertyManager().getProperty(value, String.valueOf(property));
-   }
-
-   private Reference getArrayProperty(Object value, Object property, ScriptContext cx) {
-      int length = Array.getLength(property);
-      List values = new ArrayList(length);
-      for (int i = 0; i < length; i++)
-         values.add(getProperty(value, Array.get(property, i), cx));
-      return new GenericReference(null, values, true);
-   }
-
-   private Reference getReference(Object value) {
-      return (value instanceof Reference) ? (Reference)value : new GenericReference(null, value, true);
-   }
-
-   private boolean isExpression(String txt) {
-      if (txt == null || txt.length() < 2)
-         return false;
-      int index = START_EXPRESSION.indexOf(txt.charAt(0));
-      if (index < 0)
-         return false;
-      return END_EXPRESSION.charAt(index) == txt.charAt(txt.length()-1);
+      if (command == null)
+         command = Command.GET;
+      return COMMAND_ACTIONS.get(command);
    }
 }

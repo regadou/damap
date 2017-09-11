@@ -61,6 +61,11 @@ public class GuiceConfiguration extends AbstractModule implements Configuration 
    }
 
    @Override
+   public <T> T getInstance(Class<T> type) {
+      return injector.getInstance(type);
+   }
+
+   @Override
    public URL[] getClasspath() {
       return new URL[0];
    }

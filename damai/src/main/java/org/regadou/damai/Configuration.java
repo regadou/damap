@@ -7,6 +7,8 @@ import javax.script.ScriptEngineManager;
 
 public interface Configuration {
 
+   <T> T getInstance(Class<T> type);
+
    URL[] getClasspath();
 
    Bindings getGlobalScope();

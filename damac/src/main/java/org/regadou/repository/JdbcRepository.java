@@ -466,6 +466,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
          case TO:
          case DO:
          case HAVE:
+         case JOIN:
          case IF:
          case ELSE:
          case WHILE:

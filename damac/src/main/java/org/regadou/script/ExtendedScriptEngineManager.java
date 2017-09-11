@@ -12,13 +12,11 @@ import org.regadou.damai.Configuration;
 
 public class ExtendedScriptEngineManager extends ScriptEngineManager {
 
-   private Configuration configuration;
    private Set<ScriptEngineFactory> factories = new LinkedHashSet<>();
 
    @Inject
    public ExtendedScriptEngineManager(Configuration configuration) {
       super();
-      this.configuration = configuration;
       Collection<ScriptEngineFactory> factories = new ArrayList<>();
       for (ScriptEngineFactory factory : super.getEngineFactories()) {
          factories.add(factory);

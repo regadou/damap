@@ -148,7 +148,7 @@ public class RestServlet implements Servlet {
          Command command = (Command)COMMAND_MAPPING.get(request.getMethod().toLowerCase());
          Object data = command.isDataNeeded() ? new InputStreamReference(configuration.getHandlerFactory(), request.getInputStream(), mimetype, charset) : null;
          Object value = new PathExpression(configuration, command, request.getPathInfo(), data).getValue(cx);
-         if (value == null)
+         if (value == null || (command == Command.DESTROY && value.equals(Boolean.FALSE)))
             response.setStatus(NOT_FOUND);
          else
             value = comparator.getValue(value);

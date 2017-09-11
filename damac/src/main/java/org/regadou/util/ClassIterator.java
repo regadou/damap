@@ -2,7 +2,6 @@ package org.regadou.util;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -56,10 +55,8 @@ public class ClassIterator implements Iterator<Class> {
       else if (src.isArray()) {
          Class comp = src.getComponentType();
          //TODO: we should check if component is an interface and loop through all implemented interfaces
-         if (comp == Object.class || comp.isPrimitive())
-            return Object.class;
-         else
-            return Array.newInstance(comp.getSuperclass(), 0).getClass();
+         comp = comp.getSuperclass();
+         return (comp == null) ? Object.class : Array.newInstance(comp, 0).getClass();
       }
       else
          return src.getSuperclass();

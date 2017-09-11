@@ -39,6 +39,25 @@ public class OperatorAction implements Action {
    }
 
    @Override
+   public String toString() {
+      return getName();
+   }
+
+   @Override
+   public boolean equals(Object that) {
+      if (that instanceof Operator)
+         return that == operator;
+      if (that instanceof OperatorAction)
+         return ((OperatorAction)that).operator == operator;
+      return false;
+   }
+
+   @Override
+   public int hashCode() {
+      return toString().hashCode();
+   }
+
+   @Override
    public Object execute(Object... parameters) {
       if (parameters == null || parameters.length == 0)
          parameters = new Object[]{null, null};
@@ -76,6 +95,7 @@ public class OperatorAction implements Action {
          case IS: return ":";
          case DO: return "=>";
          case HAVE: return ":>";
+         case JOIN: return ",";
          case IF: return "?";
          case ELSE: return "::";
          case WHILE: return "*?";
@@ -118,6 +138,8 @@ public class OperatorAction implements Action {
          case DO:
          case HAVE:
             return Object.class;
+         case JOIN:
+            return Collection.class;
          default:
             return Object.class;
       }
@@ -155,6 +177,7 @@ public class OperatorAction implements Action {
          case WHILE: return 0;
          case DO: return -1;
          case HAVE: return -2;
+         case JOIN: return -2;
          case IS: return -3;
          default: throw new RuntimeException("Unknown operator "+operator);
       }
@@ -190,6 +213,8 @@ public class OperatorAction implements Action {
             return ADD_FUNCTION;
          case SUBTRACT:
             return SUBTRACT_FUNCTION;
+         case JOIN:
+            return JOIN_FUNCTION;
          default:
             return (p1, p2) -> null;
       }
@@ -232,6 +257,17 @@ public class OperatorAction implements Action {
       return m1;
    }
 
+   private final BiFunction JOIN_FUNCTION = (p1, p2) -> {
+      List result = new ArrayList();
+      Iterator it = comparator.getIterator(p1);
+      while (it.hasNext())
+         result.add(it.next());
+      it = comparator.getIterator(p2);
+      while (it.hasNext())
+         result.add(it.next());
+      return result;
+   };
+
    private final BiFunction ADD_FUNCTION = (p1, p2) -> {
       p1 = comparator.getValue(p1);
       p2 = comparator.getValue(p2);
@@ -244,14 +280,7 @@ public class OperatorAction implements Action {
             return merge(p1, p2);
          case COLLECTION:
          default:
-            List list = new ArrayList();
-            Iterator it = comparator.getIterator(p1);
-            while (it.hasNext())
-               list.add(it.next());
-            it = comparator.getIterator(p2);
-            while (it.hasNext())
-               list.add(it.next());
-            return list;
+            return JOIN_FUNCTION.apply(p1, p2);
       }
    };
 
@@ -281,7 +310,7 @@ public class OperatorAction implements Action {
                list.add(it.next());
             it = comparator.getIterator(p2);
             while (it.hasNext())
-               list.add(it.next());
+               list.remove(it.next());
             return list;
       }
    };

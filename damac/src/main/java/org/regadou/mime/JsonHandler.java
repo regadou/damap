@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import javax.script.ScriptContext;
 import org.regadou.damai.MimeHandler;
+import org.regadou.damai.Reference;
 
 public class JsonHandler implements MimeHandler {
 
@@ -15,11 +16,11 @@ public class JsonHandler implements MimeHandler {
    private Gson gson;
 
    public JsonHandler() {
-      GsonScriptContextAdapter serializer = new GsonScriptContextAdapter();
       this.gson  = new GsonBuilder().setPrettyPrinting()
                                     .setDateFormat("YYYY-MM-dd HH:mm:ss")
                                     .registerTypeAdapter(Class.class, new GsonClassAdapter())
-                                    .registerTypeHierarchyAdapter(ScriptContext.class, serializer)
+                                    .registerTypeHierarchyAdapter(ScriptContext.class, new GsonScriptContextAdapter())
+                                    .registerTypeHierarchyAdapter(Reference.class, new GsonReferenceAdapter())
                                     .create();
    }
 

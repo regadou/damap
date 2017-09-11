@@ -12,7 +12,6 @@ import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -24,7 +23,6 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,10 +44,13 @@ public class Bootstrap implements Configuration, Converter {
       BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
       Writer writer = new OutputStreamWriter(System.out);
       Configuration config = new Bootstrap(checkDebugArg(args, reader));
-      ScriptContext cx = config.getContextFactory().getScriptContext();
-      cx.setReader(reader);
-      cx.setWriter(writer);
-      cx.setErrorWriter(new OutputStreamWriter(System.err));
+      ScriptContextFactory factory = config.getContextFactory();
+      if (factory != null) {
+         ScriptContext cx = factory.getScriptContext();
+         cx.setReader(reader);
+         cx.setWriter(writer);
+         cx.setErrorWriter(new OutputStreamWriter(System.err));
+      }
       if (DEBUG)
          printDebugInfo(config);
       URL init = config.getInitScript();
@@ -76,11 +77,18 @@ public class Bootstrap implements Configuration, Converter {
             System.out.println(name+" = "+value);
          }
       }
-      System.out.println("uri schemes = "+Arrays.asList(config.getResourceManager().getSchemes()));
-      System.out.println("mime types = "+config.getHandlerFactory().getMimetypes());
-      Collection<String> engines = new TreeSet<>();
-      for (ScriptEngineFactory factory : config.getEngineManager().getEngineFactories())
-         engines.add(factory.getEngineName());
+      Object schemes = (config.getResourceManager() == null) ? null
+                     : Arrays.asList(config.getResourceManager().getSchemes());
+      System.out.println("uri schemes = "+schemes);
+      Object mimetypes = (config.getHandlerFactory() == null) ? null
+                       : config.getHandlerFactory().getMimetypes();
+      System.out.println("mime types = "+mimetypes);
+      Collection<String> engines = null;
+      if (config.getEngineManager() != null) {
+         engines = new TreeSet<>();
+         for (ScriptEngineFactory factory : config.getEngineManager().getEngineFactories())
+            engines.add(factory.getEngineName());
+      }
       System.out.println("script engines = "+engines);
    }
 
@@ -136,7 +144,7 @@ public class Bootstrap implements Configuration, Converter {
    private Bindings globalScope;
    private URL initScript;
    private ScriptContextFactory contextFactory;
-   private Converter converterManager;
+   private Converter converter;
    private ScriptEngineManager engineManager;
    private MimeHandlerFactory handlerFactory;
    private PropertyManager propertyManager;
@@ -172,6 +180,11 @@ public class Bootstrap implements Configuration, Converter {
    }
 
    @Override
+   public <T> T getInstance(Class<T> type) {
+      return findProperty(type, null);
+   }
+
+   @Override
    public URL[] getClasspath() {
       if (classpath == null)
          classpath = findProperty(URL[].class, "classpath");
@@ -201,12 +214,12 @@ public class Bootstrap implements Configuration, Converter {
 
    @Override
    public Converter getConverter() {
-      if (converterManager == null) {
-         converterManager = findProperty(Converter.class, "converterManager");
-         if (converterManager == null)
-            converterManager = this;
+      if (converter == null) {
+         converter = findProperty(Converter.class, "converterManager");
+         if (converter == null)
+            properties.put(Converter.class.getName(), converter = this);
       }
-      return converterManager;
+      return converter;
    }
 
    @Override
@@ -253,7 +266,7 @@ public class Bootstrap implements Configuration, Converter {
       if (typeMap == null) {
          typeMap = findProperty(FileTypeMap.class, "typeMap");
          if (typeMap == null)
-            typeMap = FileTypeMap.getDefaultFileTypeMap();
+            properties.put(FileTypeMap.class.getName(), typeMap = FileTypeMap.getDefaultFileTypeMap());
       }
       return typeMap;
    }
@@ -267,7 +280,16 @@ public class Bootstrap implements Configuration, Converter {
             value = ((Reference)value).getValue();
          } while (value instanceof Reference);
       }
-      Class valueType = (value == null) ? Void.class : value.getClass();
+      Class valueType;
+      if (value == null) {
+         if (type.isAssignableFrom(this.getClass()))
+            return (T)this;
+         if (type.isInterface())
+            return null;
+         valueType = Void.class;
+      }
+      else
+         valueType = value.getClass();
       if (type.isAssignableFrom(valueType))
          return (T)value;
       Map<Class,Function> functions = converters.get(type);
@@ -339,11 +361,14 @@ public class Bootstrap implements Configuration, Converter {
       Object value = properties.get(type.getName());
       if (value == null && name != null)
          value = properties.get(PROPERTY_PREFIX + name);
-      if (value != null && value instanceof CharSequence && value.toString().trim().isEmpty())
+      if (value instanceof CharSequence && value.toString().trim().isEmpty())
          value = null;
-      if (value == null && type.isInterface())
-         return (T)(type.isAssignableFrom(this.getClass()) ? this : null);
-      try { return (T)convert(value, type); }
+      try {
+         T instance = convert(value, type);
+         if (instance != null && type != Object.class)
+            properties.put(type.getName(), instance);
+         return instance;
+      }
       catch (Exception e) {
          RuntimeException rte = (e instanceof RuntimeException) ? (RuntimeException)e : new RuntimeException(e);
          throw rte;
@@ -584,48 +609,5 @@ public class Bootstrap implements Configuration, Converter {
       }
       else
          map.put(map.size(), value);
-   }
-
-   private static Map getProperties(Object obj) {
-      if (obj instanceof Map)
-         return (Map)obj;
-      if (obj == null)
-         return Collections.EMPTY_MAP;
-      if (obj instanceof Collection)
-         return getProperties(((Collection)obj).toArray());
-      Class type = obj.getClass();
-      Map map = new LinkedHashMap();
-      if (type.isArray()) {
-         int length = Array.getLength(obj);
-         map.put("length", length);
-         for (int i = 0; i < length; i++)
-            map.put(String.valueOf(i), Array.get(obj, i));
-         return map;
-      }
-
-      String name = null;
-      try {
-         for (Field f : type.getFields()) {
-            name = f.getName();
-            map.put(name, f.get(obj));
-         }
-         for (Method m : type.getMethods()) {
-            name = getPropertyName(m.getName());
-            if (name != null && m.getParameterCount() == 0)
-               map.put(name, m.invoke(obj));
-         }
-         return map;
-      }
-      catch (Exception e) { throw new RuntimeException("Error setting value for "+name, e); }
-   }
-
-   private static String getPropertyName(String name) {
-      if (name.startsWith("get") && name.length() > 3 && Character.isUpperCase(name.charAt(3)))
-         return name.substring(3, 4).toLowerCase() + name.substring(4);
-      if (name.startsWith("is") && name.length() > 2 && Character.isUpperCase(name.charAt(2)))
-         return name.substring(2, 3).toLowerCase() + name.substring(3);
-      if (name.startsWith("set") && name.length() > 3 && Character.isUpperCase(name.charAt(3)))
-         return name.substring(3, 4).toLowerCase() + name.substring(4);
-      return null;
    }
 }

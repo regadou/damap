@@ -1,9 +1,9 @@
 package org.regadou.factory;
 
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import javax.inject.Inject;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Namespace;
@@ -21,16 +21,17 @@ public class DefaultResourceManager implements ResourceManager {
    private static final char[] FILE_CHARS = "./\\".toCharArray();
    private static final String LOCALHOST = "http://localhost/";
 
-   private Map<String,ResourceFactory> factories = new HashMap<>();
-   private Map<String,Namespace> namespaces = new HashMap<>();
    private Configuration configuration;
+   private ResourceFactory nullSchemeFactory;
+   private Map<String,ResourceFactory> factories = new TreeMap<>();
+   private Map<String,Namespace> namespaces = new TreeMap<>();
 
    @Inject
    public DefaultResourceManager(Configuration configuration) {
       this.configuration = configuration;
-      registerFactory(new ServerResourceFactory(this, configuration));
-      registerFactory(new UrlResourceFactory(this, configuration));
       registerFactory(new FileResourceFactory(this, configuration));
+      registerFactory(new UrlResourceFactory(this, configuration));
+      registerFactory(new ServerResourceFactory(this, configuration));
       Repository repo = new RdfRepository(this, configuration.getPropertyManager());
       registerNamespace(new DefaultNamespace("_", LOCALHOST, repo));
       //TODO: add javascript: and other script schemes with a ScriptEngineResourceFactory
@@ -43,14 +44,17 @@ public class DefaultResourceManager implements ResourceManager {
       Namespace ns = namespaces.get(name);
       if (ns != null)
          return ns;
+      
       int index = name.indexOf(':');
-      String scheme = (index < 0) ? null : name.substring(0, index);
-      if (scheme == null) {
+      if (index < 0) {
          try { return new GenericReference(name, Class.forName(name), true); }
-         catch (ClassNotFoundException e) {}
+         catch (ClassNotFoundException e) {
+            if (nullSchemeFactory != null && canBeFile(name))
+               return nullSchemeFactory.getResource(name);
+         }
       }
-      if (scheme != null || canBeFile(name)) {
-         ResourceFactory factory = factories.get(scheme);
+      else {
+         ResourceFactory factory = factories.get(name.substring(0, index));
          if (factory != null)
             return factory.getResource(name);
       }
@@ -60,12 +64,14 @@ public class DefaultResourceManager implements ResourceManager {
 
    @Override
    public ResourceFactory getFactory(String scheme) {
-      return factories.get(scheme);
+      return (scheme == null) ? nullSchemeFactory : factories.get(scheme);
    }
 
    @Override
    public ResourceFactory[] getFactories() {
       Set<ResourceFactory> set = new LinkedHashSet<>(factories.values());
+      if (nullSchemeFactory != null)
+         set.add(nullSchemeFactory);
       return set.toArray(new ResourceFactory[set.size()]);
    }
 
@@ -76,14 +82,23 @@ public class DefaultResourceManager implements ResourceManager {
 
    @Override
    public boolean registerFactory(ResourceFactory factory) {
-      Map<String,ResourceFactory> newFactories = new HashMap<>();
+      Map<String,ResourceFactory> newFactories = new TreeMap<>();
+      boolean nullFactory = false;
       for (String scheme : factory.getSchemes()) {
+         if (scheme == null) {
+            if (nullSchemeFactory != null && factory != nullSchemeFactory)
+               return false;
+            nullFactory = true;
+            continue;
+         }
          if (factories.containsKey(scheme) && factory != factories.get(scheme))
             return false;
          newFactories.put(scheme, factory);
       }
       factories.putAll(newFactories);
-      return true;
+      if (nullFactory)
+         nullSchemeFactory = factory;
+      return nullFactory || !newFactories.isEmpty();
    }
 
    @Override

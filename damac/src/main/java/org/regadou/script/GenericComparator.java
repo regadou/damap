@@ -36,6 +36,13 @@ import org.regadou.util.EnumerationSet;
 import org.regadou.util.ArrayWrapper;
 import org.regadou.util.PersistableMap;
 
+/*
+  This is a catchall class that regroup utility operations for comparison, conversion and REST methods
+  The code here should eventually be moved into proper classes
+  - comparison in OperatorAction instances
+  - conversion in a Converter implementation
+  - REST methods in CommandAction instances
+*/
 public class GenericComparator implements Comparator {
 
    private static final List<Class> STRINGABLES = Arrays.asList(new Class[]{
@@ -44,7 +51,7 @@ public class GenericComparator implements Comparator {
    });
 
    private static final List<Class> ITERABLES = Arrays.asList(new Class[]{
-      Iterable.class, Iterator.class, Enumeration.class, Map.class, ScriptContext.class
+      Iterable.class, Iterator.class, Enumeration.class, Object[].class
    });
 
    private Configuration configuration;
@@ -274,14 +281,6 @@ public class GenericComparator implements Comparator {
       return new GenericReference(null, value, true);
    }
 
-   public Object addValue(Reference ref, Object value) {
-      value = getValue(value);
-      Object target = getValue(ref);
-      Class type = (target == null) ? Void.class : target.getClass();
-      PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(type);
-      return (factory == null) ? null : factory.addProperty(target, null, value);
-   }
-
    public Object mergeValue(Reference ref, Object value) {
       value = getValue(value);
       Object target = getValue(ref);
@@ -306,11 +305,44 @@ public class GenericComparator implements Comparator {
       return target;
    }
 
-   public boolean removeValue(Reference parent, String id) {
+   public Object addValue(Reference ref, Object value) {
+      value = getValue(value);
+      Object target = getValue(ref);
+      Class type = (target == null) ? Void.class : target.getClass();
+      PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(type);
+      if (factory == null)
+         return null;
+      if (isIterable(value)) {
+         List results = new ArrayList();
+         Iterator it = getIterator(value);
+         while (it.hasNext()) {
+            Object result = factory.addProperty(target, null, it.next());
+            if (result != null)
+               results.add(result);
+         }
+         return results;
+      }
+      return factory.addProperty(target, null, value);
+   }
+
+   public boolean removeValue(Reference parent, Object ids) {
+      ids = getValue(ids);
       Object target = getValue(parent);
       Class type = (target == null) ? Void.class : target.getClass();
       PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(type);
-      return (factory == null) ? false : factory.removeProperty(target, id);
+      if (factory == null)
+         return false;
+      if (isIterable(ids)) {
+         boolean removed = false;
+         Iterator it = getIterator(ids);
+         while (it.hasNext()) {
+            Object id = it.next();
+            if (factory.removeProperty(target, (id == null) ? null : id.toString()))
+               removed = true;
+         }
+         return removed;
+      }
+      return factory.removeProperty(target, (ids == null) ? null : ids.toString());
    }
 
    private int compareStringables(Object o1, Object o2) {

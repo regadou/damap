@@ -220,7 +220,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
             throw new RuntimeException("Invalid end of sequence "+c);
          case ',':
          case ';':
-            return null;
+            return keywords.get(c+"");
          default:
             if (isDigit(c))
                return parseNumber(status);
