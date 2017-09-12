@@ -6,12 +6,19 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.BiFunction;
 import org.regadou.damai.Action;
+import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
+import org.regadou.util.ArrayWrapper;
+import org.regadou.util.Range;
 
 public class OperatorAction implements Action {
 
@@ -20,9 +27,10 @@ public class OperatorAction implements Action {
 
    public static Collection<OperatorAction> getActions(Configuration configuration) {
       GenericComparator comparator = new GenericComparator(configuration);
+      BiFunction getterFunction = new CommandAction(Command.GET, configuration, comparator).getFunction();
       Collection<OperatorAction> actions = new ArrayList<>();
       for (Operator op : Operator.values()) {
-         OperatorAction action = new OperatorAction(op, comparator);
+         OperatorAction action = new OperatorAction(op, comparator, getterFunction);
          actions.add(action);
       }
       return actions;
@@ -31,11 +39,13 @@ public class OperatorAction implements Action {
    private GenericComparator comparator;
    private Operator operator;
    private BiFunction function;
+   private BiFunction getterFunction;
 
-   public OperatorAction(Operator operator, GenericComparator comparator) {
+   public OperatorAction(Operator operator, GenericComparator comparator, BiFunction getterFunction) {
       this.operator = operator;
       this.comparator = comparator;
-      function = getOperatorFunction();
+      this.getterFunction = getterFunction;
+      function = getFunction();
    }
 
    @Override
@@ -94,7 +104,7 @@ public class OperatorAction implements Action {
          case TO: return "->";
          case IS: return ":";
          case DO: return "=>";
-         case HAVE: return ":>";
+         case HAVE: return ".";
          case JOIN: return ",";
          case IF: return "?";
          case ELSE: return "::";
@@ -116,10 +126,6 @@ public class OperatorAction implements Action {
          case ADD:
          case SUBTRACT:
             return Object.class; //Collection|Number|String|Map
-         case FROM:
-            return Object.class;
-         case TO:
-            return Collection.class;
          case LESSER:
          case LESSEQ:
          case GREATER:
@@ -132,11 +138,14 @@ public class OperatorAction implements Action {
          case IN:
          case IS:
             return Boolean.class;
+         case HAVE:
+         case FROM:
+         case TO:
+            return Object.class;
          case IF:
          case ELSE:
          case WHILE:
          case DO:
-         case HAVE:
             return Object.class;
          case JOIN:
             return Collection.class;
@@ -187,7 +196,7 @@ public class OperatorAction implements Action {
       return operator;
    }
 
-   private BiFunction getOperatorFunction() {
+   public BiFunction getFunction() {
       switch (operator) {
          case EQUAL:
             return (p1, p2) -> comparator.compare(p1, p2) == 0;
@@ -215,7 +224,24 @@ public class OperatorAction implements Action {
             return SUBTRACT_FUNCTION;
          case JOIN:
             return JOIN_FUNCTION;
+         case HAVE:
+            return (p1, p2) -> getterFunction.apply(p1, p2);
+         case FROM:
+            return (p1, p2) -> getterFunction.apply(p2, p1);
+         case TO:
+            return TO_FUNCTION;
          default:
+         case EXPONANT:
+         case ROOT:
+         case LOG:
+         case MULTIPLY:
+         case DIVIDE:
+         case MODULO:
+         case IF:
+         case ELSE:
+         case WHILE:
+         case DO:
+         case IS:
             return (p1, p2) -> null;
       }
    }
@@ -322,5 +348,32 @@ public class OperatorAction implements Action {
             return true;
       }
       return false;
+   };
+
+   private final BiFunction TO_FUNCTION = (p1, p2) -> {
+      p1 = comparator.getValue(p1);
+      p2 = comparator.getValue(p2);
+      if (p2 instanceof Class)
+         return comparator.convert(p1, (Class)p2);
+      else if (p2 instanceof Number)
+         return new Range(comparator.getNumeric(p1, 0d), (Number)p2);
+      else if (p2 instanceof Collection) {
+         Collection dst;
+         if (p2 instanceof SortedSet)
+            dst = new TreeSet((SortedSet)p2);
+         else if (p2 instanceof Set)
+            dst = new LinkedHashSet((Set)p2);
+         else
+            dst = new ArrayList((Collection)p2);
+         dst.add(p1);
+         return dst;
+      }
+      else if (p2 != null && p2.getClass().isArray()) {
+         Collection dst = new ArrayList(new ArrayWrapper(p2));
+         dst.add(p1);
+         return dst;
+      }
+      else
+         return p2;
    };
 }

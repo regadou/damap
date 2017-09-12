@@ -14,6 +14,7 @@ import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import javax.script.SimpleScriptContext;
 import org.apache.commons.beanutils.BeanMap;
+import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Converter;
 import org.regadou.damai.Printable;
@@ -25,60 +26,55 @@ import org.regadou.reference.GenericReference;
 import org.regadou.util.StringInput;
 
 
-public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
+public class SctScriptEngine implements ScriptEngine, Compilable, Printable {
 
    private static final int MINIMUM_TERMINALS = 3;
    private static final String SYNTAX_SYMBOLS = "()[]{}\"'`,;";
    private static final String ALPHA_SYMBOLS = "_$";
    private static final char FIRST_ACCENT = 0xC0;
    private static final char LAST_ACCENT = 0x2AF;
-   private static final Map<String,Reference> CONSTANT_KEYWORDS = new TreeMap<>();
-   static {
-      for (Object value : new Object[]{
-         true, false, null,
-         char.class, boolean.class,
-         byte.class, short.class, int.class, long.class,
-         float.class, double.class})
-      {
-         String name = (value instanceof Class) ? ((Class)value).getSimpleName() : String.valueOf(value);
-         CONSTANT_KEYWORDS.put(name, new GenericReference(name, value, true));
-      }
-   }
 
    private ScriptEngineFactory factory;
    private Configuration configuration;
    private ScriptContext context;
    private List<String> schemes;
-   private Map<String,Reference> keywords = new TreeMap<>(CONSTANT_KEYWORDS);
+   private Action templateAction;
+   private Map<String,Reference> keywords = new TreeMap<>();
 
-   public JvmslScriptEngine(ScriptEngineFactory factory, Configuration configuration) {
+   public SctScriptEngine(ScriptEngineFactory factory, Configuration configuration) {
       this.factory = factory;
       this.configuration = configuration;
       this.schemes = Arrays.asList(configuration.getResourceManager().getSchemes());
+      this.templateAction = new ScriptContextTemplateAction(configuration);
       for (OperatorAction op : OperatorAction.getActions(configuration))
          keywords.put(op.getName(), new GenericReference(op.getName(), op, true));
-      for (CommandAction cmd : CommandAction.getActions(configuration))
-         keywords.put(cmd.getName(), new GenericReference(cmd.getName(), cmd, true));
    }
 
    @Override
    public Object eval(String script) throws ScriptException {
-      return parse(script, (ScriptContext)null);
+      return eval(script, getContext());
    }
 
    @Override
    public Object eval(Reader reader) throws ScriptException {
-      return parse(new StringInput(reader).toString(), (ScriptContext)null);
+      return eval(new StringInput(reader).toString(), getContext());
    }
 
    @Override
    public Object eval(String script, Bindings n) throws ScriptException {
-      return parse(script, n);
+      ScriptContext cx;
+      if (n == null)
+         cx = getContext();
+      else {
+         cx = new SimpleScriptContext();
+         cx.setBindings(n, ScriptContext.ENGINE_SCOPE);
+      }
+      return eval(script, cx);
    }
 
    @Override
    public Object eval(Reader reader, Bindings n) throws ScriptException {
-      return parse(new StringInput(reader).toString(), n);
+      return eval(new StringInput(reader).toString(), n);
    }
 
    @Override
@@ -88,7 +84,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
 
    @Override
    public Object eval(Reader reader, ScriptContext context) throws ScriptException {
-      return parse(new StringInput(reader).toString(), context);
+      return eval(new StringInput(reader).toString(), context);
    }
 
    @Override
@@ -145,7 +141,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
 
    @Override
    public CompiledScript compile(Reader reader) throws ScriptException {
-      return compile(new StringInput(reader).toString());
+      return parse(new StringInput(reader).toString(), getContext());
    }
 
    @Override
@@ -173,19 +169,12 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
           || (c >= FIRST_ACCENT && c <= LAST_ACCENT) || ALPHA_SYMBOLS.indexOf(c) >= 0;
    }
 
-   private CompiledExpression parse(String txt, Bindings bindings) {
-      ScriptContext cx;
-      if (bindings == null)
-         cx = getContext();
-      else {
-         cx = new SimpleScriptContext();
-         cx.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
-      }
-      return parse(txt, cx);
-   }
-
    private CompiledExpression parse(String txt, ScriptContext cx) {
-      try { return parseExpression(new ParserStatus(txt)); }
+      try {
+         Reference exp = parseExpression(new ParserStatus(txt, cx));
+         Reference rcx = new GenericReference(null, cx, true);
+         return new CompiledExpression(this, Arrays.asList(rcx, exp), configuration);
+      }
       catch (Exception e) {
          throw new RuntimeException("Exception while parsing the following text:\n"+txt, e);
       }
@@ -593,7 +582,7 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
    private Reference parseName(ParserStatus status) throws Exception {
       int start = status.pos;
       int length = 0;
-      boolean uri = false;
+      boolean uri = false, java = false;
       for (; status.pos < status.chars.length; status.pos++, length++) {
          char c = status.chars[status.pos];
          if (c == status.end || c == status.end2) {
@@ -604,6 +593,8 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
             continue;
          switch (c) {
             case ':':
+               if (java)
+                  break;
                char next = status.nextChar();
                if (!isAlpha(next) && next != '/') {
                   c = ' ';
@@ -615,8 +606,11 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
                uri = true;
                continue;
             case '.':
-               if (isAlpha(status.nextChar()))
+               if (isAlpha(status.nextChar())
+                   && Package.getPackage(new String(status.chars, start, length)) != null) {
+                  java = true;
                   continue;
+               }
          }
          if (isBlank(c) || isSymbol(c)) {
             status.pos--;
@@ -625,17 +619,19 @@ public class JvmslScriptEngine implements ScriptEngine, Compilable, Printable {
       }
 
       String txt = new String(status.chars, start, length);
-      if (uri) {
+      if (java) {
          try { return new GenericReference(txt, Class.forName(txt), true); }
-         catch (ClassNotFoundException e) {
-            Reference r = configuration.getResourceManager().getResource(txt);
-            if (r != null)
-               return r;
-         }
+         catch (ClassNotFoundException e) {}
+      }
+      else if (uri) {
+         Reference r = configuration.getResourceManager().getResource(txt);
+         if (r != null)
+            return r;
       }
       else if (keywords.containsKey(txt))
          return keywords.get(txt);
-      return new ScriptContextProperty(configuration.getContextFactory(), txt);
+      return (status.cx != null) ? new ScriptContextProperty(status.cx, txt)
+                                 : new ScriptContextProperty(configuration.getContextFactory(), txt);
    }
 
    private Reference parseSymbol(ParserStatus status) throws Exception {

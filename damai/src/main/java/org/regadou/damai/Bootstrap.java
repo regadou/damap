@@ -56,7 +56,7 @@ public class Bootstrap implements Configuration, Converter {
       URL init = config.getInitScript();
       if (init != null) {
          Reference r = config.getResourceManager().getResource(init.toString());
-         System.out.println(r.getValue());
+         System.out.println((r == null) ? null : r.getValue());
       }
    }
 

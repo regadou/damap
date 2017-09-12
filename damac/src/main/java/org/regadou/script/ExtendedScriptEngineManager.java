@@ -21,7 +21,7 @@ public class ExtendedScriptEngineManager extends ScriptEngineManager {
       for (ScriptEngineFactory factory : super.getEngineFactories()) {
          factories.add(factory);
       }
-      factories.add(new JvmslScriptEngineFactory(configuration));
+      factories.add(new SctScriptEngineFactory(configuration));
       factories.add(new SexlScriptEngineFactory(configuration));
       for (ScriptEngineFactory factory : factories) {
          registerEngineName(factory.getEngineName(), factory);

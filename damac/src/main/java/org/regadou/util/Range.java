@@ -1,7 +1,12 @@
 package org.regadou.util;
 
 import java.lang.reflect.Array;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 
 public class Range implements List<Number> {
 
@@ -27,36 +32,6 @@ public class Range implements List<Number> {
 
    public Range(Collection<Number> c) {
       lazyCollection = (c == null) ? Collections.EMPTY_LIST : c;
-   }
-
-   private void validateStep() {
-      if (  (this.start > this.end && this.step > 0)
-         || (this.start < this.end && this.step < 0) )
-         this.step = -this.step;
-   }
-
-   private void checkLazyCollection() {
-      if (lazyCollection == null)
-         return;
-      step = 1;
-      Iterator<Number> i = lazyCollection.iterator();
-      for (int n = 0; i != null && i.hasNext(); n++) {
-         switch (n) {
-            case 0:
-               start = i.next().doubleValue();
-               break;
-            case 1:
-               end = i.next().doubleValue();
-               break;
-            case 2:
-               step = i.next().doubleValue();
-               break;
-            default:
-               i = null;
-         }
-      }
-      validateStep();
-      lazyCollection = null;
    }
 
    @Override
@@ -317,71 +292,33 @@ public class Range implements List<Number> {
       return new Range(fromIndex, toIndex, step);
    }
 
-   public static class RangeIterator implements ListIterator<Number> {
+   private void validateStep() {
+      if (  (this.start > this.end && this.step > 0)
+         || (this.start < this.end && this.step < 0) )
+         this.step = -this.step;
+   }
 
-      private Range range;
-      private int start, current;
-
-      public RangeIterator(Range parent) {
-         this(parent, 0);
+   private void checkLazyCollection() {
+      if (lazyCollection == null)
+         return;
+      step = 1;
+      Iterator<Number> i = lazyCollection.iterator();
+      for (int n = 0; i != null && i.hasNext(); n++) {
+         switch (n) {
+            case 0:
+               start = i.next().doubleValue();
+               break;
+            case 1:
+               end = i.next().doubleValue();
+               break;
+            case 2:
+               step = i.next().doubleValue();
+               break;
+            default:
+               i = null;
+         }
       }
-
-      public RangeIterator(Range parent, int index) {
-         this.range = parent;
-         this.start = index;
-      }
-
-      @Override
-      public boolean hasNext() {
-         return current < range.size();
-      }
-
-      @Override
-      public Number next() {
-         if (current >= range.size())
-            throw new NoSuchElementException("End of range has been reached");
-         Number n = range.get(current);
-         current++;
-         return n;
-      }
-
-      @Override
-      public boolean hasPrevious() {
-         return current >= start;
-      }
-
-      @Override
-      public Number previous() {
-         if (current >= range.size())
-            throw new NoSuchElementException("Begining of range has been reached");
-         Number n = range.get(current);
-         current--;
-         return n;
-      }
-
-      @Override
-      public int nextIndex() {
-         return current + 1;
-      }
-
-      @Override
-      public int previousIndex() {
-         return current - 1;
-      }
-
-      @Override
-      public void remove() {
-         range.remove(current);
-      }
-
-      @Override
-      public void set(Number n) {
-         range.set(current, n);
-      }
-
-      @Override
-      public void add(Number n) {
-         range.add(current, n);
-      }
+      validateStep();
+      lazyCollection = null;
    }
 }

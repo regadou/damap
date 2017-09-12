@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import javax.script.ScriptContext;
 import org.regadou.damai.Action;
 import org.regadou.damai.Command;
@@ -40,11 +41,14 @@ public class CommandAction implements Action {
    private Configuration configuration;
    private GenericComparator comparator;
    private Command command;
+   private BiFunction function;
+
 
    public CommandAction(Command command, Configuration configuration, GenericComparator comparator) {
       this.command = command;
       this.configuration = configuration;
       this.comparator = comparator;
+      this.function = getFunction();
    }
 
    @Override
@@ -76,37 +80,10 @@ public class CommandAction implements Action {
                data = parameters[1];
             case 1:
                path = parameters[0];
-               if (!command.isDataNeeded())
-                  break;
             case 0:
          }
       }
-
-      ScriptContext context = configuration.getContextFactory().getScriptContext();
-      Reference result = new GenericReference(null, context, true);
-      List parts = getPathParts(path);
-      int stop = (command == Command.DESTROY) ? parts.size()-1 : parts.size();
-      for (int p = 0; p < stop; p++) {
-         Object part = parts.get(p);
-         result = getProperty(result.getValue(), part, context);
-         if (result == null)
-            return (command == Command.DESTROY) ? false : null;
-      }
-
-      switch (command) {
-         case SET:
-            return comparator.setValue(result, data);
-         case GET:
-            return result;
-         case CREATE:
-            return comparator.addValue(result, data);
-         case UPDATE:
-            return comparator.mergeValue(result, data);
-         case DESTROY:
-            return comparator.removeValue(result, parts.get(stop));
-         default:
-            throw new RuntimeException("Unknown command "+command);
-      }
+      return function.apply(path, data);
    }
 
    @Override
@@ -126,6 +103,36 @@ public class CommandAction implements Action {
 
    public Command getCommand() {
       return command;
+   }
+
+   public BiFunction getFunction() {
+      return (path, data) -> {
+         ScriptContext context = configuration.getContextFactory().getScriptContext();
+         Reference result = new GenericReference(null, context, true);
+         List parts = getPathParts(path);
+         int stop = (command == Command.DESTROY) ? parts.size()-1 : parts.size();
+         for (int p = 0; p < stop; p++) {
+            Object part = parts.get(p);
+            result = getProperty(result.getValue(), part, context);
+            if (result == null)
+               return (command == Command.DESTROY) ? false : null;
+         }
+
+         switch (command) {
+            case SET:
+               return comparator.setValue(result, data);
+            case GET:
+               return result;
+            case CREATE:
+               return comparator.addValue(result, data);
+            case UPDATE:
+               return comparator.mergeValue(result, data);
+            case DESTROY:
+               return comparator.removeValue(result, parts.get(stop));
+            default:
+               throw new RuntimeException("Unknown command "+command);
+         }
+      };
    }
 
    private List getPathParts(Object path) {

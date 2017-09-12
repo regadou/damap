@@ -81,6 +81,10 @@ public class GenericComparator implements Comparator {
       return 0;
    }
 
+   public <T> T convert(Object src, Class<T> type) {
+      return configuration.getConverter().convert(src, type);
+   }
+
    public boolean isEmpty(Object src) {
       src = getValue(src);
       if (src == null)

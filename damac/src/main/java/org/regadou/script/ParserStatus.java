@@ -1,6 +1,7 @@
 package org.regadou.script;
 
 import java.util.*;
+import javax.script.ScriptContext;
 
 /*
 This class is really not thread-safe and must only be used
@@ -10,11 +11,13 @@ public class ParserStatus {
    public int pos;
    public char end, end2;
    public char[] chars;
+   public ScriptContext cx;
    public Object previousToken;
    public Set<Integer> lines = new TreeSet<>();
 
-   public ParserStatus(String txt) {
+   public ParserStatus(String txt, ScriptContext cx) {
       this.chars = (txt == null) ? new char[0] : txt.toCharArray();
+      this.cx = cx;
    }
 
    public char nextChar() {

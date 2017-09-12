@@ -127,7 +127,7 @@ public class FileSystemRepository implements Repository<UrlReference> {
       this.configuration = configuration;
       this.factory = configuration.getPropertyManager().getPropertyFactory(File.class);
       this.comparator = new GenericComparator(configuration);
-      this.equals = new OperatorAction(Operator.EQUAL, comparator);
+      this.equals = new OperatorAction(Operator.EQUAL, comparator, null);
    }
 
    private void validateUrl(URL url, Configuration configuration) {

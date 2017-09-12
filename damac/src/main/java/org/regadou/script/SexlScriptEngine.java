@@ -41,12 +41,12 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
    @Override
    public Object eval(String script) throws ScriptException {
-      return execute(script, (ScriptContext)null);
+      return execute(script, getContext());
    }
 
    @Override
    public Object eval(Reader reader) throws ScriptException {
-      return execute(new StringInput(reader).toString(), (ScriptContext)null);
+      return execute(new StringInput(reader).toString(), getContext());
    }
 
    @Override
@@ -118,7 +118,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
    @Override
    public CompiledScript compile(String script) throws ScriptException {
-      return parseExpression(new ParserStatus(script));
+      return parseExpression(new ParserStatus(script, getContext()));
     }
 
    @Override
@@ -174,11 +174,11 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
          cx = new SimpleScriptContext();
          cx.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
       }
-      return parseExpression(new ParserStatus(txt)).getValue(cx);
+      return parseExpression(new ParserStatus(txt, cx)).getValue(cx);
    }
 
    private Object execute(String txt, ScriptContext context) {
-      return parseExpression(new ParserStatus(txt)).getValue(context);
+      return parseExpression(new ParserStatus(txt, context)).getValue(context);
    }
 
    private CompiledExpression parseExpression(ParserStatus status) {
@@ -501,7 +501,8 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       }
 
       String txt = new String(status.chars, start, length);
-      return new ScriptContextProperty(configuration.getContextFactory(), txt);
+      return (status.cx != null) ? new ScriptContextProperty(status.cx, txt)
+                                 : new ScriptContextProperty(configuration.getContextFactory(), txt);
    }
 
    private Object parseSymbol(ParserStatus status) {

@@ -16,6 +16,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import org.regadou.damai.Bootstrap;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Converter;
 import org.regadou.damai.Reference;
@@ -27,13 +28,14 @@ import org.regadou.util.StringInput;
 
 public class Main {
 
-   public static final List<String> OPTIONS = Arrays.asList("debug", "lang", "script", "interactive");
+   public static final List<String> OPTIONS = Arrays.asList("debug", "config", "lang", "script", "interactive");
 
    public static void main(String[] args) throws ScriptException, IOException {
       Map<String,String> options = new LinkedHashMap<>();
       args = parseArgs(args, options);
       if (args != null) {
-         Configuration conf = new GuiceConfiguration();
+         String configOpt = options.get("config");
+         Configuration conf = (configOpt == null) ? new GuiceConfiguration() : new Bootstrap(configOpt);
          registerConverterFunctions(conf);
          ScriptContext cx = conf.getContextFactory().getScriptContext(new GenericReference("reader", new BufferedReader(new InputStreamReader(System.in))),
             new GenericReference("writer", new OutputStreamWriter(System.out)),
@@ -80,7 +82,7 @@ public class Main {
          if (script != null)
             engine.eval(script);
          if (interactive)
-            new InteractiveScript(conf.getContextFactory(), engine, "\n? ", "= ", new String[]{"exit", "quit"}).run(conf.getContextFactory().getScriptContext());
+            new InteractiveScript(conf.getContextFactory(), engine, "\n? ", "= ", new String[]{"exit", "quit"}).run(cx);
       }
       else {
          StringBuilder buffer = new StringBuilder();

@@ -7,18 +7,18 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import org.regadou.damai.Configuration;
 
-public class JvmslScriptEngineFactory implements ScriptEngineFactory {
+public class SctScriptEngineFactory implements ScriptEngineFactory {
 
    private Configuration configuration;
 
    @Inject
-   public JvmslScriptEngineFactory(Configuration configuration) {
+   public SctScriptEngineFactory(Configuration configuration) {
       this.configuration = configuration;
    }
 
    @Override
    public String getEngineName() {
-      return "Regadou JVMSL";
+      return "Regadou SCT";
    }
 
    @Override
@@ -28,22 +28,22 @@ public class JvmslScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public List<String> getExtensions() {
-      return Arrays.asList("jvmsl");
+      return Arrays.asList("sct");
    }
 
    @Override
    public List<String> getMimeTypes() {
-      return Arrays.asList("text/x-jvmsl", "text/jvmsl");
+      return Arrays.asList("text/x-sct", "text/sct");
    }
 
    @Override
    public List<String> getNames() {
-      return Arrays.asList("jvmsl");
+      return Arrays.asList("sct");
    }
 
    @Override
    public String getLanguageName() {
-      return "jvmsl";
+      return "sct";
    }
 
    @Override
@@ -73,6 +73,6 @@ public class JvmslScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public ScriptEngine getScriptEngine() {
-      return new JvmslScriptEngine(this, configuration);
+      return new SctScriptEngine(this, configuration);
    }
 }
