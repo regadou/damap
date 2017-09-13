@@ -12,9 +12,16 @@ import java.util.Set;
 import java.util.TreeSet;
 import javax.script.Bindings;
 import javax.script.ScriptContext;
-import javax.script.SimpleScriptContext;
+import javax.script.ScriptEngineManager;
+import org.regadou.script.DefaultScriptContext;
 
 public class GsonScriptContextAdapter implements JsonSerializer<ScriptContext>, JsonDeserializer<ScriptContext> {
+
+   private ScriptEngineManager manager;
+
+   public GsonScriptContextAdapter(ScriptEngineManager manager) {
+      this.manager = manager;
+   }
 
    @Override
    public JsonElement serialize(ScriptContext cx, Type type, JsonSerializationContext jsc) {
@@ -32,9 +39,11 @@ public class GsonScriptContextAdapter implements JsonSerializer<ScriptContext>, 
       return attributes;
    }
 
-    @Override
-    public ScriptContext deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-       //TODO: we should serialize keys values to be able to restore them
-       return new SimpleScriptContext();
-    }
+   @Override
+   public ScriptContext deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+      ScriptContext cx = new DefaultScriptContext(context.deserialize(json, typeOfT));
+      if (!cx.getScopes().contains(ScriptContext.GLOBAL_SCOPE))
+          cx.setBindings(manager.getBindings(), ScriptContext.GLOBAL_SCOPE);
+      return cx;
+   }
 }

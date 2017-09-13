@@ -12,9 +12,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
-import javax.script.SimpleScriptContext;
 import org.apache.commons.beanutils.BeanMap;
-import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Converter;
 import org.regadou.damai.Printable;
@@ -26,28 +24,33 @@ import org.regadou.reference.GenericReference;
 import org.regadou.util.StringInput;
 
 
-public class SctScriptEngine implements ScriptEngine, Compilable, Printable {
+public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable {
 
    private static final int MINIMUM_TERMINALS = 3;
    private static final String SYNTAX_SYMBOLS = "()[]{}\"'`,;";
-   private static final String ALPHA_SYMBOLS = "_$";
    private static final char FIRST_ACCENT = 0xC0;
    private static final char LAST_ACCENT = 0x2AF;
+   private static final List CONSTANTS = Arrays.asList(true, false, null);
 
    private ScriptEngineFactory factory;
    private Configuration configuration;
    private ScriptContext context;
    private List<String> schemes;
-   private Action templateAction;
    private Map<String,Reference> keywords = new TreeMap<>();
 
-   public SctScriptEngine(ScriptEngineFactory factory, Configuration configuration) {
+   public RegadouScriptEngine(ScriptEngineFactory factory, Configuration configuration) {
       this.factory = factory;
       this.configuration = configuration;
       this.schemes = Arrays.asList(configuration.getResourceManager().getSchemes());
-      this.templateAction = new ScriptContextTemplateAction(configuration);
+      List constants = new ArrayList(CONSTANTS);
       for (OperatorAction op : OperatorAction.getActions(configuration))
-         keywords.put(op.getName(), new GenericReference(op.getName(), op, true));
+         constants.add(op);
+      for (CommandAction cmd : CommandAction.getActions(configuration))
+         constants.add(cmd);
+      for (Object constant : constants) {
+         String name = String.valueOf(constant).toLowerCase();
+         keywords.put(name, new GenericReference(name, constant, true));
+      }
    }
 
    @Override
@@ -61,13 +64,14 @@ public class SctScriptEngine implements ScriptEngine, Compilable, Printable {
    }
 
    @Override
-   public Object eval(String script, Bindings n) throws ScriptException {
+   public Object eval(String script, Bindings bindings) throws ScriptException {
       ScriptContext cx;
-      if (n == null)
+      if (bindings == null)
          cx = getContext();
       else {
-         cx = new SimpleScriptContext();
-         cx.setBindings(n, ScriptContext.ENGINE_SCOPE);
+         cx = new DefaultScriptContext();
+         cx.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+         cx.setBindings(configuration.getEngineManager().getBindings(), ScriptContext.GLOBAL_SCOPE);
       }
       return eval(script, cx);
    }
@@ -154,7 +158,7 @@ public class SctScriptEngine implements ScriptEngine, Compilable, Printable {
    }
 
    private boolean isSymbol(char c) {
-      if (ALPHA_SYMBOLS.indexOf(c) >= 0)
+      if (c == '_')
          return false;
       return (c > ' ' && c < '0') || (c > '9' && c < 'A')
           || (c > 'Z' && c < 'a') || (c > 'z' && c < 0x7F);
@@ -165,16 +169,12 @@ public class SctScriptEngine implements ScriptEngine, Compilable, Printable {
    }
 
    private boolean isAlpha(char c) {
-      return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
-          || (c >= FIRST_ACCENT && c <= LAST_ACCENT) || ALPHA_SYMBOLS.indexOf(c) >= 0;
+      return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_'
+          || (c >= FIRST_ACCENT && c <= LAST_ACCENT);
    }
 
    private CompiledExpression parse(String txt, ScriptContext cx) {
-      try {
-         Reference exp = parseExpression(new ParserStatus(txt, cx));
-         Reference rcx = new GenericReference(null, cx, true);
-         return new CompiledExpression(this, Arrays.asList(rcx, exp), configuration);
-      }
+      try { return parseExpression(new ParserStatus(txt, cx)); }
       catch (Exception e) {
          throw new RuntimeException("Exception while parsing the following text:\n"+txt, e);
       }

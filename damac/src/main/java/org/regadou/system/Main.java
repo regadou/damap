@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.TreeSet;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
-import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import org.regadou.damai.Bootstrap;
@@ -28,7 +27,8 @@ import org.regadou.util.StringInput;
 
 public class Main {
 
-   public static final List<String> OPTIONS = Arrays.asList("debug", "config", "lang", "script", "interactive");
+   private static final List<String> OPTIONS = Arrays.asList("debug", "config", "lang", "script", "interactive");
+   private static final String DEFAULT_LANG = "text/regadou";
 
    public static void main(String[] args) throws ScriptException, IOException {
       Map<String,String> options = new LinkedHashMap<>();
@@ -63,12 +63,10 @@ public class Main {
          if (script == null && !interactive)
             return;
          String lang = options.get("lang");
-         if (lang == null) {
-            List<ScriptEngineFactory> factories = scriptManager.getEngineFactories();
-            if (!factories.isEmpty())
-               lang = factories.get(0).getLanguageName();
-         }
-         ScriptEngine engine = (lang == null) ? null : scriptManager.getEngineByExtension(lang);
+         if (lang == null)
+            lang = DEFAULT_LANG;
+         ScriptEngine engine = lang.contains("/") ? scriptManager.getEngineByMimeType(lang)
+                                                  : scriptManager.getEngineByExtension(lang);
          if (engine == null) {
             engine = scriptManager.getEngineByName(lang);
             if (engine == null) {

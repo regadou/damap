@@ -5,6 +5,7 @@ import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,7 +15,11 @@ import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngineManager;
 import javax.script.SimpleBindings;
+import org.apache.commons.beanutils.BeanMap;
+import org.regadou.damai.Action;
 import org.regadou.damai.Reference;
+import org.regadou.reference.GenericReference;
+import org.regadou.util.ArrayWrapper;
 
 public class DefaultScriptContext implements ScriptContext {
 
@@ -22,6 +27,13 @@ public class DefaultScriptContext implements ScriptContext {
    private Reader reader;
    private Writer writer;
    private Writer error;
+
+   public DefaultScriptContext() {
+   }
+
+   public DefaultScriptContext(Object data) {
+      setContext(data);
+   }
 
    public DefaultScriptContext(ScriptContext cx) {
       reader = cx.getReader();
@@ -33,15 +45,8 @@ public class DefaultScriptContext implements ScriptContext {
 
    public DefaultScriptContext(ScriptEngineManager manager, Reference ... properties) {
       if (properties != null) {
-         for (Reference property : properties) {
-            Method m = getSetter(property);
-            if (m != null) {
-               try { m.invoke(this, property.getValue()); }
-               catch (IllegalArgumentException|IllegalAccessException|InvocationTargetException e) {
-                  throw new RuntimeException(e);
-               }
-            }
-         }
+         for (Reference property : properties)
+            setProperty(property);
       }
       if (!scopes.containsKey(GLOBAL_SCOPE))
          scopes.put(GLOBAL_SCOPE, manager.getBindings());
@@ -139,6 +144,16 @@ public class DefaultScriptContext implements ScriptContext {
       return new ArrayList<>(scopes.keySet());
    }
 
+   private void setProperty(Reference property) {
+      Method m = getSetter(property);
+      if (m != null) {
+         try { m.invoke(this, property.getValue()); }
+         catch (IllegalArgumentException|IllegalAccessException|InvocationTargetException e) {
+            throw new RuntimeException(e);
+         }
+      }
+}
+
    private Method getSetter(Reference property) {
       if (property == null)
          return null;
@@ -165,5 +180,77 @@ public class DefaultScriptContext implements ScriptContext {
          }
       }
       return null;
+   }
+
+   private void setContext(Object value) {
+      while (value instanceof Reference)
+         value = ((Reference)value).getValue();
+      if (value == null || value instanceof Number || value instanceof Boolean || value instanceof Action
+                        || value instanceof CharSequence || value instanceof Class)
+         ;
+      else if (value instanceof Map) {
+         Map map = (Map)value;
+         for (Object key : map.keySet()) {
+            if (key instanceof CharSequence) {
+               Integer scope = null;
+               String name = key.toString();
+               switch (name) {
+                  case "engine":
+                  case "request":
+                     scope = ScriptContext.ENGINE_SCOPE;
+                     break;
+                  case "user":
+                  case "session":
+                     scope = HttpScriptContext.SESSION_SCOPE;
+                     break;
+                  case "global":
+                  case "servlet":
+                  case "app":
+                  case "application":
+                  case "singleton":
+                     scope = ScriptContext.GLOBAL_SCOPE;
+                     break;
+                  default:
+                     setProperty(new GenericReference(name, map.get(key)));
+                     continue;
+               }
+               setScope(scope, map.get(key));
+            }
+         }
+      }
+      else if (value.getClass().isArray()) {
+         for (Object e : new ArrayWrapper(value))
+            setContext(e);
+      }
+      else if (value instanceof Collection) {
+         for (Object e : (Collection)value)
+            setContext(e);
+      }
+      else
+         setContext(new BeanMap(value));
+   }
+
+   private void setScope(int scope, Object value) {
+      if (value == null || value instanceof Number || value instanceof Boolean || value instanceof Action
+                        || value instanceof CharSequence || value instanceof Class)
+         ;
+      else if (value.getClass().isArray()) {
+         for (Object e : new ArrayWrapper(value))
+            setScope(scope, e);
+      }
+      else if (value instanceof Collection) {
+         for (Object e : (Collection)value)
+            setScope(scope, e);
+      }
+      else {
+         Bindings b = getBindings(scope);
+         if (b == null)
+            setBindings(b = new SimpleBindings(), scope);
+         Map map = (value instanceof Map) ? (Map)value : new BeanMap(value);
+         for (Object key : map.keySet()) {
+            if (key instanceof CharSequence)
+               b.put(key.toString(), map.get(key));
+         }
+      }
    }
 }

@@ -744,11 +744,11 @@ text/parityfec
 text/plain					asc txt text pot brf
 text/prs.lines.tag
 text/rdf+n3              rdfn
+text/regadou            rgds
 text/rfc822-headers
 text/richtext					rtx
 text/rtf
 text/scriptlet					sct wsc
-text/sct                sct
 text/sexl					sexl
 text/t140
 text/tab-separated-values			tsv
@@ -796,8 +796,8 @@ text/x-pascal					p pas
 text/x-pcs-gcd					gcd
 text/x-perl					pl pm
 text/x-python					py
+text/x-regadou             rgds
 text/x-scala					scala
-text/x-sct              sct
 text/x-server-parsed-html   shtml
 text/x-setext					etx
 text/x-sexl					sexl

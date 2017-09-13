@@ -18,6 +18,7 @@ import javax.script.SimpleBindings;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.xml.bind.DatatypeConverter;
 import org.regadou.damai.Configuration;
 import org.regadou.util.EnumerationSet;
 import org.regadou.util.MapAdapter;
@@ -50,6 +51,20 @@ public class HttpScriptContext implements ScriptContext {
          bindings = new SimpleBindings(map);
          bindings.put("request", request);
          scopes.put(ENGINE_SCOPE, bindings);
+
+         String username = request.getRemoteUser();
+         if (username == null) {
+            String auth = request.getHeader("authorization");
+            if (auth != null) {
+               String[] parts = auth.split(" ");
+               if (parts.length > 1) {
+                  String[] credential = new String(DatatypeConverter.parseBase64Binary(parts[1])).split(":");
+                  username = credential[0];
+               }
+            }
+         }
+         bindings.put("username", username);
+
          HttpSession session = request.getSession();
          map = new MapAdapter<>(
                  () -> new EnumerationSet(session.getAttributeNames()),
@@ -62,7 +77,6 @@ public class HttpScriptContext implements ScriptContext {
          scopes.put(ENGINE_SCOPE, new SimpleBindings());
 
       error = new PrintWriter(System.err);
-
    }
 
    @Override

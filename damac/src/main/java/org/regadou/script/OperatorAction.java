@@ -181,13 +181,13 @@ public class OperatorAction implements Action {
          case AND: return 2;
          case OR: return 2;
          case IN: return 1;
-         case IF: return 0;
-         case ELSE: return 0;
-         case WHILE: return 0;
-         case DO: return -1;
-         case HAVE: return -2;
-         case JOIN: return -2;
-         case IS: return -3;
+         case IF: return -1;
+         case ELSE: return -2;
+         case WHILE: return -3;
+         case DO: return -4;
+         case HAVE: return -5;
+         case JOIN: return -6;
+         case IS: return -7;
          default: throw new RuntimeException("Unknown operator "+operator);
       }
    }

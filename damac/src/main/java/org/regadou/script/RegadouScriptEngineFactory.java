@@ -7,18 +7,18 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import org.regadou.damai.Configuration;
 
-public class SctScriptEngineFactory implements ScriptEngineFactory {
+public class RegadouScriptEngineFactory implements ScriptEngineFactory {
 
    private Configuration configuration;
 
    @Inject
-   public SctScriptEngineFactory(Configuration configuration) {
+   public RegadouScriptEngineFactory(Configuration configuration) {
       this.configuration = configuration;
    }
 
    @Override
    public String getEngineName() {
-      return "Regadou SCT";
+      return "Regadou Script";
    }
 
    @Override
@@ -28,22 +28,22 @@ public class SctScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public List<String> getExtensions() {
-      return Arrays.asList("sct");
+      return Arrays.asList("rgds");
    }
 
    @Override
    public List<String> getMimeTypes() {
-      return Arrays.asList("text/x-sct", "text/sct");
+      return Arrays.asList("text/x-regadou", "text/regadou");
    }
 
    @Override
    public List<String> getNames() {
-      return Arrays.asList("sct");
+      return Arrays.asList("regadou", "rgds");
    }
 
    @Override
    public String getLanguageName() {
-      return "sct";
+      return "regadou";
    }
 
    @Override
@@ -73,6 +73,6 @@ public class SctScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public ScriptEngine getScriptEngine() {
-      return new SctScriptEngine(this, configuration);
+      return new RegadouScriptEngine(this, configuration);
    }
 }

@@ -26,6 +26,7 @@ import org.regadou.damai.Bootstrap;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.MimeHandler;
+import org.regadou.damai.Reference;
 import org.regadou.damai.ScriptContextFactory;
 import org.regadou.reference.InputStreamReference;
 import org.regadou.expression.PathExpression;
@@ -35,6 +36,7 @@ import org.regadou.script.DefaultCompiledScript;
 import org.regadou.util.EnumerationSet;
 import org.regadou.script.GenericComparator;
 import org.regadou.mime.HtmlHandler;
+import org.regadou.script.DefaultScriptContext;
 import org.regadou.util.MapAdapter;
 import org.regadou.util.StaticMap;
 
@@ -131,7 +133,24 @@ public class RestServlet implements Servlet {
                                                   new GenericReference("response", response));
       try {
          if (initScript != null) {
-            try { initScript.eval(cx); }
+            try {
+               Object result = initScript.eval(cx);
+               while (result instanceof Reference)
+                  result = ((Reference)result).getValue();
+               if (result != null) {
+                  ScriptContext cx2 = new DefaultScriptContext(result);
+                  for (Integer scope : cx2.getScopes()) {
+                     Bindings src = cx2.getBindings(scope);
+                     if (src != null) {
+                        Bindings dst = cx.getBindings(scope);
+                        if (dst == null)
+                           cx.setBindings(src, scope);
+                        else
+                           dst.putAll(src);
+                     }
+                  }
+               }
+            }
             catch (ScriptException e) { throw new RuntimeException(e); }
          }
          String charset = request.getCharacterEncoding();

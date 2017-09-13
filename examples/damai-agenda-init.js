@@ -11,19 +11,8 @@ function init(scope) {
       var ref = conf.getResourceManager().getResource(scope.users);
       if (ref != null) {
          var nalasys = ref.getValue();
-         var user = scope.request.remoteUser;
-         if (user == null) {
-            var auth = scope.request.getHeader("authorization");
-            if (auth != null) {
-               var parts = auth.split(" ");
-               if (parts.length > 1) {
-                  var credential = new java.lang.String(javax.xml.bind.DatatypeConverter.parseBase64Binary(parts[1])).split(":");
-                  user = credential[0];
-               }
-            }
-         }
-         if (user != null) {
-            var data = nalasys[user];
+         if (request.username != null) {
+            var data = nalasys[request.username];
             if (data != null) {
                var folder = data.folder;
                if (folder != null) {
@@ -44,5 +33,6 @@ function init(scope) {
    }
    global.request = request;
    global.session = session;
+   return null;
 }
 

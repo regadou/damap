@@ -170,7 +170,7 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
 
          new HtmlHandler(configuration),
 
-         new JsonHandler(),
+         new JsonHandler(configuration),
 
          new CsvHandler(configuration.getConverter())
       };

@@ -21,10 +21,13 @@ public class ExtendedScriptEngineManager extends ScriptEngineManager {
       for (ScriptEngineFactory factory : super.getEngineFactories()) {
          factories.add(factory);
       }
-      factories.add(new SctScriptEngineFactory(configuration));
+      factories.add(new RegadouScriptEngineFactory(configuration));
       factories.add(new SexlScriptEngineFactory(configuration));
       for (ScriptEngineFactory factory : factories) {
          registerEngineName(factory.getEngineName(), factory);
+         registerEngineName(factory.getLanguageName(), factory);
+         for (String name : factory.getNames())
+            registerEngineName(name, factory);
          for (String mimetype : factory.getMimeTypes())
             registerEngineMimeType(mimetype, factory);
          for (String extension : factory.getExtensions())

@@ -16,7 +16,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
-import javax.script.SimpleScriptContext;
 import org.regadou.damai.Configuration;
 import org.regadou.util.StringInput;
 
@@ -171,8 +170,9 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       if (bindings == null)
          cx = getContext();
       else {
-         cx = new SimpleScriptContext();
+         cx = new DefaultScriptContext();
          cx.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+         cx.setBindings(configuration.getEngineManager().getBindings(), ScriptContext.GLOBAL_SCOPE);
       }
       return parseExpression(new ParserStatus(txt, cx)).getValue(cx);
    }
