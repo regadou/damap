@@ -1,4 +1,4 @@
-package org.regadou.util;
+package org.regadou.collection;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,7 +9,7 @@ import javax.script.ScriptContext;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Filterable;
 import org.regadou.damai.PropertyManager;
-import org.regadou.script.GenericComparator;
+import org.regadou.action.GenericComparator;
 import org.regadou.script.PropertiesScriptContext;
 
 public class FilterableIterable<T> implements Iterable<T>, Filterable {

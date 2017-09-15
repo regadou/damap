@@ -455,7 +455,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
    private Object parseName(ParserStatus status) {
       int start = status.pos;
       int length = 0;
-      boolean uri = false, java = false;
+      boolean uri = false;
 
       for (; status.pos < status.chars.length; status.pos++, length++) {
          char c = status.chars[status.pos];
@@ -465,7 +465,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
          }
          else if (isBlank(c))
             break;
-         else if (uri || java)
+         else if (uri)
             continue;
          char next = status.nextChar();
          switch (c) {
@@ -501,6 +501,11 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       }
 
       String txt = new String(status.chars, start, length);
+      if (uri) {
+         Object r = configuration.getResourceManager().getResource(txt);
+         if (r != null)
+            return r;
+      }
       return (status.cx != null) ? new ScriptContextProperty(status.cx, txt)
                                  : new ScriptContextProperty(configuration.getContextFactory(), txt);
    }

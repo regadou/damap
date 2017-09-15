@@ -1,4 +1,4 @@
-package org.regadou.util;
+package org.regadou.collection;
 
 import java.util.LinkedHashMap;
 

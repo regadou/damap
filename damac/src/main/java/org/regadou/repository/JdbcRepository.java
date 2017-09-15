@@ -29,8 +29,8 @@ import org.regadou.damai.Operator;
 import org.regadou.damai.Property;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
-import org.regadou.script.OperatorAction;
-import org.regadou.util.PersistableMap;
+import org.regadou.action.OperatorAction;
+import org.regadou.collection.PersistableMap;
 
 public class JdbcRepository implements Repository<Map>, Closeable {
 

@@ -1,4 +1,4 @@
-package org.regadou.script;
+package org.regadou.action;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -18,8 +18,8 @@ import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Reference;
 import org.regadou.expression.SimpleExpression;
 import org.regadou.reference.GenericReference;
-import org.regadou.util.ArrayWrapper;
-import org.regadou.util.FilterableIterable;
+import org.regadou.collection.ArrayWrapper;
+import org.regadou.collection.FilterableIterable;
 
 public class CommandAction implements Action {
 

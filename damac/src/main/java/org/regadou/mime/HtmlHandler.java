@@ -3,7 +3,7 @@ package org.regadou.mime;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import org.regadou.script.GenericComparator;
+import org.regadou.action.GenericComparator;
 import java.util.Iterator;
 import java.util.Map;
 import org.regadou.damai.Configuration;

@@ -18,7 +18,6 @@ import org.regadou.resource.DefaultNamespace;
 
 public class DefaultResourceManager implements ResourceManager {
 
-   private static final char[] FILE_CHARS = "./\\".toCharArray();
    private static final String LOCALHOST = "http://localhost/";
 
    private Configuration configuration;
@@ -29,12 +28,12 @@ public class DefaultResourceManager implements ResourceManager {
    @Inject
    public DefaultResourceManager(Configuration configuration) {
       this.configuration = configuration;
-      registerFactory(new FileResourceFactory(this, configuration));
+      registerFactory(new NoSchemeResourceFactory(this, configuration));
       registerFactory(new UrlResourceFactory(this, configuration));
       registerFactory(new ServerResourceFactory(this, configuration));
       Repository repo = new RdfRepository(this, configuration.getPropertyManager());
       registerNamespace(new DefaultNamespace("_", LOCALHOST, repo));
-      //TODO: add javascript: and other script schemes with a ScriptEngineResourceFactory
+      //TODO: add other script schemes with a ScriptEngineResourceFactory
    }
 
    @Override
@@ -44,13 +43,13 @@ public class DefaultResourceManager implements ResourceManager {
       Namespace ns = namespaces.get(name);
       if (ns != null)
          return ns;
-      
+
       int index = name.indexOf(':');
       if (index < 0) {
-         try { return new GenericReference(name, Class.forName(name), true); }
-         catch (ClassNotFoundException e) {
-            if (nullSchemeFactory != null && canBeFile(name))
-               return nullSchemeFactory.getResource(name);
+         if (nullSchemeFactory != null) {
+            Reference r = nullSchemeFactory.getResource(name);
+            if (r != null)
+               return r;
          }
       }
       else {
@@ -110,13 +109,5 @@ public class DefaultResourceManager implements ResourceManager {
          return false;
       namespaces.put(iri, namespace);
       return true;
-   }
-
-   private boolean canBeFile(String name) {
-      for (char c : FILE_CHARS) {
-         if (name.indexOf(c) >= 0)
-            return true;
-      }
-      return false;
    }
 }

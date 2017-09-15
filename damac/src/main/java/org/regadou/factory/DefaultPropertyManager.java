@@ -7,7 +7,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.script.ScriptContext;
 import org.regadou.damai.Configuration;
-import org.regadou.util.ClassIterator;
+import org.regadou.collection.ClassIterator;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;

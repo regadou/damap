@@ -12,7 +12,7 @@ import org.regadou.damai.Expression;
 import org.regadou.damai.Operator;
 import org.regadou.reference.GenericReference;
 import org.regadou.reference.MapEntryReference;
-import org.regadou.script.OperatorAction;
+import org.regadou.action.OperatorAction;
 
 public class CompiledExpression extends CompiledScript implements Expression<Reference> {
 

@@ -12,8 +12,8 @@ import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
-import org.regadou.script.CommandAction;
-import org.regadou.script.GenericComparator;
+import org.regadou.action.CommandAction;
+import org.regadou.action.GenericComparator;
 
 public class PathExpression implements Expression<Reference> {
 

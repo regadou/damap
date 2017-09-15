@@ -19,7 +19,7 @@ import org.apache.commons.beanutils.BeanMap;
 import org.regadou.damai.Action;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
-import org.regadou.util.ArrayWrapper;
+import org.regadou.collection.ArrayWrapper;
 
 public class DefaultScriptContext implements ScriptContext {
 

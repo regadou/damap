@@ -14,7 +14,7 @@ import org.regadou.damai.Repository;
 import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 import org.regadou.factory.ResourcePropertyFactory;
-import org.regadou.util.FilterableIterable;
+import org.regadou.collection.FilterableIterable;
 
 public class RdfRepository implements Repository<Resource> {
 

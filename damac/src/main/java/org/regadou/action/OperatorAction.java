@@ -1,4 +1,4 @@
-package org.regadou.script;
+package org.regadou.action;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,8 +17,8 @@ import org.regadou.damai.Action;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
-import org.regadou.util.ArrayWrapper;
-import org.regadou.util.Range;
+import org.regadou.collection.ArrayWrapper;
+import org.regadou.collection.Range;
 
 public class OperatorAction implements Action {
 
@@ -40,6 +40,8 @@ public class OperatorAction implements Action {
    private Operator operator;
    private BiFunction function;
    private BiFunction getterFunction;
+
+   protected OperatorAction() {}
 
    public OperatorAction(Operator operator, GenericComparator comparator, BiFunction getterFunction) {
       this.operator = operator;

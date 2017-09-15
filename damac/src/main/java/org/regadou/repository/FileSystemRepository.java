@@ -18,8 +18,8 @@ import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Repository;
 import org.regadou.expression.SimpleExpression;
 import org.regadou.reference.UrlReference;
-import org.regadou.script.GenericComparator;
-import org.regadou.script.OperatorAction;
+import org.regadou.action.GenericComparator;
+import org.regadou.action.OperatorAction;
 import org.regadou.script.PropertiesScriptContext;
 
 public class FileSystemRepository implements Repository<UrlReference> {

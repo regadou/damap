@@ -16,7 +16,7 @@ import org.regadou.damai.Expression;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
 import org.regadou.reference.MapEntryReference;
-import org.regadou.script.OperatorAction;
+import org.regadou.action.OperatorAction;
 
 public class SimpleExpression implements Expression<Reference> {
 

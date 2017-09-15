@@ -18,7 +18,7 @@ public class RegadouScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public String getEngineName() {
-      return "Regadou Script";
+      return "RegadouScript";
    }
 
    @Override
@@ -28,7 +28,7 @@ public class RegadouScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public List<String> getExtensions() {
-      return Arrays.asList("rgds");
+      return Arrays.asList("rgd");
    }
 
    @Override
@@ -38,12 +38,12 @@ public class RegadouScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public List<String> getNames() {
-      return Arrays.asList("regadou", "rgds");
+      return Arrays.asList("regadou", "rgd");
    }
 
    @Override
    public String getLanguageName() {
-      return "regadou";
+      return "RegadouScript";
    }
 
    @Override

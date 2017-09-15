@@ -21,7 +21,7 @@ import org.regadou.damai.Converter;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
 import org.regadou.reference.UrlReference;
-import org.regadou.script.GenericComparator;
+import org.regadou.action.GenericComparator;
 import org.regadou.script.InteractiveScript;
 import org.regadou.util.StringInput;
 
@@ -45,7 +45,7 @@ public class Main {
          for (int a = 0; a < args.length; a++) {
             Reference r = conf.getResourceManager().getResource(args[a]);
             if (r == null)
-               throw new RuntimeException("Cannot load file "+args[a]);
+               throw new RuntimeException("Cannot load uri "+args[a]);
             UrlReference u = (r instanceof UrlReference) ? (UrlReference)r : null;
             ScriptEngine engine = (u == null) ? null : scriptManager.getEngineByMimeType(u.getMimetype());
             if (engine == null)

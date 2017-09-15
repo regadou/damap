@@ -32,7 +32,7 @@ import org.regadou.damai.Converter;
 import org.regadou.damai.Expression;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.MimeHandlerFactory;
-import org.regadou.script.GenericComparator;
+import org.regadou.action.GenericComparator;
 import org.regadou.mime.ScriptEngineMimeHandler;
 import org.regadou.mime.CsvHandler;
 import org.regadou.mime.HtmlHandler;

@@ -15,7 +15,7 @@ import org.regadou.damai.Reference;
 import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 import org.regadou.number.Time;
-import org.regadou.util.ClassIterator;
+import org.regadou.collection.ClassIterator;
 
 public class LiteralResource implements Resource {
 

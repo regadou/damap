@@ -33,12 +33,12 @@ import org.regadou.expression.PathExpression;
 import org.regadou.reference.GenericReference;
 import org.regadou.reference.UrlReference;
 import org.regadou.script.DefaultCompiledScript;
-import org.regadou.util.EnumerationSet;
-import org.regadou.script.GenericComparator;
+import org.regadou.collection.EnumerationSet;
+import org.regadou.action.GenericComparator;
 import org.regadou.mime.HtmlHandler;
 import org.regadou.script.DefaultScriptContext;
-import org.regadou.util.MapAdapter;
-import org.regadou.util.StaticMap;
+import org.regadou.collection.MapAdapter;
+import org.regadou.collection.StaticMap;
 
 public class RestServlet implements Servlet {
 

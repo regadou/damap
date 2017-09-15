@@ -1,4 +1,4 @@
-package org.regadou.script;
+package org.regadou.action;
 
 import java.io.File;
 import java.lang.reflect.Array;
@@ -31,10 +31,10 @@ import org.regadou.damai.Repository;
 import org.regadou.property.CollectionProperty;
 import org.regadou.property.MapProperty;
 import org.regadou.reference.GenericReference;
-import org.regadou.util.ClassIterator;
-import org.regadou.util.EnumerationSet;
-import org.regadou.util.ArrayWrapper;
-import org.regadou.util.PersistableMap;
+import org.regadou.collection.ClassIterator;
+import org.regadou.collection.EnumerationSet;
+import org.regadou.collection.ArrayWrapper;
+import org.regadou.collection.PersistableMap;
 
 /*
   This is a catchall class that regroup utility operations for comparison, conversion and REST methods

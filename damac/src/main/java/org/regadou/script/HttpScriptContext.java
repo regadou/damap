@@ -20,8 +20,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.xml.bind.DatatypeConverter;
 import org.regadou.damai.Configuration;
-import org.regadou.util.EnumerationSet;
-import org.regadou.util.MapAdapter;
+import org.regadou.collection.EnumerationSet;
+import org.regadou.collection.MapAdapter;
 
 public class HttpScriptContext implements ScriptContext {
 

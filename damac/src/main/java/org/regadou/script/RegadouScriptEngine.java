@@ -1,5 +1,7 @@
 package org.regadou.script;
 
+import org.regadou.action.CommandAction;
+import org.regadou.action.OperatorAction;
 import org.regadou.property.ScriptContextProperty;
 import org.regadou.expression.CompiledExpression;
 import java.io.Reader;
@@ -13,8 +15,13 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import org.apache.commons.beanutils.BeanMap;
+import org.regadou.action.CustomOperator;
+import org.regadou.action.GenericComparator;
+import org.regadou.damai.Action;
+import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Converter;
+import org.regadou.damai.Operator;
 import org.regadou.damai.Printable;
 import org.regadou.damai.Reference;
 import org.regadou.number.Complex;
@@ -45,10 +52,10 @@ public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable 
       List constants = new ArrayList(CONSTANTS);
       for (OperatorAction op : OperatorAction.getActions(configuration))
          constants.add(op);
-      for (CommandAction cmd : CommandAction.getActions(configuration))
-         constants.add(cmd);
+      CommandAction command = new CommandAction(Command.SET, configuration, new GenericComparator(configuration));
+      constants.add(new CustomOperator(command.getFunction(), ":", -10, Operator.IS));
       for (Object constant : constants) {
-         String name = String.valueOf(constant).toLowerCase();
+         String name = (constant instanceof Action) ? ((Action)constant).getName() : String.valueOf(constant);
          keywords.put(name, new GenericReference(name, constant, true));
       }
    }
@@ -582,6 +589,7 @@ public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable 
    private Reference parseName(ParserStatus status) throws Exception {
       int start = status.pos;
       int length = 0;
+      char next;
       boolean uri = false, java = false;
       for (; status.pos < status.chars.length; status.pos++, length++) {
          char c = status.chars[status.pos];
@@ -589,13 +597,22 @@ public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable 
             status.pos--;
             break;
          }
-         else if (uri && !isBlank(c))
+         else if (uri) {
+            if (isBlank(c))
+               break;
             continue;
+         }
+         else if (java) {
+            next = status.nextChar();
+            if (isAlpha(next) || isDigit(next) || next == '.')
+               continue;
+            break;
+         }
          switch (c) {
             case ':':
                if (java)
                   break;
-               char next = status.nextChar();
+               next = status.nextChar();
                if (!isAlpha(next) && next != '/') {
                   c = ' ';
                   break;
@@ -619,11 +636,7 @@ public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable 
       }
 
       String txt = new String(status.chars, start, length);
-      if (java) {
-         try { return new GenericReference(txt, Class.forName(txt), true); }
-         catch (ClassNotFoundException e) {}
-      }
-      else if (uri) {
+      if (uri || java) {
          Reference r = configuration.getResourceManager().getResource(txt);
          if (r != null)
             return r;
