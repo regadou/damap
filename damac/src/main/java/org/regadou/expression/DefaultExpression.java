@@ -5,25 +5,27 @@ import javax.script.CompiledScript;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
+import org.regadou.action.BinaryAction;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Operator;
+import org.regadou.damai.Property;
 import org.regadou.reference.GenericReference;
 import org.regadou.reference.MapEntryReference;
-import org.regadou.action.OperatorAction;
 
-public class CompiledExpression extends CompiledScript implements Expression<Reference> {
+public class DefaultExpression extends CompiledScript implements Expression<Reference> {
+
+   private static Map<Operator,Action> OPERATORS;
 
    private Configuration configuration;
    private ScriptEngine engine;
-   private Map<Operator,OperatorAction> operators;
    private String text;
    private List<Reference> tokens = new ArrayList<>();
    private Action action;
 
-   public CompiledExpression(ScriptEngine engine, Collection<Reference> tokens, Configuration configuration) {
+   public DefaultExpression(ScriptEngine engine, Collection<Reference> tokens, Configuration configuration) {
       this.engine = engine;
       this.configuration = configuration;
       if (tokens != null) {
@@ -159,17 +161,19 @@ public class CompiledExpression extends CompiledScript implements Expression<Ref
       return action == null && tokens.isEmpty();
    }
 
-   private Action isAction(Object token) {
+   public Action isAction(Object token) {
       if (token instanceof Operator) {
-         if (operators == null) {
-            operators = new TreeMap<>();
-            for (OperatorAction op : OperatorAction.getActions(configuration))
-               operators.put(op.getOperator(), op);
+         if (OPERATORS == null) {
+            OPERATORS = new TreeMap<>();
+            for (Operator op : Operator.values())
+               OPERATORS.put(op, new BinaryAction(configuration, op.name().toLowerCase(), op));
          }
-         return operators.get((Operator)token);
+         return OPERATORS.get((Operator)token);
       }
       if (token instanceof Action)
          return (Action)token;
+      if (token instanceof Expression || token instanceof Property)
+         return null;
       if (token instanceof Reference)
          return isAction(((Reference)token).getValue());
       return null;

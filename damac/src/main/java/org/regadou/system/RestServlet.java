@@ -4,9 +4,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import javax.script.Bindings;
 import javax.script.Compilable;
 import javax.script.CompiledScript;
@@ -22,6 +27,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.regadou.action.BinaryAction;
 import org.regadou.damai.Bootstrap;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
@@ -39,6 +45,8 @@ import org.regadou.mime.HtmlHandler;
 import org.regadou.script.DefaultScriptContext;
 import org.regadou.collection.MapAdapter;
 import org.regadou.collection.StaticMap;
+import org.regadou.damai.Action;
+import org.regadou.damai.Operator;
 
 public class RestServlet implements Servlet {
 
@@ -56,6 +64,7 @@ public class RestServlet implements Servlet {
    private Configuration configuration;
    private GenericComparator comparator;
    private CompiledScript initScript;
+   private Map<String,Reference> keywords;
 
    @Override
    public String toString() {
@@ -111,7 +120,16 @@ public class RestServlet implements Servlet {
           }
       }
       catch (Exception ex) { ex.printStackTrace(); }
-   }
+
+      keywords = new TreeMap<>();
+      List constants = new ArrayList(Arrays.asList(true, false, null));
+      for (Operator op : Operator.values())
+         constants.add(new BinaryAction(configuration, getSymbol(op), op));
+      for (Object constant : constants) {
+         String name = (constant instanceof Action) ? ((Action)constant).getName() : String.valueOf(constant);
+         keywords.put(name, new GenericReference(name, constant, true));
+      }
+  }
 
    @Override
    public ServletConfig getServletConfig() {
@@ -166,7 +184,7 @@ public class RestServlet implements Servlet {
          }
          Command command = (Command)COMMAND_MAPPING.get(request.getMethod().toLowerCase());
          Object data = command.isDataNeeded() ? new InputStreamReference(configuration.getHandlerFactory(), request.getInputStream(), mimetype, charset) : null;
-         Object value = new PathExpression(configuration, command, request.getPathInfo(), data).getValue(cx);
+         Object value = new PathExpression(configuration, keywords, command, request.getPathInfo(), data).getValue(cx);
          if (value == null || (command == Command.DESTROY && value.equals(Boolean.FALSE)))
             response.setStatus(NOT_FOUND);
          else
@@ -184,5 +202,38 @@ public class RestServlet implements Servlet {
          handler.save(response.getOutputStream(), charset, value);
       }
       finally { factory.setScriptContext(null); }
+   }
+
+   private String getSymbol(Operator operator) {
+      switch (operator) {
+         case ADD: return "+";
+         case SUBTRACT: return "-";
+         case MULTIPLY: return "*";
+         case DIVIDE: return "/";
+         case MODULO: return "%";
+         case EXPONANT: return "^";
+         case ROOT: return "\\/";
+         case LOG: return "\\";
+         case LESSER: return "<";
+         case LESSEQ: return "<=";
+         case GREATER: return ">";
+         case GREATEQ: return ">=";
+         case EQUAL: return "=";
+         case NOTEQUAL: return "!=";
+         case AND: return "&";
+         case OR: return "|";
+         case NOT: return "!";
+         case IN: return "@";
+         case FROM: return "<-";
+         case TO: return "->";
+         case IS: return "?:";
+         case DO: return "=>";
+         case HAVE: return ".";
+         case JOIN: return ",";
+         case IF: return "?";
+         case ELSE: return ":";
+         case WHILE: return "?*";
+         default: throw new RuntimeException("Unknown operator "+operator);
+      }
    }
 }

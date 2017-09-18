@@ -299,6 +299,22 @@ public class Bootstrap implements Configuration, Converter {
                return (T)functions.get(srcType).apply(value);
          }
       }
+      if (value instanceof Collection || (value != null && value.getClass().isArray())) {
+         if (!type.isArray() && !Collection.class.isAssignableFrom(type)) {
+            Object[] a;
+            if (value instanceof Collection)
+               a = ((Collection)value).toArray();
+            else if (value instanceof Object[])
+               a = (Object[])value;
+            else {
+               int n = Array.getLength(value);
+               a = new Object[n];
+               for (int i = 0; i < n; i++)
+                  a[i] = Array.get(value, i);
+            }
+            return (T)newInstance(type, a);
+         }
+      }
       if (CharSequence.class.isAssignableFrom(type))
          return (T)toString(value);
       if (Number.class.isAssignableFrom(type))
@@ -403,6 +419,24 @@ public class Bootstrap implements Configuration, Converter {
       catch (InstantiationException|IllegalAccessException|IllegalArgumentException|InvocationTargetException e) {
          throw new RuntimeException(e);
       }
+   }
+
+   private Object newInstance(Class type, Object[] params) {
+      for (Constructor c : type.getConstructors()) {
+         if (c.getParameterCount() == params.length) {
+            Class[] types = c.getParameterTypes();
+            for (int p = 0; p < types.length; p++) {
+               Object param = (p >= params.length) ? null : params[p];
+               if (param == null || !types[p].isInstance(param))
+                  param = converter.convert(param, types[p]);
+            }
+            try { return c.newInstance(params); }
+            catch (InstantiationException|IllegalAccessException|IllegalArgumentException|InvocationTargetException e) {
+               throw new RuntimeException(e);
+            }
+         }
+      }
+      return null;
    }
 
    private Object getConfig(Class type) {

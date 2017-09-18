@@ -731,6 +731,7 @@ text/cache-manifest				manifest
 text/calendar					ics icz
 text/css					css
 text/csv					csv
+text/damai            damai
 text/directory
 text/english
 text/enriched
@@ -744,7 +745,7 @@ text/parityfec
 text/plain					asc txt text pot brf
 text/prs.lines.tag
 text/rdf+n3              rdfn
-text/regadou            rgds
+text/regadou            rgd
 text/rfc822-headers
 text/richtext					rtx
 text/rtf
@@ -782,6 +783,7 @@ text/x-component				htc
 text/x-crontab
 text/x-csh					csh
 text/x-csrc					c
+text/x-damai            damai
 text/x-dsrc					d
 text/x-diff					diff patch
 text/x-haskell					hs
@@ -796,7 +798,7 @@ text/x-pascal					p pas
 text/x-pcs-gcd					gcd
 text/x-perl					pl pm
 text/x-python					py
-text/x-regadou             rgds
+text/x-regadou             rgd
 text/x-scala					scala
 text/x-server-parsed-html   shtml
 text/x-setext					etx

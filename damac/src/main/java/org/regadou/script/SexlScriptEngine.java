@@ -1,13 +1,14 @@
 package org.regadou.script;
 
 import org.regadou.property.ScriptContextProperty;
-import org.regadou.expression.CompiledExpression;
+import org.regadou.expression.DefaultExpression;
 import org.regadou.number.Time;
 import org.regadou.number.Complex;
 import org.regadou.number.Probability;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.script.Bindings;
 import javax.script.Compilable;
 import javax.script.CompiledScript;
@@ -23,6 +24,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
    private ScriptEngineFactory factory;
    private Configuration configuration;
+   private Map keywords;
    private ScriptContext context;
    private String punctuationChars = ",;:.!?";
    private String openingChars = "([{";
@@ -33,9 +35,10 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
    private int apostrophe = 0;
    private String commentEnding = "\n\r\0";
 
-   protected SexlScriptEngine(ScriptEngineFactory factory, Configuration configuration) {
+   protected SexlScriptEngine(ScriptEngineFactory factory, Configuration configuration, Map keywords) {
       this.factory = factory;
       this.configuration = configuration;
+      this.keywords = keywords;
    }
 
    @Override
@@ -181,7 +184,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       return parseExpression(new ParserStatus(txt, context)).getValue(context);
    }
 
-   private CompiledExpression parseExpression(ParserStatus status) {
+   private DefaultExpression parseExpression(ParserStatus status) {
       List tokens = new ArrayList();
       char end = status.end;
       char c = 0;
@@ -203,7 +206,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
 
       if (end > 0 && c != end)
          throw new RuntimeException("Syntax error: closing character "+end+" missing");
-      return new CompiledExpression(this, tokens, configuration);
+      return new DefaultExpression(this, tokens, configuration);
    }
 
    private Object getToken(char c, ParserStatus status) {
@@ -501,6 +504,8 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       }
 
       String txt = new String(status.chars, start, length);
+      if (keywords.containsKey(txt))
+         return keywords.get(txt);
       if (uri) {
          Object r = configuration.getResourceManager().getResource(txt);
          if (r != null)

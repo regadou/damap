@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.TreeSet;
 import java.util.function.Predicate;
+import org.regadou.action.BinaryAction;
 import org.regadou.damai.Action;
 import org.regadou.damai.Converter;
 import org.regadou.damai.Expression;
@@ -29,7 +30,6 @@ import org.regadou.damai.Operator;
 import org.regadou.damai.Property;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
-import org.regadou.action.OperatorAction;
 import org.regadou.collection.PersistableMap;
 
 public class JdbcRepository implements Repository<Map>, Closeable {
@@ -437,8 +437,10 @@ public class JdbcRepository implements Repository<Map>, Closeable {
       Operator op;
       if (action instanceof Operator)
          op = (Operator)action;
-      else if (action instanceof OperatorAction)
-         op = ((OperatorAction)action).getOperator();
+      else if (action instanceof BinaryAction) {
+         Action a = ((BinaryAction)action).getParentAction();
+         op = (a instanceof Operator) ? (Operator)a : Operator.valueOf(a.getName().toUpperCase());
+      }
       else
          op = Operator.valueOf(action.getName().toUpperCase());
       switch (op) {

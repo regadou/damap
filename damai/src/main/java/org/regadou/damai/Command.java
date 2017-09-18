@@ -5,7 +5,7 @@ public enum Command implements Action {
    // all commands take 2 parameters (path and data)
    // path is usually represented by an array of elements (string, number or expression)
    // data is usually a map or an array of maps
-// all commands take 2 parameters (path and data)
+   // all commands take 2 parameters (path and data)
    // path is usually represented by an array of elements (string, number or expression)
    // data is usually a map or an array of maps
    GET,     // returns the object represented by the path (data parameter ignored)
@@ -14,14 +14,27 @@ public enum Command implements Action {
    UPDATE,  // updates the object represented by the path with the data parameter
    DESTROY; // removes the object represented by the path from its parent collection (data parameter ignored)
 
-   @Override
-   public String getName() {
-      return name().toLowerCase();
-   }
+   private static final Class[] SINGLE_PARAMETERS_TYPES = new Class[]{Object.class};
+   private static final Class[] DOUBLE_PARAMETERS_TYPES = new Class[]{Object.class, Object.class};
 
    @Override
    public Object execute(Object... parameters) {
       throw new UnsupportedOperationException("Not implemented");
+   }
+
+   @Override
+   public String getName() {
+      return name();
+   }
+
+   @Override
+   public Class getReturnType() {
+      return (this == DESTROY) ? Boolean.class : Object.class;
+   }
+
+   @Override
+   public Class[] getParameterTypes() {
+      return isDataNeeded() ? DOUBLE_PARAMETERS_TYPES : SINGLE_PARAMETERS_TYPES;
    }
 
    public boolean isDataNeeded() {

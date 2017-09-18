@@ -25,6 +25,11 @@ public class GenericReference<T> implements Reference<T> {
    }
 
    @Override
+   public String toString() {
+      return (name == null) ? String.valueOf(value) : name;
+   }
+
+   @Override
    public String getId() {
       return name;
    }

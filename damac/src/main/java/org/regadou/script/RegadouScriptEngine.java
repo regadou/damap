@@ -1,9 +1,7 @@
 package org.regadou.script;
 
-import org.regadou.action.CommandAction;
-import org.regadou.action.OperatorAction;
 import org.regadou.property.ScriptContextProperty;
-import org.regadou.expression.CompiledExpression;
+import org.regadou.expression.DefaultExpression;
 import java.io.Reader;
 import java.util.*;
 import javax.script.Bindings;
@@ -15,15 +13,11 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import org.apache.commons.beanutils.BeanMap;
-import org.regadou.action.CustomOperator;
-import org.regadou.action.GenericComparator;
-import org.regadou.damai.Action;
-import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Converter;
-import org.regadou.damai.Operator;
 import org.regadou.damai.Printable;
 import org.regadou.damai.Reference;
+import org.regadou.expression.PrecedenceExpression;
 import org.regadou.number.Complex;
 import org.regadou.number.Probability;
 import org.regadou.number.Time;
@@ -37,27 +31,18 @@ public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable 
    private static final String SYNTAX_SYMBOLS = "()[]{}\"'`,;";
    private static final char FIRST_ACCENT = 0xC0;
    private static final char LAST_ACCENT = 0x2AF;
-   private static final List CONSTANTS = Arrays.asList(true, false, null);
 
    private ScriptEngineFactory factory;
    private Configuration configuration;
    private ScriptContext context;
    private List<String> schemes;
-   private Map<String,Reference> keywords = new TreeMap<>();
+   private Map<String,Reference> keywords;
 
-   public RegadouScriptEngine(ScriptEngineFactory factory, Configuration configuration) {
+   public RegadouScriptEngine(ScriptEngineFactory factory, Configuration configuration, Map<String,Reference> keywords) {
       this.factory = factory;
       this.configuration = configuration;
       this.schemes = Arrays.asList(configuration.getResourceManager().getSchemes());
-      List constants = new ArrayList(CONSTANTS);
-      for (OperatorAction op : OperatorAction.getActions(configuration))
-         constants.add(op);
-      CommandAction command = new CommandAction(Command.SET, configuration, new GenericComparator(configuration));
-      constants.add(new CustomOperator(command.getFunction(), ":", -10, Operator.IS));
-      for (Object constant : constants) {
-         String name = (constant instanceof Action) ? ((Action)constant).getName() : String.valueOf(constant);
-         keywords.put(name, new GenericReference(name, constant, true));
-      }
+      this.keywords = keywords;
    }
 
    @Override
@@ -180,7 +165,7 @@ public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable 
           || (c >= FIRST_ACCENT && c <= LAST_ACCENT);
    }
 
-   private CompiledExpression parse(String txt, ScriptContext cx) {
+   private DefaultExpression parse(String txt, ScriptContext cx) {
       try { return parseExpression(new ParserStatus(txt, cx)); }
       catch (Exception e) {
          throw new RuntimeException("Exception while parsing the following text:\n"+txt, e);
@@ -227,9 +212,9 @@ public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable 
       }
    }
 
-   private CompiledExpression parseExpression(ParserStatus status) throws Exception {
+   private DefaultExpression parseExpression(ParserStatus status) throws Exception {
       List<Reference> expressions = null;
-      CompiledExpression exp = new CompiledExpression(this, null, configuration);
+      DefaultExpression exp = new PrecedenceExpression(this, configuration);
       char end = status.end;
       char end2 = status.end2;
       char c = 0;
@@ -248,14 +233,14 @@ public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable 
                if (expressions == null)
                   expressions = new ArrayList<>();
                expressions.add(exp);
-               exp = new CompiledExpression(this, null, configuration);
+               exp = new PrecedenceExpression(this, configuration);
             }
          }
       }
 
       if (end > 0 && c != end)
          throw new RuntimeException("Syntax error: closing character "+end+" missing");
-      return (expressions == null) ? exp : new CompiledExpression(this, expressions, configuration);
+      return (expressions == null) ? exp : new DefaultExpression(this, expressions, configuration);
    }
 
    private Reference parseToken(ParserStatus status) throws Exception {
@@ -636,13 +621,13 @@ public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable 
       }
 
       String txt = new String(status.chars, start, length);
+      if (keywords.containsKey(txt))
+         return keywords.get(txt);
       if (uri || java) {
          Reference r = configuration.getResourceManager().getResource(txt);
          if (r != null)
             return r;
       }
-      else if (keywords.containsKey(txt))
-         return keywords.get(txt);
       return (status.cx != null) ? new ScriptContextProperty(status.cx, txt)
                                  : new ScriptContextProperty(configuration.getContextFactory(), txt);
    }

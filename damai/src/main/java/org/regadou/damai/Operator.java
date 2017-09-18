@@ -1,5 +1,7 @@
 package org.regadou.damai;
 
+import java.util.Collection;
+
 public enum Operator implements Action {
 
    ADD, SUBTRACT, MULTIPLY, DIVIDE, MODULO, EXPONANT, ROOT, LOG,
@@ -7,13 +9,61 @@ public enum Operator implements Action {
    AND, OR, NOT, IN, FROM, TO, IS, DO, HAVE, JOIN,
    IF, ELSE, WHILE;
 
-   @Override
-   public String getName() {
-      return name().toLowerCase();
-   }
+   private static final Class[] PARAMETERS_TYPES = new Class[]{Object.class, Object.class};
 
    @Override
    public Object execute(Object... parameters) {
       throw new UnsupportedOperationException("Not implemented");
+   }
+
+   @Override
+   public String getName() {
+      return name();
+   }
+
+   @Override
+   public Class getReturnType() {
+      switch (this) {
+         case EXPONANT:
+         case ROOT:
+         case LOG:
+         case MULTIPLY:
+         case DIVIDE:
+         case MODULO:
+            return Number.class;
+         case ADD:
+         case SUBTRACT:
+            return Object.class; //Collection|Number|String|Map
+         case LESSER:
+         case LESSEQ:
+         case GREATER:
+         case GREATEQ:
+         case EQUAL:
+         case NOTEQUAL:
+         case AND:
+         case OR:
+         case NOT:
+         case IN:
+         case IS:
+            return Boolean.class;
+         case HAVE:
+         case FROM:
+         case TO:
+            return Object.class;
+         case IF:
+         case ELSE:
+         case WHILE:
+         case DO:
+            return Object.class;
+         case JOIN:
+            return Collection.class;
+         default:
+            return Object.class;
+      }
+   }
+
+   @Override
+   public Class[] getParameterTypes() {
+      return PARAMETERS_TYPES;
    }
 }

@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.script.ScriptContext;
+import org.regadou.action.BinaryAction;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Operator;
@@ -19,7 +20,7 @@ import org.regadou.damai.Repository;
 import org.regadou.expression.SimpleExpression;
 import org.regadou.reference.UrlReference;
 import org.regadou.action.GenericComparator;
-import org.regadou.action.OperatorAction;
+import org.regadou.damai.Action;
 import org.regadou.script.PropertiesScriptContext;
 
 public class FileSystemRepository implements Repository<UrlReference> {
@@ -31,7 +32,7 @@ public class FileSystemRepository implements Repository<UrlReference> {
    private transient Configuration configuration;
    private transient PropertyFactory factory;
    private transient GenericComparator comparator;
-   private transient OperatorAction equals;
+   private transient Action equals;
    private Collection<String> items;
 
    public FileSystemRepository(URL url, Configuration configuration) {
@@ -49,7 +50,7 @@ public class FileSystemRepository implements Repository<UrlReference> {
 
    @Override
    public Collection<String> getItems() {
-      return items = Arrays.asList(folder.list());
+      return (items = Arrays.asList(folder.list()));
    }
 
    @Override
@@ -127,7 +128,7 @@ public class FileSystemRepository implements Repository<UrlReference> {
       this.configuration = configuration;
       this.factory = configuration.getPropertyManager().getPropertyFactory(File.class);
       this.comparator = new GenericComparator(configuration);
-      this.equals = new OperatorAction(Operator.EQUAL, comparator, null);
+      this.equals = new BinaryAction(configuration, null, Operator.EQUAL);
    }
 
    private void validateUrl(URL url, Configuration configuration) {

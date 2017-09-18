@@ -3,6 +3,8 @@ package org.regadou.damai;
 @FunctionalInterface
 public interface Action<T> {
 
+   public static Action NOOP = p -> p;
+
    T execute(Object ... parameters);
 
    default String getName() {
@@ -10,7 +12,7 @@ public interface Action<T> {
    }
 
    default Class<T> getReturnType() {
-      return null;
+      return (Class<T>)Object.class;
    }
 
    default Class[] getParameterTypes() {

@@ -22,6 +22,7 @@ public class ExtendedScriptEngineManager extends ScriptEngineManager {
          factories.add(factory);
       }
       factories.add(new RegadouScriptEngineFactory(configuration));
+      factories.add(new DamaiScriptEngineFactory(configuration));
       factories.add(new SexlScriptEngineFactory(configuration));
       for (ScriptEngineFactory factory : factories) {
          registerEngineName(factory.getEngineName(), factory);

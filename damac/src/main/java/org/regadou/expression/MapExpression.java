@@ -9,7 +9,7 @@ import org.regadou.damai.Operator;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
 
-public class MapExpression extends CompiledExpression {
+public class MapExpression extends DefaultExpression {
 
    private Configuration configuration;
 
@@ -46,6 +46,6 @@ public class MapExpression extends CompiledExpression {
             addToken(token);
       }
       else
-         addToken(new CompiledExpression(null, tokens, configuration));
+         addToken(new DefaultExpression(null, tokens, configuration));
    }
 }
