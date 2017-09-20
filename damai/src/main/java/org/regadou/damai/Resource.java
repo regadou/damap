@@ -1,6 +1,6 @@
 package org.regadou.damai;
 
-public interface Resource<T> extends Reference<T> {
+public interface Resource extends Reference {
 
    @Override
    default String getId() {

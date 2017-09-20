@@ -1,6 +1,6 @@
 package org.regadou.damai;
 
-public interface Namespace extends Resource<String> {
+public interface Namespace extends Resource {
 
    String getUri();
 
@@ -19,12 +19,12 @@ public interface Namespace extends Resource<String> {
    }
 
    @Override
-   default String getValue() {
+   default Object getValue() {
       return getUri();
    }
 
    @Override
-   default Class<String> getType() {
+   default Class getType() {
       return String.class;
    }
 }

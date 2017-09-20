@@ -31,20 +31,23 @@ import org.regadou.damai.Property;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
 import org.regadou.collection.PersistableMap;
+import org.regadou.damai.Configuration;
+import org.regadou.expression.SimpleExpression;
+import org.regadou.property.GenericProperty;
 
 public class JdbcRepository implements Repository<Map>, Closeable {
 
    private transient Map<String, String[]> primaryKeys = new LinkedHashMap<>();
    private transient Map<String, Map<String, Class>> keysMap = new LinkedHashMap<>();
    private transient JdbcConnectionInfo info;
-   private transient Converter converter;
+   private transient Configuration configuration;
    private transient Connection connection;
    private transient Statement statement;
    private Collection<String> items;
 
-   public JdbcRepository(JdbcConnectionInfo info, Converter converter) {
+   public JdbcRepository(JdbcConnectionInfo info, Configuration configuration) {
       this.info = info;
-      this.converter = converter;
+      this.configuration = configuration;
       try {
          openConnection();
          DatabaseMetaData dmd = connection.getMetaData();
@@ -136,14 +139,14 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    public Collection<Map> getAny(String item, Expression filter) {
       String sql = "select * from " + item;
       if (filter != null && filter.getAction() != null)
-         sql += " where " + getClause(filter);
+         sql += " where " + getClause(checkListOperation(item, filter));
       try { return getRows(item, statement.executeQuery(sql)); }
       catch (SQLException e) { throw new RuntimeException(e); }
    }
 
    @Override
    public Map getOne(String item, Object id) {
-      Object[] params = converter.convert(id, Object[].class);
+      Object[] params = configuration.getConverter().convert(id, Object[].class);
       String sql = "select * from " + item +  getFilter(item, getMap(primaryKeys.get(item), params));
       try {
          Collection<Map>  entities = getRows(item, statement.executeQuery(sql));
@@ -183,7 +186,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
 
    @Override
    public boolean remove(String item, Object id) {
-      Object[] params = converter.convert(id, Object[].class);
+      Object[] params = configuration.getConverter().convert(id, Object[].class);
       String sql = "delete from " + item + getFilter(item, getMap(primaryKeys.get(item), params));
       try { return statement.executeUpdate(sql) > 0; }
       catch (SQLException e) { throw new RuntimeException(e); }
@@ -245,7 +248,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
             return "";
          Class type = keys.get(key.toString());
          if (type != null && !type.isAssignableFrom(value.getClass()))
-            value = converter.convert(value, type);
+            value = configuration.getConverter().convert(value, type);
          sql += (sql.isEmpty() ? " where " : " and ")
               + key + printValue(value, true);
       }
@@ -277,12 +280,12 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    }
 
    private String getClause(Expression exp) {
+      Operator op = getOperator(exp.getAction());
       Object[] tokens = exp.getTokens();
       if (tokens == null || tokens.length == 0)
          tokens = new Reference[2];
       else if (tokens.length < 2)
          tokens = new Object[]{tokens[0], null};
-      Action action = exp.getAction();
       String sql = "";
       for (Object token : tokens) {
          while (token instanceof Reference) {
@@ -291,7 +294,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
             token = ((Reference)token).getValue();
          }
          if (!sql.isEmpty())
-            sql += getOperator(action, token);
+            sql += printOperator(op, token);
          sql += printValue(token, false);
       }
       return sql;
@@ -299,6 +302,29 @@ public class JdbcRepository implements Repository<Map>, Closeable {
 
    private Predicate<Map> getUpdateFunction(String item) {
       return map -> this.update(item, map) != null;
+   }
+
+   private Expression checkListOperation(String item, Expression filter) {
+      switch (getOperator(filter.getAction())) {
+         case JOIN:
+         case TO:
+         case FROM:
+            break;
+         default:
+            return filter;
+      }
+      String[] keys = primaryKeys.get(item);
+      if (keys == null || keys.length != 1)
+         return filter;
+      Property prop = new GenericProperty(null, keys[0], null);
+      Object value = filter.getValue();
+      if (value == null)
+         value = Collections.EMPTY_LIST;
+      else if (value instanceof Collection || value.getClass().isArray())
+         ;
+      else
+         value = Collections.singletonList(value);
+      return new SimpleExpression(configuration, Operator.IN, prop, value);
    }
 
    private String printValue(Object value, boolean printOperator) {
@@ -433,16 +459,18 @@ public class JdbcRepository implements Repository<Map>, Closeable {
       }
    }
 
-   private String getOperator(Action action, Object value) {
-      Operator op;
+   private Operator getOperator(Action action) {
       if (action instanceof Operator)
-         op = (Operator)action;
+         return (Operator)action;
       else if (action instanceof BinaryAction) {
          Action a = ((BinaryAction)action).getParentAction();
-         op = (a instanceof Operator) ? (Operator)a : Operator.valueOf(a.getName().toUpperCase());
+         return (a instanceof Operator) ? (Operator)a : Operator.valueOf(a.getName().toUpperCase());
       }
       else
-         op = Operator.valueOf(action.getName().toUpperCase());
+         return Operator.valueOf(action.getName().toUpperCase());
+   }
+
+   private String printOperator(Operator op, Object value) {
       switch (op) {
          case ADD: return " + ";
          case SUBTRACT: return " - ";
@@ -461,14 +489,17 @@ public class JdbcRepository implements Repository<Map>, Closeable {
          case IS:
          case EQUAL:
             return (value == null) ? " IS " : " = ";
+         case FROM:
+         case TO:
+         case JOIN:
+            throw new RuntimeException("Operator "+op+" can only be at the top level for JDBC");
+         case HAVE:
+            throw new RuntimeException("Subqueries not supported yet for JDBC");
          case EXPONANT:
          case ROOT:
          case LOG:
-         case FROM:
-         case TO:
+            throw new RuntimeException("Operator "+op+" not supported yet for JDBC");
          case DO:
-         case HAVE:
-         case JOIN:
          case IF:
          case ELSE:
          case WHILE:

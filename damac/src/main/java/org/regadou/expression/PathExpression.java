@@ -132,7 +132,7 @@ public class PathExpression implements Expression<Reference> {
       if (COMMAND_ACTIONS == null) {
          COMMAND_ACTIONS = new LinkedHashMap<>();
          for (Command action : Command.values())
-            COMMAND_ACTIONS.put(action, new BinaryAction(configuration, action.name().toLowerCase(), command));
+            COMMAND_ACTIONS.put(action, new BinaryAction(configuration, action.name().toLowerCase(), action));
       }
       if (command == null)
          command = Command.GET;

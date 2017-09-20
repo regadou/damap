@@ -112,12 +112,12 @@ public class SimpleExpression extends PrecedenceExpression {
                addTokens(ops.get(0));
                break;
             default:
-               boolean first = false;
+               boolean first = true;
                for (Action op : ops) {
                   if (first)
                      first = false;
                   else
-                     addTokens(null);
+                     addTokens((Object)null);
                   addTokens(op);
                }
          }

@@ -71,6 +71,7 @@ public class PrecedenceExpression extends DefaultExpression {
       return text;
    }
 
+   @Override
    public boolean isEmpty() {
       return action == null && param1 == null && param2 == null;
    }
@@ -138,7 +139,6 @@ public class PrecedenceExpression extends DefaultExpression {
          param1 = setParameter(param1, token);
       else
          param2 = setParameter(param2, token);
-System.out.println("*** adding "+token+" to #"+Integer.toHexString(hashCode())+" = "+this);
    }
 
    private Expression newExpression(Object...tokens) {

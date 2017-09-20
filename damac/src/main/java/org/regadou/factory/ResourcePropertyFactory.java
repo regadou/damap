@@ -10,7 +10,7 @@ import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 import org.regadou.property.GenericProperty;
 import org.regadou.property.ResourceProperty;
-import org.regadou.resource.MapResource;
+import org.regadou.resource.DefaultResource;
 
 public class ResourcePropertyFactory implements PropertyFactory<Resource> {
 
@@ -91,7 +91,7 @@ public class ResourcePropertyFactory implements PropertyFactory<Resource> {
       if (v instanceof Namespace) {
          Namespace ns = (Namespace)v;
          Repository repo = ns.getRepository();
-         Resource res = new MapResource(name, ns, resourceManager);
+         Resource res = new DefaultResource(name, ns, resourceManager);
          repo.add(ns.getPrefix(), res);
          return res;
       }

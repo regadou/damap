@@ -1,11 +1,13 @@
 package org.regadou.resource;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import org.regadou.damai.Namespace;
 import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 
-public class CollectionResource extends LinkedHashSet<Resource> implements Resource<Resource[]> {
+public class CollectionResource extends LinkedHashSet<Resource> implements Resource {
 
    private static final String[] PROPERTIES = {"size"};
 
@@ -38,18 +40,17 @@ public class CollectionResource extends LinkedHashSet<Resource> implements Resou
    }
 
    @Override
-   public Resource[] getValue() {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+   public Collection<Resource> getValue() {
+      return Arrays.asList(toArray(new Resource[size()]));
    }
 
    @Override
-   public Class<Resource[]> getType() {
-      return Resource[].class;
+   public Class getType() {
+      return Collection.class;
    }
 
    @Override
-   public void setValue(Resource[] value) {
-   }
+   public void setValue(Object value) { }
 
    @Override
    public String getLocalName() {
@@ -77,6 +78,7 @@ public class CollectionResource extends LinkedHashSet<Resource> implements Resou
    @Override
    public void setProperty(Resource property, Resource value) {
       clear();
+      //TODO: detect Collection or array to do addAll() instead
       add(value);
    }
 

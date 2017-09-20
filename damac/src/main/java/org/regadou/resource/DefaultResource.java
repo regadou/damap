@@ -8,7 +8,7 @@ import org.regadou.damai.Reference;
 import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 
-public class MapResource implements Resource<Map<Resource,CollectionResource>> {
+public class DefaultResource implements Resource {
 
    private String id;
    private Namespace namespace;
@@ -16,7 +16,7 @@ public class MapResource implements Resource<Map<Resource,CollectionResource>> {
    private transient String[] keys;
    private transient ResourceManager resourceManager;
 
-   public MapResource(String id, Namespace namespace, ResourceManager resourceManager) {
+   public DefaultResource(String id, Namespace namespace, ResourceManager resourceManager) {
       this.id = id;
       this.namespace = namespace;
       this.resourceManager = resourceManager;
@@ -38,7 +38,7 @@ public class MapResource implements Resource<Map<Resource,CollectionResource>> {
    }
 
    @Override
-   public Map<Resource,CollectionResource> getValue() {
+   public Object getValue() {
       return properties;
    }
 
@@ -63,9 +63,10 @@ public class MapResource implements Resource<Map<Resource,CollectionResource>> {
    }
 
    @Override
-   public void setValue(Map<Resource,CollectionResource> value) {
-      properties = value;
-      keys = null;
+   public void setValue(Object value) {
+//TODO: we need the algoritm to transform a java instance into a rdf resource
+//      properties = value;
+//      keys = null;
    }
 
    @Override

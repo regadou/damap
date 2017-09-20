@@ -47,7 +47,7 @@ public class ServerResourceFactory implements ResourceFactory {
       switch(uri.substring(0, uri.indexOf(':'))) {
          case "jdbc":
             JdbcConnectionInfo info = new JdbcConnectionInfo(uri, vendorMap);
-            return new GenericReference(info.getUrl(), new JdbcRepository(info, configuration.getConverter()), true);
+            return new GenericReference(info.getUrl(), new JdbcRepository(info, configuration), true);
          case "tcp":
             return new GenericReference(uri, new TcpServer(uri, configuration.getEngineManager(), configuration.getContextFactory()), true);
       }

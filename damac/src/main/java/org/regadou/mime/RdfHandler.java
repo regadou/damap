@@ -32,7 +32,7 @@ import org.regadou.damai.ResourceManager;
 import org.regadou.repository.RdfRepository;
 import org.regadou.resource.DefaultNamespace;
 import org.regadou.resource.LiteralResource;
-import org.regadou.resource.MapResource;
+import org.regadou.resource.DefaultResource;
 
 public class RdfHandler implements MimeHandler {
 
@@ -134,7 +134,7 @@ public class RdfHandler implements MimeHandler {
       Repository repo = ns.getRepository();
       Object obj = repo.getOne(ns.getPrefix(), id);
       if (obj == null) {
-         Resource r = new MapResource(id, ns, resourceManager);
+         Resource r = new DefaultResource(id, ns, resourceManager);
          repo.add(ns.getPrefix(), r);
          return r;
       }
