@@ -3,6 +3,7 @@ package org.regadou.resource;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import org.regadou.damai.Converter;
 import org.regadou.damai.Namespace;
 import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
@@ -13,13 +14,15 @@ public class CollectionResource extends LinkedHashSet<Resource> implements Resou
 
    private String id;
    private ResourceManager resourceManager;
+   private Converter converter;
    private Namespace namespace;
 
-   public CollectionResource(ResourceManager resourceManager, Resource...resources) {
+   public CollectionResource(ResourceManager resourceManager, Converter converter, Resource...resources) {
       super();
       for (Resource r : resources)
          add(r);
       this.resourceManager = resourceManager;
+      this.converter = converter;
       this.id = String.valueOf(hashCode());
       this.namespace = (Namespace)resourceManager.getResource("_:");
    }
@@ -71,7 +74,7 @@ public class CollectionResource extends LinkedHashSet<Resource> implements Resou
    public Resource getProperty(Resource property) {
       //TODO: we must support @id, rdf:type, rdf:_#
       if (property.toString().equals(PROPERTIES[0]))
-         return new LiteralResource(size(), resourceManager);
+         return new LiteralResource(size(), resourceManager, converter);
       return null;
    }
 

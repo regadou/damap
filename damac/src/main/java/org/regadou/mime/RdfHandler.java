@@ -23,6 +23,7 @@ import org.eclipse.rdf4j.rio.helpers.JSONLDMode;
 import org.eclipse.rdf4j.rio.helpers.JSONLDSettings;
 import org.eclipse.rdf4j.rio.helpers.StatementCollector;
 import org.regadou.damai.Configuration;
+import org.regadou.damai.Converter;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.Namespace;
 import org.regadou.damai.Reference;
@@ -77,13 +78,14 @@ public class RdfHandler implements MimeHandler {
       parser.setRDFHandler(collector);
       parser.parse(input, "");
       ResourceManager resourceManager = configuration.getResourceManager();
+      Converter converter = configuration.getConverter();
       Repository repo = new RdfRepository(configuration.getResourceManager(), configuration.getPropertyManager());
       for (Map.Entry<String,String> ns : collector.getNamespaces().entrySet())
          resourceManager.registerNamespace(new DefaultNamespace(ns.getKey(), ns.getValue(), repo));
       for (Statement st : collector.getStatements()) {
-         Resource s = getResource(st.getSubject(), resourceManager);
-         Resource p = getResource(st.getPredicate(), resourceManager);
-         Resource v = getResource(st.getObject(), resourceManager);
+         Resource s = getResource(st.getSubject(), resourceManager, converter);
+         Resource p = getResource(st.getPredicate(), resourceManager, converter);
+         Resource v = getResource(st.getObject(), resourceManager, converter);
          s.addProperty(p, v);
       }
       return repo;
@@ -105,9 +107,9 @@ public class RdfHandler implements MimeHandler {
       writer.endRDF();
    }
 
-   private Resource getResource(Value v, ResourceManager resourceManager) {
+   private Resource getResource(Value v, ResourceManager resourceManager, Converter converter) {
       if (v instanceof Literal)
-         return new LiteralResource(v, resourceManager);
+         return new LiteralResource(v, resourceManager, converter);
       Namespace ns;
       String id;
       if (v instanceof BNode) {
@@ -118,14 +120,14 @@ public class RdfHandler implements MimeHandler {
          IRI iri = (IRI)v;
          ns = getNamespace(iri.getNamespace(), resourceManager);
          if (ns == null)
-            return createLiteralUri(iri.stringValue(), resourceManager);
+            return createLiteralUri(iri.stringValue(), resourceManager, converter);
          id = iri.getLocalName();
       }
       else if (v instanceof URI) {
          URI uri = (URI)v;
          ns = getNamespace(uri.getNamespace(), resourceManager);
          if (ns == null)
-            return createLiteralUri(uri.stringValue(), resourceManager);
+            return createLiteralUri(uri.stringValue(), resourceManager, converter);
          id = uri.getLocalName();
       }
       else
@@ -134,7 +136,7 @@ public class RdfHandler implements MimeHandler {
       Repository repo = ns.getRepository();
       Object obj = repo.getOne(ns.getPrefix(), id);
       if (obj == null) {
-         Resource r = new DefaultResource(id, ns, resourceManager);
+         Resource r = new DefaultResource(id, ns, resourceManager, converter);
          repo.add(ns.getPrefix(), r);
          return r;
       }
@@ -177,8 +179,8 @@ public class RdfHandler implements MimeHandler {
       catch (Exception e) { throw new RuntimeException(e); }
    }
 
-   private Resource createLiteralUri(String url, ResourceManager resourceManager) {
-      try { return new LiteralResource(new java.net.URI(url), resourceManager); }
+   private Resource createLiteralUri(String url, ResourceManager resourceManager, Converter converter) {
+      try { return new LiteralResource(new java.net.URI(url), resourceManager, converter); }
       catch (URISyntaxException e) { throw new RuntimeException(e); }
    }
 

@@ -91,7 +91,7 @@ public class ResourcePropertyFactory implements PropertyFactory<Resource> {
       if (v instanceof Namespace) {
          Namespace ns = (Namespace)v;
          Repository repo = ns.getRepository();
-         Resource res = new DefaultResource(name, ns, resourceManager);
+         Resource res = new DefaultResource(name, ns, resourceManager, configuration.getConverter());
          repo.add(ns.getPrefix(), res);
          return res;
       }
