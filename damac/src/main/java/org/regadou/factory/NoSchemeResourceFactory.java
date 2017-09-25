@@ -29,23 +29,23 @@ public class NoSchemeResourceFactory implements ResourceFactory {
    }
 
    @Override
-   public Reference getResource(String uri) {
-      try { return new GenericReference(uri, Class.forName(uri), true); }
+   public Reference getResource(String id) {
+      try { return new GenericReference(id, Class.forName(id), true); }
       catch (ClassNotFoundException e) {
-         int last = uri.lastIndexOf('.');
+         int last = id.lastIndexOf('.');
          if (last > 0) {
             try {
-               Class type = Class.forName(uri.substring(0, last));
-               String name = uri.substring(last+1);
+               Class type = Class.forName(id.substring(0, last));
+               String name = id.substring(last+1);
                return getMember(type, name);
             }
             catch (ClassNotFoundException e2) {}
          }
       }
 
-      if (!canBeFile(uri))
+      if (!canBeFile(id))
          return null;
-      File f = new File(uri);
+      File f = new File(id);
       if (!f.exists() && !f.getParentFile().isDirectory())
          return null;
       try { return new UrlReference(f.toURI().toURL(), configuration); }

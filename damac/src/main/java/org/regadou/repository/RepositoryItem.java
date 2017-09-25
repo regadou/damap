@@ -8,20 +8,20 @@ import org.regadou.damai.Repository;
 public class RepositoryItem<T> implements Filterable {
 
    private transient Repository<T> repo;
-   private String name;
+   private String item;
    private String repository;
    private Collection<String> primaryKeys;
 
-   public RepositoryItem(String name, Repository<T> repo) {
-      this.name = name;
+   public RepositoryItem(String item, Repository<T> repo) {
+      this.item = item;
       this.repo = repo;
       this.repository = repo.toString();
-      this.primaryKeys = repo.getPrimaryKeys(name);
+      this.primaryKeys = repo.getPrimaryKeys(item);
    }
 
    @Override
    public String toString() {
-      return name+"@"+repository;
+      return item+"@"+repository;
    }
 
    @Override
@@ -36,11 +36,11 @@ public class RepositoryItem<T> implements Filterable {
 
    @Override
    public Collection filter(Expression filterExpression) {
-      return repo.getAny(name, filterExpression);
+      return repo.getAny(item, filterExpression);
    }
 
    public String getName() {
-      return name;
+      return item;
    }
 
    public Repository getRepository() {
@@ -52,18 +52,18 @@ public class RepositoryItem<T> implements Filterable {
    }
 
    public T getOne(Object id) {
-      return repo.getOne(name, id);
+      return repo.getOne(item, id);
    }
 
    public T insert(T value) {
-      return repo.add(name, value);
+      return repo.add(item, value);
    }
 
    public T save(T value) {
-      return repo.update(name, value);
+      return repo.update(item, value);
    }
 
    public boolean delete(Object id) {
-      return repo.remove(name, id);
+      return repo.remove(item, id);
    }
 }

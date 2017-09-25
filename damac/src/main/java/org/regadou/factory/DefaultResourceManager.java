@@ -37,28 +37,28 @@ public class DefaultResourceManager implements ResourceManager {
    }
 
    @Override
-   public Reference getResource(String name) {
-      if (name == null || name.trim().isEmpty())
+   public Reference getResource(String id) {
+      if (id == null || id.trim().isEmpty())
          return null;
-      Namespace ns = namespaces.get(name);
+      Namespace ns = namespaces.get(id);
       if (ns != null)
          return ns;
 
-      int index = name.indexOf(':');
+      int index = id.indexOf(':');
       if (index < 0) {
          if (nullSchemeFactory != null) {
-            Reference r = nullSchemeFactory.getResource(name);
+            Reference r = nullSchemeFactory.getResource(id);
             if (r != null)
                return r;
          }
       }
       else {
-         ResourceFactory factory = factories.get(name.substring(0, index));
+         ResourceFactory factory = factories.get(id.substring(0, index));
          if (factory != null)
-            return factory.getResource(name);
+            return factory.getResource(id);
       }
 
-      return new ScriptContextProperty(configuration.getContextFactory(), name);
+      return new ScriptContextProperty(configuration.getContextFactory(), id);
    }
 
    @Override

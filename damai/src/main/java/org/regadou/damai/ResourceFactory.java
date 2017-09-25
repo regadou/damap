@@ -2,7 +2,7 @@ package org.regadou.damai;
 
 public interface ResourceFactory {
 
-   Reference getResource(String uri);
+   Reference getResource(String id);
 
    String[] getSchemes();
 

@@ -4,9 +4,9 @@ public interface Reference<T> {
 
    String getId();
 
-   T getValue();
-
    Class<T> getType();
+
+   T getValue();
 
    void setValue(T value);
 }

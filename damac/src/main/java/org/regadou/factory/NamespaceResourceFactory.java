@@ -19,12 +19,12 @@ public class NamespaceResourceFactory implements ResourceFactory {
    }
 
    @Override
-   public Reference getResource(String uri) {
+   public Reference getResource(String id) {
       String name;
-      if (uri.startsWith(namespace.getPrefix()+":"))
-         name = uri.substring(namespace.getPrefix().length()+1);
-      else if (uri.startsWith(namespace.getUri()))
-         name = uri.substring(namespace.getUri().length());
+      if (id.startsWith(namespace.getPrefix()+":"))
+         name = id.substring(namespace.getPrefix().length()+1);
+      else if (id.startsWith(namespace.getUri()))
+         name = id.substring(namespace.getUri().length());
       else
          return null;
       Object value = namespace.getRepository().getOne(namespace.getPrefix(), name);
@@ -33,7 +33,7 @@ public class NamespaceResourceFactory implements ResourceFactory {
       else if (value instanceof Reference)
          return (Reference)value;
       else
-         return new GenericReference(uri, value, true);
+         return new GenericReference(id, value, true);
    }
 
    @Override

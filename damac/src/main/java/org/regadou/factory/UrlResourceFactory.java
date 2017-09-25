@@ -24,8 +24,8 @@ public class UrlResourceFactory implements ResourceFactory {
    }
 
    @Override
-   public Reference getResource(String uri) {
-      try { return new UrlReference(uri, configuration); }
+   public Reference getResource(String id) {
+      try { return new UrlReference(id, configuration); }
       catch (MalformedURLException e) { return null; }
    }
 

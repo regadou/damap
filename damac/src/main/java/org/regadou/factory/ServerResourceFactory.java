@@ -26,7 +26,7 @@ public class ServerResourceFactory implements ResourceFactory {
    public ServerResourceFactory(ResourceManager resourceManager, Configuration configuration) {
       this.resourceManager = resourceManager;
       this.configuration = configuration;
-      for (JdbcVendor v : new JdbcVendor[]{
+      for (JdbcVendor vendor : new JdbcVendor[]{
          new JdbcVendor("derby",       true,  "org.apache.derby.jdbc.EmbeddedDriver",                  "",   "",   "ALTER COLUMN",  false),
          new JdbcVendor("hsqldb",      false, "org.hsqldb.jdbcDriver",                                 "",   "",   "ALTER COLUMN",  true),
          new JdbcVendor("mysql",       true,  "com.mysql.jdbc.Driver",                                 "`",  "`",  "MODIFY COLUMN", true),
@@ -38,18 +38,18 @@ public class ServerResourceFactory implements ResourceFactory {
          new JdbcVendor("cassandra",   true,  "com.github.adejanovski.cassandra.jdbc.CassandraDriver", "",    "",  null,            true),
          new JdbcVendor("c*",          true,  "com.github.cassandra.jdbc.CassandraDriver",             "",    "",  null,            true),
       }) {
-         vendorMap.put(v.getName(), v);
+         vendorMap.put(vendor.getName(), vendor);
       }
    }
 
    @Override
-   public Reference getResource(String uri) {
-      switch(uri.substring(0, uri.indexOf(':'))) {
+   public Reference getResource(String id) {
+      switch(id.substring(0, id.indexOf(':'))) {
          case "jdbc":
-            JdbcConnectionInfo info = new JdbcConnectionInfo(uri, vendorMap);
+            JdbcConnectionInfo info = new JdbcConnectionInfo(id, vendorMap);
             return new GenericReference(info.getUrl(), new JdbcRepository(info, configuration), true);
          case "tcp":
-            return new GenericReference(uri, new TcpServer(uri, configuration.getEngineManager(), configuration.getContextFactory()), true);
+            return new GenericReference(id, new TcpServer(id, configuration.getEngineManager(), configuration.getContextFactory()), true);
       }
       return null;
    }
@@ -62,5 +62,9 @@ public class ServerResourceFactory implements ResourceFactory {
    @Override
    public ResourceManager getResourceManager() {
       return resourceManager;
+   }
+
+   public void registerVendor(JdbcVendor vendor) {
+      vendorMap.put(vendor.getName(), vendor);
    }
 }

@@ -21,7 +21,7 @@ public class UrlReference implements Reference, Closeable {
    private URL url;
    private String mimetype;
    private URLConnection connection;
-   private Object content;
+   private Object value;
 
    public UrlReference(URL url, Configuration configuration) {
       this.url = url;
@@ -41,10 +41,6 @@ public class UrlReference implements Reference, Closeable {
    public UrlReference(String url, Configuration configuration) throws MalformedURLException {
       this.url = new URL(url);
       this.configuration = configuration;
-   }
-
-   public String getUri() {
-      return url.toString();
    }
 
    public String getMimetype() {
@@ -100,15 +96,15 @@ public class UrlReference implements Reference, Closeable {
    @Override
    public Object getValue() {
       //TODO: check if resource was modified since last downloaded
-      if (content == null) {
+      if (value == null) {
          if (DefaultFileTypeMap.FOLDER_MIMETYPE.equals(getMimetype()))
-            return content = new FileSystemRepository(url, configuration);
+            return value = new FileSystemRepository(url, configuration);
          try {
             InputStream input = getConnection().getInputStream();
             String charset = connection.getContentEncoding();
             if (charset == null || charset.isEmpty())
                charset = Charset.defaultCharset().toString();
-            content = configuration.getHandlerFactory()
+            value = configuration.getHandlerFactory()
                                    .getHandler(getMimetype())
                                    .load(input, charset);
          }
@@ -116,17 +112,18 @@ public class UrlReference implements Reference, Closeable {
             throw new RuntimeException("Error getting value for "+url+" with mimetype "+mimetype, e);
          }
       }
-      return content;
+      return value;
    }
 
    @Override
    public Class getType() {
-      return Object.class; //TODO: we might guess type based on mimetype
+      return (value == null) ? Object.class : value.getClass();
+      //TODO: we might guess type based on mimetype
    }
 
    @Override
    public void setValue(Object value) {
-      content = value;
+      this.value = value;
       try {
          OutputStream output = getConnection().getOutputStream();
          String charset = connection.getContentEncoding();
