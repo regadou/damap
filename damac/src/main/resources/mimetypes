@@ -682,7 +682,7 @@ image/x-xwindowdump				xwd
 inode/chardevice
 inode/blockdevice
 inode/directory-locked
-inode/directory
+inode/directory                d
 inode/fifo
 inode/socket
 

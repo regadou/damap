@@ -102,7 +102,7 @@ public class PrecedenceExpression extends DefaultExpression {
 
       try {
          if (action != null)
-            return getReference(action.execute(new Object[]{param1, param2}));
+            return getReference(action.execute(getParameters(action.getParameterTypes())));
          else if (param1 == null)
             return getReference(param2);
          else if (param2 == null)
@@ -151,15 +151,6 @@ public class PrecedenceExpression extends DefaultExpression {
    private Reference setParameter(Reference old, Reference token) {
       if (old == null)
          return token;
-/*
-      else if (old instanceof PrecedenceExpression) {
-         PrecedenceExpression s = (PrecedenceExpression)old;
-         if (s.action == null)
-            s.param1 = setParameter(s.param1, token);
-         else
-            s.param2 = setParameter(s.param2, token);
-         return s;
-      }*/
       else if (old instanceof Expression) {
          ((Expression)old).addToken(token);
          return old;
@@ -181,5 +172,27 @@ public class PrecedenceExpression extends DefaultExpression {
          return null;
       else
          return new GenericReference(null, value);
+   }
+
+   private Object[] getParameters(Class[] types) {
+      if (types == null) {
+         if (param2 == null)
+            return (param1 == null) ? new Object[0] : new Object[]{param1};
+         return new Object[]{param1, param2};
+      }
+      Object[] params = new Object[types.length];
+      for (int p = 0; p < params.length; p++) {
+         switch (p) {
+            case 0:
+               params[0] = param1;
+               break;
+            case 1:
+               params[1] = param2;
+               break;
+            default:
+               params[p] = null;
+         }
+      }
+      return params;
    }
 }

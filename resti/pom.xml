@@ -5,7 +5,7 @@
    <groupId>org.regadou</groupId>
    <artifactId>resti</artifactId>
    <packaging>war</packaging>
-	<version>0.1-SNAPSHOT</version>
+   <version>0.1-SNAPSHOT</version>
    <name>resti</name>
 
    <properties>
@@ -33,22 +33,22 @@
    </build>
 
    <dependencies>
-	   <dependency>
+      <dependency>
          <groupId>org.regadou</groupId>
          <artifactId>damai</artifactId>
          <version>0.1-SNAPSHOT</version>
-	   </dependency>
-	   <dependency>
+      </dependency>
+      <dependency>
          <groupId>org.regadou</groupId>
          <artifactId>damac</artifactId>
          <version>0.1-SNAPSHOT</version>
-	   </dependency>
-	   <dependency>
+      </dependency>
+      <dependency>
          <groupId>javax</groupId>
          <artifactId>javaee-web-api</artifactId>
          <version>${jee.version}</version>
          <scope>provided</scope>
-	   </dependency>
+      </dependency>
       <dependency>
          <groupId>javax.servlet</groupId>
          <artifactId>javax.servlet-api</artifactId>

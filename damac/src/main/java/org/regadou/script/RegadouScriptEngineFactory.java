@@ -8,7 +8,9 @@ import java.util.TreeMap;
 import javax.inject.Inject;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
+import org.regadou.action.AllFunction;
 import org.regadou.action.BinaryAction;
+import org.regadou.collection.ScriptContextMap;
 import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
@@ -88,6 +90,7 @@ public class RegadouScriptEngineFactory implements ScriptEngineFactory {
          for (Operator op : Operator.values())
             constants.add(new BinaryAction(configuration, getSymbol(op), op));
          constants.add(new BinaryAction(configuration, ":", Operator.IS, null, -10));
+         constants.add(new AllFunction(configuration.getPropertyManager(), keywords, new ScriptContextMap(configuration.getContextFactory())));
          for (Object constant : constants) {
             String name = (constant instanceof Action) ? ((Action)constant).getName() : String.valueOf(constant);
             keywords.put(name, new GenericReference(name, constant, true));
