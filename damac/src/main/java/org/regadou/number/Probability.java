@@ -32,6 +32,11 @@ public class Probability extends Number {
    }
 
    @Override
+   public String toString() {
+      return (value*100)+"%";
+   }
+
+   @Override
    public int intValue() {
       return value.intValue();
    }

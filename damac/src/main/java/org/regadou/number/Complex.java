@@ -2,8 +2,17 @@ package org.regadou.number;
 
 public class Complex extends Number {
 
+   private double real;
+   private double imaginary;
+
    public Complex(String txt) {
 
+   }
+
+   @Override
+   public String toString() {
+      String sign = (imaginary < 0) ? "-" : "+";
+      return real+sign+"i"+Math.abs(imaginary);
    }
 
    @Override

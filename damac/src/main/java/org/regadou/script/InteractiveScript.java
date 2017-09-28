@@ -80,6 +80,7 @@ public class InteractiveScript implements Closeable {
          }
          catch (Throwable t) {
             t.printStackTrace(error);
+            error.flush();
          }
       }
    }

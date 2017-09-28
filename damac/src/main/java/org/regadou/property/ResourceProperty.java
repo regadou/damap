@@ -14,6 +14,11 @@ public class ResourceProperty implements Property<Resource,Resource> {
    }
 
    @Override
+   public String toString() {
+      return property+"@"+resource;
+   }
+
+   @Override
    public Resource getParent() {
       return resource;
    }

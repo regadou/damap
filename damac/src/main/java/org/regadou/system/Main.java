@@ -17,18 +17,16 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import org.regadou.damai.Bootstrap;
 import org.regadou.damai.Configuration;
-import org.regadou.damai.Converter;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
 import org.regadou.reference.UrlReference;
-import org.regadou.action.GenericComparator;
 import org.regadou.script.InteractiveScript;
 import org.regadou.util.StringInput;
 
 public class Main {
 
    private static final List<String> OPTIONS = Arrays.asList("debug", "config", "lang", "script", "interactive");
-   private static final String DEFAULT_LANG = "text/regadou";
+   private static final String DEFAULT_LANG = "damai";
 
    public static void main(String[] args) throws ScriptException, IOException {
       Map<String,String> options = new LinkedHashMap<>();
@@ -36,7 +34,6 @@ public class Main {
       if (args != null) {
          String configOpt = options.get("config");
          Configuration conf = (configOpt == null) ? new GuiceConfiguration() : new Bootstrap(configOpt);
-         registerConverterFunctions(conf);
          ScriptContext cx = conf.getContextFactory().getScriptContext(new GenericReference("reader", new BufferedReader(new InputStreamReader(System.in))),
             new GenericReference("writer", new OutputStreamWriter(System.out)),
             new GenericReference("errorWriter", new OutputStreamWriter(System.err))
@@ -71,7 +68,11 @@ public class Main {
             engine = scriptManager.getEngineByName(lang);
             if (engine == null) {
                System.out.println("*** ERROR: invalid lang option: "+lang);
-               printAvailableLanguages(scriptManager);
+               Collection<String> languages = new TreeSet<>();
+               scriptManager.getEngineFactories().stream().forEach(factory -> {
+                  languages.addAll(factory.getExtensions());
+               });
+               System.out.println("Available languages: "+languages);
                return;
             }
          }
@@ -167,19 +168,4 @@ public class Main {
       options.put(name, value);
       return new GenericReference(name, value);
    }
-
-   private static void printAvailableLanguages(ScriptEngineManager manager) {
-      Collection<String> languages = new TreeSet<>();
-      manager.getEngineFactories().stream().forEach(factory -> {
-         languages.addAll(factory.getExtensions());
-      });
-      System.out.println("Available languages: "+languages);
-   }
-
-   private static void registerConverterFunctions(Configuration conf) {
-      Converter converter = conf.getConverter();
-      GenericComparator comparator = new GenericComparator(conf);
-      //TODO: register some functions from the GenericComparator instance
-   }
-
 }

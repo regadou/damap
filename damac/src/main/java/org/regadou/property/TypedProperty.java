@@ -27,6 +27,11 @@ public abstract class TypedProperty<P> extends TypedReference<Object> implements
    }
 
    @Override
+   public String toString() {
+      return getId()+"@"+parent;
+   }
+
+   @Override
    public P getParent() {
       return parent;
    }

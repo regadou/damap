@@ -17,19 +17,19 @@ import org.regadou.damai.Operator;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
 
-public class RegadouScriptEngineFactory implements ScriptEngineFactory {
+public class JsonScriptEngineFactory implements ScriptEngineFactory {
 
    private Configuration configuration;
    private Map<String,Reference> keywords;
 
    @Inject
-   public RegadouScriptEngineFactory(Configuration configuration) {
+   public JsonScriptEngineFactory(Configuration configuration) {
       this.configuration = configuration;
    }
 
    @Override
    public String getEngineName() {
-      return "RegadouScript";
+      return "JsonScript";
    }
 
    @Override
@@ -39,22 +39,22 @@ public class RegadouScriptEngineFactory implements ScriptEngineFactory {
 
    @Override
    public List<String> getExtensions() {
-      return Arrays.asList("rgd");
+      return Arrays.asList("jsons");
    }
 
    @Override
    public List<String> getMimeTypes() {
-      return Arrays.asList("text/x-regadou", "text/regadou");
+      return Arrays.asList("text/x-jsonscript", "text/jsonscript");
    }
 
    @Override
    public List<String> getNames() {
-      return Arrays.asList("regadou", "rgd");
+      return Arrays.asList("jsonscript");
    }
 
    @Override
    public String getLanguageName() {
-      return "RegadouScript";
+      return "JsonScript";
    }
 
    @Override
@@ -96,7 +96,7 @@ public class RegadouScriptEngineFactory implements ScriptEngineFactory {
             keywords.put(name, new GenericReference(name, constant, true));
          }
       }
-      return new RegadouScriptEngine(this, configuration, keywords);
+      return new JsonScriptEngine(this, configuration, keywords);
    }
 
    private String getSymbol(Operator operator) {

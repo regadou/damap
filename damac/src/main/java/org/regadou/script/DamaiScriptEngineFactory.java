@@ -1,5 +1,6 @@
 package org.regadou.script;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -7,8 +8,10 @@ import java.util.TreeMap;
 import javax.inject.Inject;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
+import org.regadou.action.AllFunction;
 import org.regadou.action.BinaryAction;
-import org.regadou.collection.IgnoreCaseMap;
+import org.regadou.collection.ScriptContextMap;
+import org.regadou.damai.Action;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
@@ -84,15 +87,16 @@ public class DamaiScriptEngineFactory implements ScriptEngineFactory {
    public ScriptEngine getScriptEngine() {
       if (keywords == null) {
          keywords = new TreeMap<>();
-         for (Operator op : Operator.values()) {
-            String name = op.name();
-            keywords.put(name, new GenericReference(name, new BinaryAction(configuration, name, op, null, 0), true));
+         List<Action> actions = new ArrayList<>();
+         for (Operator op : Operator.values())
+            actions.add(new BinaryAction(configuration, op.getName(), op, null, 0));
+         for (Command cmd : Command.values())
+            actions.add(new BinaryAction(configuration, cmd.getName(), cmd, null, 0));
+         actions.add(new AllFunction(configuration.getPropertyManager(), keywords, new ScriptContextMap(configuration.getContextFactory())));
+         for (Action action : actions) {
+            String name = action.getName().toLowerCase();
+            keywords.put(name, new GenericReference(name, action, true));
          }
-         for (Command cmd : Command.values()) {
-            String name = cmd.name();
-            keywords.put(name, new GenericReference(name, new BinaryAction(configuration, name, cmd, null, 0), true));
-         }
-         keywords = new IgnoreCaseMap(keywords, k -> (k == null) ? "" : k.toString().trim().toUpperCase());
       }
       return new SexlScriptEngine(this, configuration, keywords);
    }

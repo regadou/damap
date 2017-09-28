@@ -25,7 +25,7 @@ import org.regadou.reference.GenericReference;
 import org.regadou.util.StringInput;
 
 
-public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable {
+public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
 
    private static final int MINIMUM_TERMINALS = 3;
    private static final String SYNTAX_SYMBOLS = "()[]{}\"'`,;";
@@ -38,7 +38,7 @@ public class RegadouScriptEngine implements ScriptEngine, Compilable, Printable 
    private List<String> schemes;
    private Map<String,Reference> keywords;
 
-   public RegadouScriptEngine(ScriptEngineFactory factory, Configuration configuration, Map<String,Reference> keywords) {
+   public JsonScriptEngine(ScriptEngineFactory factory, Configuration configuration, Map<String,Reference> keywords) {
       this.factory = factory;
       this.configuration = configuration;
       this.schemes = Arrays.asList(configuration.getResourceManager().getSchemes());

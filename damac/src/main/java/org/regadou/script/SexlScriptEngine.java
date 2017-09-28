@@ -18,13 +18,15 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import org.regadou.damai.Configuration;
+import org.regadou.damai.Reference;
+import org.regadou.reference.GenericReference;
 import org.regadou.util.StringInput;
 
 public class SexlScriptEngine implements ScriptEngine, Compilable {
 
    private ScriptEngineFactory factory;
    private Configuration configuration;
-   private Map keywords;
+   private Map<String,Reference> keywords;
    private ScriptContext context;
    private String punctuationChars = ",;:.!?";
    private String openingChars = "([{";
@@ -35,7 +37,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
    private int apostrophe = 0;
    private String commentEnding = "\n\r\0";
 
-   protected SexlScriptEngine(ScriptEngineFactory factory, Configuration configuration, Map keywords) {
+   protected SexlScriptEngine(ScriptEngineFactory factory, Configuration configuration, Map<String,Reference> keywords) {
       this.factory = factory;
       this.configuration = configuration;
       this.keywords = keywords;
@@ -185,7 +187,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
    }
 
    private DefaultExpression parseExpression(ParserStatus status) {
-      List tokens = new ArrayList();
+      List<Reference> tokens = new ArrayList();
       char end = status.end;
       char c = 0;
 
@@ -194,7 +196,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
          if (c == end)
             break;
          else if (!isBlank(c)) {
-            Object token = getToken(c, status);
+            Reference token = getToken(c, status);
             if (token != null) {
                tokens.add(token);
                status.previousToken = token;
@@ -209,7 +211,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       return new DefaultExpression(this, tokens, configuration);
    }
 
-   private Object getToken(char c, ParserStatus status) {
+   private Reference getToken(char c, ParserStatus status) {
       if (isQuote(c)) {
          status.pos++;
          status.end = c;
@@ -250,7 +252,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       }
    }
 
-   private String parseString(ParserStatus status) {
+   private Reference parseString(ParserStatus status) {
       StringBuilder buffer = new StringBuilder();
       int start = status.pos;
       char end = (char)status.end;
@@ -259,7 +261,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
          status.linecount();
          char c = status.chars[status.pos];
          if (c == end)
-            return buffer.toString();
+            return new GenericReference(null, buffer.toString(), true);
          else if (c == '\\') {
             status.pos++;
             if (status.pos >= status.chars.length)
@@ -316,10 +318,10 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       throw new RuntimeException("End of string not found after "+new String(status.chars, start, status.pos-start));
    }
 
-   private Number parseNumber(ParserStatus status) {
+   private Reference parseNumber(ParserStatus status) {
       StringBuilder buffer = new StringBuilder();
       boolean end=false, digit=false, hexa=false, decimal=false, exponent=false,
-              complex=false, time=false, sign=false;
+              complex=false, time=false, sign=false, prob=false;
 
       for (; status.pos < status.chars.length; status.pos++) {
          char c = status.chars[status.pos];
@@ -378,10 +380,12 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
                   time = true;
                break;
             case '%':
-               if (digit && !hexa && !decimal && !exponent && !complex && !time)
-                  return new Probability(buffer.append(c).toString());
-               else
-                  end = true;
+               if (digit && !hexa && !decimal && !exponent && !complex && !time) {
+                  prob = true;
+                  buffer.append(c);
+                  status.pos++;
+               }
+               end = true;
                break;
             case 'e':
             case 'E':
@@ -443,19 +447,23 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       String txt = buffer.toString();
       if (!digit)
          return null;
+      Number n;
+      if (prob)
+         n = new Probability(txt);
       else if (hexa)
-         return Integer.parseInt(txt.substring(2), 16);
+         n = Integer.parseInt(txt.substring(2), 16);
       else if (complex)
-         return new Complex(txt);
+         n = new Complex(txt);
       else if (decimal || exponent)
-         return new Double(txt);
+         n = new Double(txt);
       else if (time)
-         return new Time(txt);
+         n = new Time(txt);
       else
-         return new Long(txt);
+         n = new Long(txt);
+      return new GenericReference(null, n, true);
    }
 
-   private Object parseName(ParserStatus status) {
+   private Reference parseName(ParserStatus status) {
       int start = status.pos;
       int length = 0;
       boolean uri = false;
@@ -507,7 +515,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       if (keywords.containsKey(txt))
          return keywords.get(txt);
       if (uri) {
-         Object r = configuration.getResourceManager().getResource(txt);
+         Reference r = configuration.getResourceManager().getResource(txt);
          if (r != null)
             return r;
       }
@@ -515,7 +523,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
                                  : new ScriptContextProperty(configuration.getContextFactory(), txt);
    }
 
-   private Object parseSymbol(ParserStatus status) {
+   private Reference parseSymbol(ParserStatus status) {
       int start = status.pos;
       int length = 0;
       for (; status.pos < status.chars.length; status.pos++, length++) {
@@ -537,7 +545,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       return new ScriptContextProperty(configuration.getContextFactory(), txt);
    }
 
-   private Object parseComment(ParserStatus status, char end) {
+   private Reference parseComment(ParserStatus status, char end) {
       int sequence = 0;
       while (status.pos < status.chars.length && status.chars[status.pos] == end) {
          status.linecount();

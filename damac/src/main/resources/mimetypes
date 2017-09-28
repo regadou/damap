@@ -738,6 +738,7 @@ text/enriched
 text/h323					323
 text/html					html htm shtml
 text/iuls					uls
+text/jsonscript        jsons
 text/mathml					mml
 text/n3                  n3
 text/nquads             nquads
@@ -745,7 +746,6 @@ text/parityfec
 text/plain					asc txt text pot brf
 text/prs.lines.tag
 text/rdf+n3              rdfn
-text/regadou            rgd
 text/rfc822-headers
 text/richtext					rtx
 text/rtf
@@ -789,6 +789,7 @@ text/x-diff					diff patch
 text/x-haskell					hs
 text/x-java					java
 text/x-java-properties        properties
+text/x-jsonscript        jsons
 text/x-literate-haskell				lhs
 text/x-log					log
 text/x-makefile
@@ -798,7 +799,6 @@ text/x-pascal					p pas
 text/x-pcs-gcd					gcd
 text/x-perl					pl pm
 text/x-python					py
-text/x-regadou             rgd
 text/x-scala					scala
 text/x-server-parsed-html   shtml
 text/x-setext					etx

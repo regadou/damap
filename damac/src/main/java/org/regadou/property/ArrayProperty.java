@@ -23,6 +23,11 @@ public class ArrayProperty<P,T> implements Property<P,T> {
    }
 
    @Override
+   public String toString() {
+      return name+"@"+parent;
+   }
+
+   @Override
    public P getParent() {
       return parent;
    }

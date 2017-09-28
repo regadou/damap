@@ -1,5 +1,6 @@
 package org.regadou.number;
 
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.Calendar;
 import java.util.Date;
@@ -146,6 +147,14 @@ public class Time extends Number {
       }
 
       //TODO: get the timestamp from date and/or time
+   }
+
+   @Override
+   public String toString() {
+      if (measure == Measure.DURATION)
+         return duration+"ms";
+      else
+         return new Timestamp(start).toString();
    }
 
    public Long getStart() {
