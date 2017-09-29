@@ -8,8 +8,12 @@ import java.util.TreeMap;
 import javax.inject.Inject;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
-import org.regadou.action.AllFunction;
+import org.regadou.action.AllAction;
 import org.regadou.action.BinaryAction;
+import org.regadou.action.ErrorAction;
+import org.regadou.action.InputAction;
+import org.regadou.action.LinkAction;
+import org.regadou.action.OutputAction;
 import org.regadou.collection.ScriptContextMap;
 import org.regadou.damai.Action;
 import org.regadou.damai.Command;
@@ -92,7 +96,11 @@ public class DamaiScriptEngineFactory implements ScriptEngineFactory {
             actions.add(new BinaryAction(configuration, op.getName(), op, null, 0));
          for (Command cmd : Command.values())
             actions.add(new BinaryAction(configuration, cmd.getName(), cmd, null, 0));
-         actions.add(new AllFunction(configuration.getPropertyManager(), keywords, new ScriptContextMap(configuration.getContextFactory())));
+         actions.add(new AllAction(configuration.getPropertyManager(), keywords, new ScriptContextMap(configuration.getContextFactory())));
+         actions.add(new LinkAction(configuration));
+         actions.add(new InputAction(configuration));
+         actions.add(new OutputAction(configuration));
+         actions.add(new ErrorAction(configuration));
          for (Action action : actions) {
             String name = action.getName().toLowerCase();
             keywords.put(name, new GenericReference(name, action, true));

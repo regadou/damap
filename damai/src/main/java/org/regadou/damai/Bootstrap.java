@@ -428,7 +428,7 @@ public class Bootstrap implements Configuration, Converter {
             for (int p = 0; p < types.length; p++) {
                Object param = (p >= params.length) ? null : params[p];
                if (param == null || !types[p].isInstance(param))
-                  param = converter.convert(param, types[p]);
+                  param = getConverter().convert(param, types[p]);
             }
             try { return c.newInstance(params); }
             catch (InstantiationException|IllegalAccessException|IllegalArgumentException|InvocationTargetException e) {

@@ -3,6 +3,7 @@ package org.regadou.expression;
 import org.regadou.property.ScriptContextProperty;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
@@ -14,7 +15,7 @@ public class MapExpression extends DefaultExpression {
    private Configuration configuration;
 
    public MapExpression(Map map, Configuration configuration) {
-      super(null, null, configuration);
+      super(null, Collections.EMPTY_LIST, configuration);
       this.configuration = configuration;
       if (map != null) {
          switch (map.size()) {

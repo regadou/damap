@@ -22,8 +22,16 @@ public class BinaryAction implements Action {
       this(configuration, name, parentAction, null, null, null, null);
    }
 
+   public BinaryAction(Configuration configuration, String name, Action parentAction, BiFunction function) {
+      this(configuration, name, parentAction, function, null, null, null);
+   }
+
    public BinaryAction(Configuration configuration, String name, Action parentAction, BiFunction function, Integer precedence) {
       this(configuration, name, parentAction, function, precedence, null, null);
+   }
+
+   public BinaryAction(Configuration configuration, String name, Action parentAction, BiFunction function, Integer precedence, Class returnType) {
+      this(configuration, name, parentAction, function, precedence, returnType, null);
    }
 
    public BinaryAction(Configuration configuration, String name, Action parentAction, BiFunction function, Integer precedence, Class returnType, Class[] parameterTypes) {
@@ -38,7 +46,7 @@ public class BinaryAction implements Action {
 
    @Override
    public String toString() {
-      return "[action "+getName()+"]";
+      return getName();
    }
 
    @Override

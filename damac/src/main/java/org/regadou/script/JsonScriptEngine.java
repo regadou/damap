@@ -172,7 +172,7 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
       }
    }
 
-   private Reference getToken(char c, ParserStatus status) throws Exception {
+   private Reference getToken(char c, ParserStatus status) {
       switch (c) {
          case '\'':
          case '`':
@@ -212,7 +212,7 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
       }
    }
 
-   private DefaultExpression parseExpression(ParserStatus status) throws Exception {
+   private DefaultExpression parseExpression(ParserStatus status) {
       List<Reference> expressions = null;
       DefaultExpression exp = new PrecedenceExpression(this, configuration);
       char end = status.end;
@@ -240,10 +240,14 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
 
       if (end > 0 && c != end)
          throw new RuntimeException("Syntax error: closing character "+end+" missing");
-      return (expressions == null) ? exp : new DefaultExpression(this, expressions, configuration);
+      if (expressions == null)
+         return exp;
+      if (!exp.isEmpty())
+         expressions.add(exp);
+      return new DefaultExpression(this, expressions, configuration);
    }
 
-   private Reference parseToken(ParserStatus status) throws Exception {
+   private Reference parseToken(ParserStatus status) {
       Reference elem = null;
       int start = status.pos;
       char end = status.end;
@@ -275,7 +279,7 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
          return elem;
    }
 
-   private Reference parseString(ParserStatus status) throws Exception {
+   private Reference parseString(ParserStatus status) {
       StringBuilder buffer = new StringBuilder();
       int start = status.pos;
       char end = status.end;
@@ -356,7 +360,7 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
       throw new RuntimeException("End of string not found after "+new String(status.chars, start, status.pos-start));
    }
 
-   private Reference parseNumber(ParserStatus status) throws Exception {
+   private Reference parseNumber(ParserStatus status) {
       StringBuilder buffer = new StringBuilder();
       boolean end=false, digit=false, hexa=false, decimal=false, exponent=false,
               complex=false, time=false, sign=false;
@@ -481,7 +485,7 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
          return new GenericReference(null, new Long(txt), true);
    }
 
-   private Reference parseArray(ParserStatus status) throws Exception {
+   private Reference parseArray(ParserStatus status) {
       List lst = new ArrayList();
       char c = 0;
 
@@ -508,7 +512,7 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
       return new GenericReference(null, lst, true);
    }
 
-   private Reference parseObject(ParserStatus status) throws Exception {
+   private Reference parseObject(ParserStatus status) {
       Map map = new LinkedHashMap();
       String key = null;
       char c = 0;
@@ -571,7 +575,7 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
       return new GenericReference(null, obj, true);
    }
 
-   private Reference parseName(ParserStatus status) throws Exception {
+   private Reference parseName(ParserStatus status) {
       int start = status.pos;
       int length = 0;
       char next;
@@ -632,7 +636,7 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
                                  : new ScriptContextProperty(configuration.getContextFactory(), txt);
    }
 
-   private Reference parseSymbol(ParserStatus status) throws Exception {
+   private Reference parseSymbol(ParserStatus status) {
       int start = status.pos;
       int length = 0;
       for (; status.pos < status.chars.length; status.pos++, length++) {

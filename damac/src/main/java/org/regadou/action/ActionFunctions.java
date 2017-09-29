@@ -26,6 +26,7 @@ import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Filterable;
 import org.regadou.damai.Operator;
+import org.regadou.damai.Property;
 import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
@@ -149,16 +150,38 @@ public class ActionFunctions {
       }
       else if (action instanceof Command) {
          return (path, data) -> {
-            ScriptContext context = configuration.getContextFactory().getScriptContext();
-            Reference result = new GenericReference(null, context, true);
-            List parts = getPathParts(path);
             boolean isDestroy = action == Command.DESTROY;
-            int stop = isDestroy ? parts.size()-1 : parts.size();
-            for (int p = 0; p < stop; p++) {
-               Object part = parts.get(p);
-               result = getProperty(result.getValue(), part);
-               if (result == null)
-                  return isDestroy ? false : null;
+            while (path instanceof Expression)
+               path = ((Expression)path).getValue();
+            Reference result;
+            Object last = null;
+            if (path instanceof Reference) {
+               result = (Reference)path;
+               if (isDestroy && result instanceof Property) {
+                  last = result.getId();
+                  Object parent = ((Property)result).getParent();
+                  result = (parent instanceof Reference) ? (Reference)parent : new GenericReference(null, parent, true);
+               }
+            }
+            else if (path == null)
+               return isDestroy ? false : null;
+            else {
+               ScriptContext context = configuration.getContextFactory().getScriptContext();
+               result = new GenericReference(null, context, true);
+               List parts = getPathParts(path);
+               int stop;
+               if (isDestroy) {
+                  stop = parts.size() - 1;
+                  last = parts.get(stop);
+               }
+               else
+                  stop = parts.size();
+               for (int p = 0; p < stop; p++) {
+                  Object part = parts.get(p);
+                  result = getProperty(result.getValue(), part);
+                  if (result == null)
+                     return isDestroy ? false : null;
+               }
             }
 
             switch ((Command)action) {
@@ -171,7 +194,7 @@ public class ActionFunctions {
                case UPDATE:
                   return comparator.mergeValue(result, data);
                case DESTROY:
-                  return comparator.removeValue(result, parts.get(stop));
+                  return (last == null) ? false : comparator.removeValue(result, last);
                default:
                   throw new RuntimeException("Unknown command "+action);
             }
@@ -180,7 +203,16 @@ public class ActionFunctions {
       else if (action instanceof BinaryAction)
          return ((BinaryAction)action).getFunction();
       else
-         return NOOP;
+         return (p1, p2) -> {
+            Object[] params;
+            if (p1 == null)
+               params = (p2 == null) ? new Object[0] : new Object[]{null, p2};
+            else if (p2 == null)
+               params = new Object[]{p1};
+            else
+               params = new Object[]{p1, p2};
+            return action.execute(params);
+         };
    }
 
    private Type getType(Object...params) {
@@ -361,8 +393,6 @@ public class ActionFunctions {
          return Collections.EMPTY_LIST;
       if (path.getClass().isArray())
          return new ArrayWrapper(path);
-      if (path instanceof Reference)
-         return getPathParts(((Reference)path).getValue());
       return Arrays.asList(path);
    }
 

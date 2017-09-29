@@ -18,6 +18,7 @@ import org.regadou.reference.MapEntryReference;
 public class DefaultExpression extends CompiledScript implements Expression<Reference> {
 
    private static Map<Operator,Action> OPERATORS;
+   private static Action EVAL_ACTION;
 
    private Configuration configuration;
    private ScriptEngine engine;
@@ -32,6 +33,14 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
          for (Reference token : tokens)
             addToken(token);
       }
+   }
+
+   public DefaultExpression(ScriptEngine engine, Expression[] expressions, Configuration configuration) {
+      this.engine = engine;
+      this.configuration = configuration;
+      if (expressions != null)
+         tokens = Arrays.asList(expressions);
+      action = EVAL_ACTION;
    }
 
    @Override

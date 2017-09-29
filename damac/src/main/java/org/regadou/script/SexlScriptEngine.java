@@ -7,6 +7,7 @@ import org.regadou.number.Complex;
 import org.regadou.number.Probability;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.script.Bindings;
@@ -23,6 +24,8 @@ import org.regadou.reference.GenericReference;
 import org.regadou.util.StringInput;
 
 public class SexlScriptEngine implements ScriptEngine, Compilable {
+
+   private static final Reference END_OF_EXPRESSION = new GenericReference(null, null, true);
 
    private ScriptEngineFactory factory;
    private Configuration configuration;
@@ -187,28 +190,55 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
    }
 
    private DefaultExpression parseExpression(ParserStatus status) {
-      List<Reference> tokens = new ArrayList();
+      List<Reference> expressions = null;
+      DefaultExpression exp = new DefaultExpression(this, Collections.EMPTY_LIST, configuration);
       char end = status.end;
+      char end2 = status.end2;
       char c = 0;
+      int lines = 0;
 
       for (; status.pos < status.chars.length; status.pos++) {
          c = status.chars[status.pos];
-         if (c == end)
+         if (c == end || c == end2)
             break;
          else if (!isBlank(c)) {
+            lines = 0;
             Reference token = getToken(c, status);
             if (token != null) {
-               tokens.add(token);
-               status.previousToken = token;
+               if (token == END_OF_EXPRESSION) {
+                  if (!exp.isEmpty()) {
+                     if (expressions == null)
+                        expressions = new ArrayList<>();
+                     expressions.add(exp);
+                     exp = new DefaultExpression(this, Collections.EMPTY_LIST, configuration);
+                  }
+               }
+               else {
+                  exp.addToken(token);
+                  status.previousToken = token;
+               }
             }
          }
-         else
-            status.linecount();
+         else if (c == '\n') {
+            lines++;
+            if (lines >= 2) {
+               if (!exp.isEmpty()) {
+                  if (expressions == null)
+                     expressions = new ArrayList<>();
+                  expressions.add(exp);
+                  exp = new DefaultExpression(this, Collections.EMPTY_LIST, configuration);
+               }
+            }
+         }
       }
 
       if (end > 0 && c != end)
          throw new RuntimeException("Syntax error: closing character "+end+" missing");
-      return new DefaultExpression(this, tokens, configuration);
+      if (expressions == null)
+         return exp;
+      if (!exp.isEmpty())
+         expressions.add(exp);
+      return new DefaultExpression(this, expressions, configuration);
    }
 
    private Reference getToken(char c, ParserStatus status) {
@@ -542,7 +572,18 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
       }
 
       String txt = new String(status.chars, start, length);
-      return new ScriptContextProperty(configuration.getContextFactory(), txt);
+      if (keywords.containsKey(txt))
+         return keywords.get(txt);
+      switch (txt) {
+         case ".":
+         case "!":
+         case "?":
+         case ";":
+         case ",":
+            return END_OF_EXPRESSION;
+      }
+      return (status.cx != null) ? new ScriptContextProperty(status.cx, txt)
+                                 : new ScriptContextProperty(configuration.getContextFactory(), txt);
    }
 
    private Reference parseComment(ParserStatus status, char end) {

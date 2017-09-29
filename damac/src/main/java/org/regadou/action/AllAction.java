@@ -9,13 +9,14 @@ import org.regadou.collection.MultiMap;
 import org.regadou.damai.Action;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
+import org.regadou.damai.Reference;
 
-public class AllFunction implements Action<Collection> {
+public class AllAction implements Action<Collection> {
 
    private PropertyManager propertyManager;
    private Map map;
 
-   public AllFunction(PropertyManager manager, Map...maps) {
+   public AllAction(PropertyManager manager, Map...maps) {
       this.propertyManager = manager;
       this.map = (maps == null) ? Collections.EMPTY_MAP : new MultiMap(maps);
    }
@@ -25,13 +26,21 @@ public class AllFunction implements Action<Collection> {
          case 0:
             return map.keySet();
          case 1:
-            return getProperties(parameters[0]);
+            Object value = getValue(parameters[0]);
+            if (value == null)
+               return map.keySet();
+            return getProperties(value);
          default:
             Collection result = new ArrayList();
             for (Object param : parameters)
-               result.add(getProperties(param));
+               result.add(getProperties(getValue(param)));
             return result;
       }
+   }
+
+   @Override
+   public String toString() {
+      return getName();
    }
 
    @Override
@@ -49,5 +58,11 @@ public class AllFunction implements Action<Collection> {
       PropertyFactory factory = propertyManager.getPropertyFactory(type);
       String[] properties = (factory == null) ? new String[0] : factory.getProperties(src);
       return Arrays.asList(properties);
+   }
+
+   private Object getValue(Object value) {
+      while (value instanceof Reference)
+         value = ((Reference)value).getValue();
+      return value;
    }
 }

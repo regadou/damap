@@ -2,6 +2,7 @@ package org.regadou.expression;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -48,7 +49,7 @@ public class PrecedenceExpression extends DefaultExpression {
    private Reference param1, param2;
 
    public PrecedenceExpression(ScriptEngine engine, Configuration configuration) {
-      super(engine, null, configuration);
+      super(engine, Collections.EMPTY_LIST, configuration);
       this.configuration = configuration;
    }
 
