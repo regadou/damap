@@ -7,7 +7,7 @@ import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
 import org.regadou.repository.RepositoryItem;
 
-public class RepositoryItemProperty extends TypedProperty<RepositoryItem> {
+public class RepositoryItemProperty extends TypedProperty<RepositoryItem,Object> {
 
    private String name;
    private PropertyFactory factory;

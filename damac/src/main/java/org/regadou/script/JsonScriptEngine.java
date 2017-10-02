@@ -363,7 +363,7 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
    private Reference parseNumber(ParserStatus status) {
       StringBuilder buffer = new StringBuilder();
       boolean end=false, digit=false, hexa=false, decimal=false, exponent=false,
-              complex=false, time=false, sign=false;
+              complex=false, time=false, sign=false, prob=false;
 
       for (; status.pos < status.chars.length; status.pos++) {
          char c = status.chars[status.pos];
@@ -412,10 +412,12 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
                   time = true;
                break;
             case '%':
-               if (digit && !hexa && !decimal && !exponent && !complex && !time)
-                  return new GenericReference(null, new Probability(buffer.append(c).toString()), true);
-               else
-                  end = true;
+               if (digit && !hexa && !decimal && !exponent && !complex && !time) {
+                  prob = true;
+                  buffer.append(c);
+                  status.pos++;
+               }
+               end = true;
                break;
             case 'e':
             case 'E':
@@ -473,16 +475,20 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
       String txt = buffer.toString();
       if (!digit)
          return null;
+      Number n;
+      if (prob)
+         n = new Probability(txt);
       else if (hexa)
-         return new GenericReference(null, new Integer(Integer.parseInt(txt.substring(2), 16)), true);
+         n = Integer.parseInt(txt.substring(2), 16);
       else if (complex)
-         return new GenericReference(null, new Complex(txt), true);
+         n = new Complex(txt);
       else if (decimal || exponent)
-         return new GenericReference(null, new Double(txt), true);
+         n = new Double(txt);
       else if (time)
-         return new GenericReference(null, new Time(txt), true);
+         n = new Time(txt);
       else
-         return new GenericReference(null, new Long(txt), true);
+         n = new Long(txt);
+      return new GenericReference(null, n, true);
    }
 
    private Reference parseArray(ParserStatus status) {

@@ -13,7 +13,7 @@ public class BeanPropertyFactory implements PropertyFactory {
    public Property getProperty(Object value, String name) {
       if (value == null)
          return null;
-      BeanMap map = new BeanMap(value);
+      BeanMap map = (value instanceof BeanMap) ? (BeanMap)value : new BeanMap(value);
       return map.containsKey(name) ? new MapProperty(map, name, map.getType(name)) : null;
    }
 

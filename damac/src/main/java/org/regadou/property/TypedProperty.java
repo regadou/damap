@@ -3,12 +3,12 @@ package org.regadou.property;
 import org.regadou.damai.Property;
 import org.regadou.reference.TypedReference;
 
-public abstract class TypedProperty<P> extends TypedReference<Object> implements Property<P,Object> {
+public abstract class TypedProperty<P,T> extends TypedReference<T> implements Property<P,T> {
 
    private P parent;
    private Class<P> parentType;
 
-   public TypedProperty(P parent, Class<P> parentType, Class type) {
+   public TypedProperty(P parent, Class<P> parentType, Class<T> type) {
       super(type);
       this.parent = parent;
       this.parentType = parentType;

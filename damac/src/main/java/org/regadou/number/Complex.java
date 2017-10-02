@@ -6,7 +6,25 @@ public class Complex extends Number {
    private double imaginary;
 
    public Complex(String txt) {
-
+      int index = txt.indexOf(txt.toLowerCase());
+      if (index < 0)
+         real = Double.parseDouble(txt);
+      else if (index == 0)
+         imaginary = Double.parseDouble(txt.substring(1));
+      else {
+         int sign = 1, skip = 0;
+         switch (txt.charAt(index-1)) {
+            case '-':
+               sign = -1;
+            case '+':
+               if (index == 1)
+                  txt = "0"+txt;
+               else
+                  skip = 1;
+         }
+         real = Double.parseDouble(txt.substring(0, index-skip));
+         imaginary = Double.parseDouble(txt.substring(index+1)) * sign;
+      }
    }
 
    @Override
@@ -17,21 +35,21 @@ public class Complex extends Number {
 
    @Override
    public int intValue() {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      return (int)real;
    }
 
    @Override
    public long longValue() {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      return (long)real;
    }
 
    @Override
    public float floatValue() {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      return (float)real;
    }
 
    @Override
    public double doubleValue() {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      return real;
    }
 }

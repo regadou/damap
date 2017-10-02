@@ -117,8 +117,8 @@ public class UrlReference implements Reference, Closeable {
 
    @Override
    public Class getType() {
-      return (value == null) ? Object.class : value.getClass();
-      //TODO: we might guess type based on mimetype
+      return Object.class;
+      //TODO: guess type based on mimetype that uses getType() method in MimeHandler interface
    }
 
    @Override

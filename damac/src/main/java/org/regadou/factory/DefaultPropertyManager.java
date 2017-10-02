@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.inject.Inject;
 import javax.script.ScriptContext;
+import org.apache.commons.beanutils.BeanMap;
 import org.regadou.damai.Configuration;
 import org.regadou.collection.ClassIterator;
 import org.regadou.damai.Property;
@@ -25,9 +26,10 @@ public class DefaultPropertyManager implements PropertyManager {
 
    @Inject
    public DefaultPropertyManager(Configuration configuration) {
+      factories.put(Object[].class, arrayFactory);
+      factories.put(BeanMap.class, beanFactory);
       factories.put(Map.class, new MapPropertyFactory(configuration.getConverter()));
       factories.put(Collection.class, new CollectionPropertyFactory(configuration.getConverter()));
-      factories.put(Object[].class, arrayFactory);
       factories.put(ScriptContext.class, new ScriptContextPropertyFactory());
       factories.put(Repository.class, new RepositoryPropertyFactory());
       factories.put(RepositoryItem.class, new RepositoryItemPropertyFactory(configuration));

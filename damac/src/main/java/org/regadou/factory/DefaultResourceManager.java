@@ -11,7 +11,6 @@ import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
-import org.regadou.reference.GenericReference;
 import org.regadou.property.ScriptContextProperty;
 import org.regadou.repository.RdfRepository;
 import org.regadou.resource.DefaultNamespace;

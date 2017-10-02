@@ -56,7 +56,7 @@ public class Probability extends Number {
       return value.doubleValue();
    }
 
-   public boolean toBoolean() {
+   public boolean booleanValue() {
       return value >= minimumTruthValue;
    }
 }

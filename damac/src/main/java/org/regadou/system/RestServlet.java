@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -27,7 +24,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.regadou.action.BinaryAction;
+import org.regadou.action.ActionBuilder;
 import org.regadou.damai.Bootstrap;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
@@ -46,7 +43,6 @@ import org.regadou.script.DefaultScriptContext;
 import org.regadou.collection.MapAdapter;
 import org.regadou.collection.StaticMap;
 import org.regadou.damai.Action;
-import org.regadou.damai.Operator;
 
 public class RestServlet implements Servlet {
 
@@ -122,13 +118,17 @@ public class RestServlet implements Servlet {
       catch (Exception ex) { ex.printStackTrace(); }
 
       keywords = new TreeMap<>();
-      List constants = new ArrayList(Arrays.asList(true, false, null));
-      for (Operator op : Operator.values())
-         constants.add(new BinaryAction(configuration, getSymbol(op), op));
-      for (Object constant : constants) {
-         String name = (constant instanceof Action) ? ((Action)constant).getName() : String.valueOf(constant);
-         keywords.put(name, new GenericReference(name, constant, true));
-      }
+      for (Object value : new Object[]{true, false, null})
+         keywords.put(String.valueOf(value), new GenericReference(String.valueOf(value), value, true));
+      List<Action> actions = new ActionBuilder(configuration)
+              .setWantCommands(false)
+              .setWantOperators(true)
+              .setWantOptimized(false)
+              .setWantSymbols(true)
+              .setWantStandard(false)
+              .buildAll();
+      for (Action action : actions)
+         keywords.put(action.getName(), new GenericReference(action.getName(), action, true));
   }
 
    @Override
@@ -202,38 +202,5 @@ public class RestServlet implements Servlet {
          handler.save(response.getOutputStream(), charset, value);
       }
       finally { factory.setScriptContext(null); }
-   }
-
-   private String getSymbol(Operator operator) {
-      switch (operator) {
-         case ADD: return "+";
-         case SUBTRACT: return "-";
-         case MULTIPLY: return "*";
-         case DIVIDE: return "/";
-         case MODULO: return "%";
-         case EXPONANT: return "^";
-         case ROOT: return "\\/";
-         case LOG: return "\\";
-         case LESSER: return "<";
-         case LESSEQ: return "<=";
-         case GREATER: return ">";
-         case GREATEQ: return ">=";
-         case EQUAL: return "=";
-         case NOTEQUAL: return "!=";
-         case AND: return "&";
-         case OR: return "|";
-         case NOT: return "!";
-         case IN: return "@";
-         case FROM: return "<-";
-         case TO: return "->";
-         case IS: return "?:";
-         case DO: return "=>";
-         case HAVE: return ".";
-         case JOIN: return ",";
-         case IF: return "?";
-         case ELSE: return ":";
-         case WHILE: return "?*";
-         default: throw new RuntimeException("Unknown operator "+operator);
-      }
    }
 }

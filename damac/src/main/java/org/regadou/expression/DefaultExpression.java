@@ -5,6 +5,7 @@ import javax.script.CompiledScript;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
+import org.regadou.action.ActionBuilder;
 import org.regadou.action.BinaryAction;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Action;
@@ -174,8 +175,13 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
       if (token instanceof Operator) {
          if (OPERATORS == null) {
             OPERATORS = new TreeMap<>();
+            ActionBuilder builder = new ActionBuilder(configuration)
+                    .setWantOptimized(true)
+                    .setWantSymbols(false)
+                    .setIgnorePrecedence(true)
+                    .setWantUpperCase(true);
             for (Operator op : Operator.values())
-               OPERATORS.put(op, new BinaryAction(configuration, op.name().toLowerCase(), op));
+               OPERATORS.put(op, builder.buildAction(op));
          }
          return OPERATORS.get((Operator)token);
       }

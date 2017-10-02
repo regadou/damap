@@ -50,8 +50,7 @@ public class ScriptContextProperty implements Property<ScriptContext,Object> {
 
    @Override
    public Class getType() {
-      Object value = getValue();
-      return (value == null) ? Object.class : value.getClass();
+      return Object.class;
    }
 
    @Override

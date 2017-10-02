@@ -1,6 +1,5 @@
 package org.regadou.script;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -8,17 +7,15 @@ import java.util.TreeMap;
 import javax.inject.Inject;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
+import org.regadou.action.ActionBuilder;
 import org.regadou.action.AllAction;
-import org.regadou.action.BinaryAction;
 import org.regadou.action.ErrorAction;
 import org.regadou.action.InputAction;
 import org.regadou.action.LinkAction;
 import org.regadou.action.OutputAction;
 import org.regadou.collection.ScriptContextMap;
 import org.regadou.damai.Action;
-import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
-import org.regadou.damai.Operator;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
 
@@ -91,20 +88,18 @@ public class DamaiScriptEngineFactory implements ScriptEngineFactory {
    public ScriptEngine getScriptEngine() {
       if (keywords == null) {
          keywords = new TreeMap<>();
-         List<Action> actions = new ArrayList<>();
-         for (Operator op : Operator.values())
-            actions.add(new BinaryAction(configuration, op.getName(), op, null, 0));
-         for (Command cmd : Command.values())
-            actions.add(new BinaryAction(configuration, cmd.getName(), cmd, null, 0));
-         actions.add(new AllAction(configuration.getPropertyManager(), keywords, new ScriptContextMap(configuration.getContextFactory())));
-         actions.add(new LinkAction(configuration));
-         actions.add(new InputAction(configuration));
-         actions.add(new OutputAction(configuration));
-         actions.add(new ErrorAction(configuration));
-         for (Action action : actions) {
-            String name = action.getName().toLowerCase();
-            keywords.put(name, new GenericReference(name, action, true));
-         }
+         List<Action> actions = new ActionBuilder(configuration)
+                 .setWantCommands(true)
+                 .setWantOperators(true)
+                 .setWantOptimized(true)
+                 .setWantSymbols(false)
+                 .setIgnorePrecedence(true)
+                 .setWantLowerCase(true)
+                 .addActions(new AllAction(configuration, keywords, new ScriptContextMap(configuration.getContextFactory())))
+                 .addActions(LinkAction.class, InputAction.class, OutputAction.class, ErrorAction.class)
+                 .buildAll();
+         for (Action action : actions)
+            keywords.put(action.getName(), new GenericReference(action.getName(), action, true));
       }
       return new SexlScriptEngine(this, configuration, keywords);
    }

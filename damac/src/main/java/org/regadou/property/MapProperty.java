@@ -2,7 +2,7 @@ package org.regadou.property;
 
 import java.util.Map;
 
-public class MapProperty extends TypedProperty<Map> {
+public class MapProperty extends TypedProperty<Map,Object> {
 
    Object key;
 

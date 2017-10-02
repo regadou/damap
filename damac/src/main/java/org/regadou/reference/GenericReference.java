@@ -3,22 +3,23 @@ package org.regadou.reference;
 import java.util.Map;
 import org.regadou.damai.Reference;
 
-public class GenericReference<T> implements Reference<T> {
+public class GenericReference implements Reference {
 
    private String name;
-   private T value;
+   private Object value;
    private boolean readonly;
+   private Map.Entry entry;
 
    public GenericReference(String name) {
       this.name = name;
    }
 
-   public GenericReference(String name, T value) {
+   public GenericReference(String name, Object value) {
       this.name = name;
       this.value = value;
    }
 
-   public GenericReference(String name, T value, boolean readonly) {
+   public GenericReference(String name, Object value, boolean readonly) {
       this.name = name;
       this.value = value;
       this.readonly = readonly;
@@ -35,40 +36,43 @@ public class GenericReference<T> implements Reference<T> {
    }
 
    @Override
-   public T getValue() {
+   public Object getValue() {
       return value;
    }
 
    @Override
    public Class getType() {
-      return (value == null) ? Object.class : value.getClass();
+      return Object.class;
    }
 
    @Override
-   public void setValue(T value) {
+   public void setValue(Object value) {
       if (!readonly)
          this.value = value;
    }
 
-   public Map.Entry<String,T> toMapEntry() {
-      GenericReference<T> me = this;
-      return new Map.Entry<String,T>() {
-         @Override
-         public String getKey() {
-            return name;
-         }
+   public Map.Entry<String,Object> toMapEntry() {
+      if (entry == null) {
+         GenericReference me = this;
+         entry = new Map.Entry<String,Object>() {
+            @Override
+            public String getKey() {
+               return name;
+            }
 
-         @Override
-         public T getValue() {
-            return value;
-         }
+            @Override
+            public Object getValue() {
+               return value;
+            }
 
-         @Override
-         public T setValue(T value) {
-            T old = me.value;
-            me.setValue(value);
-            return old;
-         }
-      };
+            @Override
+            public Object setValue(Object value) {
+               Object old = me.value;
+               me.setValue(value);
+               return old;
+            }
+         };
+      }
+      return entry;
    }
 }

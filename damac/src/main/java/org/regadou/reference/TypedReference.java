@@ -4,12 +4,12 @@ import org.regadou.damai.Reference;
 
 public abstract class TypedReference<T> implements Reference<T> {
 
-   private Class type;
+   private Class<T> type;
    private Class target;
    private String method;
    private Class[] parameters;
 
-   protected TypedReference(Class type) {
+   protected TypedReference(Class<T> type) {
       this.type = type;
    }
 
@@ -20,12 +20,12 @@ public abstract class TypedReference<T> implements Reference<T> {
    }
 
    @Override
-   public Class getType() {
+   public Class<T> getType() {
       if (type == null) {
          if (target == null || method == null)
-            type = Object.class;
+            type = (Class<T>)Object.class;
          else {
-            try { type = target.getMethod(method, parameters).getReturnType(); }
+            try { type = (Class<T>)target.getMethod(method, parameters).getReturnType(); }
             catch (NoSuchMethodException|SecurityException e) { throw new RuntimeException(e); }
          }
       }

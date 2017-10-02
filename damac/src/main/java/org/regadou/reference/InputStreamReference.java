@@ -42,7 +42,7 @@ public class InputStreamReference implements Reference {
 
    @Override
    public Class getType() {
-      return (value == null) ? Object.class : value.getClass();
+      return Object.class;
    }
 
    @Override

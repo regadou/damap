@@ -2,12 +2,12 @@ package org.regadou.reference;
 
 import java.util.Map;
 
-public class MapEntryReference extends TypedReference {
+public class MapEntryReference<T> extends TypedReference<T> {
 
-   private Map.Entry entry;
+   private Map.Entry<Object,T> entry;
    private String name;
 
-   public MapEntryReference(Map.Entry entry) {
+   public MapEntryReference(Map.Entry<Object,T> entry) {
       super(entry.getClass(), "getValue");
       this.entry = entry;
       Object key = entry.getKey();
@@ -20,12 +20,12 @@ public class MapEntryReference extends TypedReference {
    }
 
    @Override
-   public Object getValue() {
+   public T getValue() {
       return entry.getValue();
    }
 
    @Override
-   public void setValue(Object value) {
+   public void setValue(T value) {
       entry.setValue(value);
    }
 }

@@ -4,10 +4,9 @@ import java.util.Collection;
 
 public enum Operator implements Action {
 
-   ADD, SUBTRACT, MULTIPLY, DIVIDE, MODULO, EXPONANT, ROOT, LOG,
-   LESSER, LESSEQ, GREATER, GREATEQ, EQUAL, NOTEQUAL,
-   AND, OR, NOT, IN, FROM, TO, IS, DO, HAVE, JOIN,
-   IF, ELSE, WHILE;
+   ADD, SUBTRACT, MULTIPLY, DIVIDE, MODULO, POWER, ROOT, LOGARITHM,
+   LESS, LESSEQUAL, MORE, MOREQUAL, EQUAL, NOTEQUAL,
+   AND, OR, NOT, IN, FROM, TO, IS, DO, HAVE, JOIN, CASE, WHILE;
 
    private static final Class[] PARAMETERS_TYPES = new Class[]{Object.class, Object.class};
 
@@ -24,9 +23,9 @@ public enum Operator implements Action {
    @Override
    public Class getReturnType() {
       switch (this) {
-         case EXPONANT:
+         case POWER:
          case ROOT:
-         case LOG:
+         case LOGARITHM:
          case MULTIPLY:
          case DIVIDE:
          case MODULO:
@@ -34,10 +33,10 @@ public enum Operator implements Action {
          case ADD:
          case SUBTRACT:
             return Object.class; //Collection|Number|String|Map
-         case LESSER:
-         case LESSEQ:
-         case GREATER:
-         case GREATEQ:
+         case LESS:
+         case LESSEQUAL:
+         case MORE:
+         case MOREQUAL:
          case EQUAL:
          case NOTEQUAL:
          case AND:
@@ -50,8 +49,7 @@ public enum Operator implements Action {
          case FROM:
          case TO:
             return Object.class;
-         case IF:
-         case ELSE:
+         case CASE:
          case WHILE:
          case DO:
             return Object.class;

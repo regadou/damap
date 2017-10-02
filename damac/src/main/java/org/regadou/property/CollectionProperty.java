@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-public class CollectionProperty extends TypedProperty<Collection> {
+public class CollectionProperty extends TypedProperty<Collection,Object> {
 
    public static final List<String> SIZE_NAMES = Arrays.asList(new String[]{"size", "length", "count"});
 

@@ -9,9 +9,34 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.regadou.reference.GenericReference;
 
 public class MapAdapter<K,V> implements Map<K,V> {
+
+   private static class MapEntry<K, V> implements Entry<K, V> {
+
+      private Map<K, V> map;
+      private K key;
+
+      public MapEntry(Map<K, V> map, K key) {
+         this.map = map;
+         this.key = key;
+      }
+
+      @Override
+      public K getKey() {
+         return key;
+      }
+
+      @Override
+      public V getValue() {
+         return map.get(key);
+      }
+
+      @Override
+      public V setValue(V value) {
+         return map.put(key, value);
+      }
+   }
 
    private Supplier<Set<K>> keys;
    private Function<K,V> getter;
@@ -128,10 +153,10 @@ public class MapAdapter<K,V> implements Map<K,V> {
 
    @Override
    public Set<Entry<K, V>> entrySet() {
-      if (keys != null && getter != null) {
+      if (keys != null) {
          Set<Entry<K, V>> entries = new LinkedHashSet<>();
          for (K key : keys.get())
-            entries.add(new GenericReference(String.valueOf(key), getter.apply(key)).toMapEntry());
+            entries.add(new MapEntry<K, V>(this, key));
          return entries;
       }
       throw new UnsupportedOperationException("Not supported");

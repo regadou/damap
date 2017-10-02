@@ -38,8 +38,6 @@ import javax.script.ScriptEngineManager;
 
 public class Bootstrap implements Configuration, Converter {
 
-   private static boolean DEBUG = false;
-
    public static void main(String[] args) throws IOException {
       BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
       Writer writer = new OutputStreamWriter(System.out);
@@ -92,8 +90,40 @@ public class Bootstrap implements Configuration, Converter {
       System.out.println("script engines = "+engines);
    }
 
-   private static final String PROPERTY_PREFIX = Configuration.class.getName() + ".";
+   public static class SimpleReference implements Reference {
 
+      private String id;
+      private Object value;
+
+      public SimpleReference(String id, Object value) {
+         this.id = id;
+         this.value = value;
+      }
+
+      @Override
+      public String getId() {
+         return id;
+      }
+
+      @Override
+      public Class getType() {
+         return Object.class;
+      }
+
+      @Override
+      public Object getValue() {
+         return value;
+      }
+
+      @Override
+      public void setValue(Object value) {
+         this.value = value;
+      }
+
+   }
+
+   private static boolean DEBUG = false;
+   private static final String PROPERTY_PREFIX = Configuration.class.getName() + ".";
    private static final List<Class> DECIMAL_NUMBERS = Arrays.asList(
       Float.class, Double.class, BigDecimal.class
    );
@@ -273,13 +303,17 @@ public class Bootstrap implements Configuration, Converter {
 
    @Override
    public <T> T convert(Object value, Class<T> type) {
-      if (type == null || Void.class.isAssignableFrom(type))
+      if (type == Object.class || type == null)
+         return (T)value;
+      if (type == Void.class)
          return null;
       if (value instanceof Reference && !type.isAssignableFrom(value.getClass())) {
          do {
             value = ((Reference)value).getValue();
          } while (value instanceof Reference);
       }
+      else if (Reference.class.isAssignableFrom(type))
+         return (T)((value instanceof Reference) ? value : new SimpleReference(null, value));
       Class valueType;
       if (value == null) {
          if (type.isAssignableFrom(this.getClass()))

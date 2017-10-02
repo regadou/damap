@@ -2,18 +2,18 @@ package org.regadou.property;
 
 import org.regadou.damai.Property;
 
-public class GenericProperty<P,T> implements Property<P,T> {
+public class GenericProperty implements Property {
 
-   private P parent;
+   private Object parent;
    private String name;
-   private T value;
+   private Object value;
    private boolean readonly;
 
-   public GenericProperty(P parent, String name, T value) {
+   public GenericProperty(Object parent, String name, Object value) {
       this(parent, name, value, false);
    }
 
-   public GenericProperty(P parent, String name, T value, boolean readonly) {
+   public GenericProperty(Object parent, String name, Object value, boolean readonly) {
       this.parent = parent;
       this.name = name;
       this.value = value;
@@ -26,13 +26,13 @@ public class GenericProperty<P,T> implements Property<P,T> {
    }
 
    @Override
-   public P getParent() {
+   public Object getParent() {
       return parent;
    }
 
    @Override
-   public Class<P> getParentType() {
-      return (Class<P>)((parent == null) ? Void.class : parent.getClass());
+   public Class getParentType() {
+      return Object.class;
    }
 
    @Override
@@ -41,17 +41,17 @@ public class GenericProperty<P,T> implements Property<P,T> {
    }
 
    @Override
-   public T getValue() {
+   public Object getValue() {
       return value;
    }
 
    @Override
-   public Class<T> getType() {
-      return (Class<T>)((value == null) ? Object.class : value.getClass());
+   public Class getType() {
+      return Object.class;
    }
 
    @Override
-   public void setValue(T value) {
+   public void setValue(Object value) {
       if (!readonly)
          this.value = value;
    }

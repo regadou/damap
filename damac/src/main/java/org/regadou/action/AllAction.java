@@ -7,17 +7,17 @@ import java.util.Collections;
 import java.util.Map;
 import org.regadou.collection.MultiMap;
 import org.regadou.damai.Action;
+import org.regadou.damai.Configuration;
 import org.regadou.damai.PropertyFactory;
-import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Reference;
 
 public class AllAction implements Action<Collection> {
 
-   private PropertyManager propertyManager;
+   private Configuration configuration;
    private Map map;
 
-   public AllAction(PropertyManager manager, Map...maps) {
-      this.propertyManager = manager;
+   public AllAction(Configuration configuration, Map...maps) {
+      this.configuration = configuration;
       this.map = (maps == null) ? Collections.EMPTY_MAP : new MultiMap(maps);
    }
    @Override
@@ -55,7 +55,7 @@ public class AllAction implements Action<Collection> {
 
    private Collection getProperties(Object src) {
       Class type = (src == null) ? Void.class : src.getClass();
-      PropertyFactory factory = propertyManager.getPropertyFactory(type);
+      PropertyFactory factory = configuration.getPropertyManager().getPropertyFactory(type);
       String[] properties = (factory == null) ? new String[0] : factory.getProperties(src);
       return Arrays.asList(properties);
    }

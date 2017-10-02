@@ -477,10 +477,10 @@ public class JdbcRepository implements Repository<Map>, Closeable {
          case MULTIPLY: return " * ";
          case DIVIDE: return " / ";
          case MODULO: return " % ";
-         case LESSER: return " < ";
-         case LESSEQ: return " <= ";
-         case GREATER: return " > ";
-         case GREATEQ: return " >= ";
+         case LESS: return " < ";
+         case LESSEQUAL: return " <= ";
+         case MORE: return " > ";
+         case MOREQUAL: return " >= ";
          case NOTEQUAL: return " <> ";
          case AND: return " AND ";
          case OR: return " OR ";
@@ -495,13 +495,12 @@ public class JdbcRepository implements Repository<Map>, Closeable {
             throw new RuntimeException("Operator "+op+" can only be at the top level for JDBC");
          case HAVE:
             throw new RuntimeException("Subqueries not supported yet for JDBC");
-         case EXPONANT:
+         case POWER:
          case ROOT:
-         case LOG:
+         case LOGARITHM:
             throw new RuntimeException("Operator "+op+" not supported yet for JDBC");
          case DO:
-         case IF:
-         case ELSE:
+         case CASE:
          case WHILE:
             throw new RuntimeException("Operator "+op+" is not supported for JDBC");
          default:

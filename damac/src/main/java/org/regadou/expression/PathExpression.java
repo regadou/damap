@@ -2,11 +2,12 @@ package org.regadou.expression;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.TreeMap;
 import javax.script.ScriptContext;
+import org.regadou.action.ActionBuilder;
 import org.regadou.action.BinaryAction;
 import org.regadou.damai.Action;
 import org.regadou.damai.Command;
@@ -15,6 +16,7 @@ import org.regadou.damai.Expression;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
 import org.regadou.action.GenericComparator;
+import org.regadou.damai.Operator;
 
 public class PathExpression implements Expression<Reference> {
 
@@ -130,9 +132,13 @@ public class PathExpression implements Expression<Reference> {
 
    private Action getAction(Command command) {
       if (COMMAND_ACTIONS == null) {
-         COMMAND_ACTIONS = new LinkedHashMap<>();
-         for (Command action : Command.values())
-            COMMAND_ACTIONS.put(action, new BinaryAction(configuration, action.name().toLowerCase(), action));
+         COMMAND_ACTIONS = new TreeMap<>();
+         ActionBuilder builder = new ActionBuilder(configuration)
+                 .setWantOptimized(false)
+                 .setWantSymbols(false)
+                 .setIgnorePrecedence(false);
+         for (Command cmd : Command.values())
+            COMMAND_ACTIONS.put(cmd, builder.buildAction(cmd));
       }
       if (command == null)
          command = Command.GET;
