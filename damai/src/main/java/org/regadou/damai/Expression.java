@@ -6,7 +6,7 @@ public interface Expression<T> extends Reference<T> {
 
    Action getAction();
 
-   T[] getTokens();
+   T[] getArguments();
 
    T getValue(ScriptContext context);
 

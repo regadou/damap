@@ -27,6 +27,21 @@ public class Complex extends Number {
       }
    }
 
+   public Complex(Number n) {
+      if (n instanceof Complex) {
+         Complex c = (Complex)n;
+         real = c.real;
+         imaginary = c.imaginary;
+      }
+      else
+         real = n.doubleValue();
+   }
+
+   public Complex(double real, double imaginary) {
+      this.real = real;
+      this.imaginary = imaginary;
+   }
+
    @Override
    public String toString() {
       String sign = (imaginary < 0) ? "-" : "+";
@@ -51,5 +66,13 @@ public class Complex extends Number {
    @Override
    public double doubleValue() {
       return real;
+   }
+
+   public double realValue() {
+      return real;
+   }
+
+   public double imaginaryValue() {
+      return imaginary;
    }
 }

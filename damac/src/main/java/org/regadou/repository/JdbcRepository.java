@@ -4,6 +4,9 @@ import java.sql.Statement;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.math.BigInteger;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -23,8 +26,8 @@ import java.util.StringJoiner;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.regadou.action.BinaryAction;
+import org.regadou.collection.ArrayWrapper;
 import org.regadou.damai.Action;
-import org.regadou.damai.Converter;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Operator;
 import org.regadou.damai.Property;
@@ -48,26 +51,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    public JdbcRepository(JdbcConnectionInfo info, Configuration configuration) {
       this.info = info;
       this.configuration = configuration;
-      try {
-         openConnection();
-         DatabaseMetaData dmd = connection.getMetaData();
-         ResultSet rs = dmd.getTables(info.getDatabase(), null, null, null);
-         while (rs.next()) {
-            String type = rs.getString("table_type").toLowerCase();
-            if (type.equals("table")) {
-               String table = rs.getString("table_name");
-               List<String> keys = new ArrayList<>();
-               ResultSet rs2 = dmd.getPrimaryKeys(null, null, table);
-               while (rs2.next())
-                  keys.add(rs2.getString("COLUMN_NAME").toLowerCase());
-               primaryKeys.put(table.toLowerCase(), keys.toArray(new String[keys.size()]));
-               rs2.close();
-            }
-         }
-         rs.close();
-      }
-      catch (SQLException | IOException e) { throw new RuntimeException(e); }
-      finally { items = new TreeSet<>(primaryKeys.keySet()); }
+      loadItems(true);
    }
 
    @Override
@@ -92,6 +76,8 @@ public class JdbcRepository implements Repository<Map>, Closeable {
 
    @Override
    public Map<String,Class> getKeys(String item) {
+      if (!items.contains(item))
+         return Collections.EMPTY_MAP;
       Map<String, Class> keys = keysMap.get(item);
       if (keys == null) {
          try {
@@ -137,6 +123,8 @@ public class JdbcRepository implements Repository<Map>, Closeable {
 
    @Override
    public Collection<Map> getAny(String item, Expression filter) {
+      if (!items.contains(item))
+         return Collections.EMPTY_LIST;
       String sql = "select * from " + item;
       if (filter != null && filter.getAction() != null)
          sql += " where " + getClause(checkListOperation(item, filter));
@@ -146,6 +134,8 @@ public class JdbcRepository implements Repository<Map>, Closeable {
 
    @Override
    public Map getOne(String item, Object id) {
+      if (!items.contains(item))
+         return null;
       Object[] params = configuration.getConverter().convert(id, Object[].class);
       String sql = "select * from " + item +  getFilter(item, getMap(primaryKeys.get(item), params));
       try {
@@ -157,6 +147,8 @@ public class JdbcRepository implements Repository<Map>, Closeable {
 
    @Override
    public Map add(String item, Map entity) {
+      if (!items.contains(item))
+         return null;
       String[] keys = primaryKeys.get(item);
       if (keys == null)
          keys = new String[0];
@@ -166,6 +158,8 @@ public class JdbcRepository implements Repository<Map>, Closeable {
 
    @Override
    public Map update(String item, Map entity) {
+      if (!items.contains(item))
+         return null;
       String[] keys = primaryKeys.get(item);
       if (keys == null)
          return null;
@@ -186,10 +180,39 @@ public class JdbcRepository implements Repository<Map>, Closeable {
 
    @Override
    public boolean remove(String item, Object id) {
+      if (!items.contains(item))
+         return false;
       Object[] params = configuration.getConverter().convert(id, Object[].class);
       String sql = "delete from " + item + getFilter(item, getMap(primaryKeys.get(item), params));
       try { return statement.executeUpdate(sql) > 0; }
       catch (SQLException e) { throw new RuntimeException(e); }
+   }
+
+   @Override
+   public void createItem(String item, Object definition) throws IllegalArgumentException {
+      if (items.contains(item))
+         throw new IllegalArgumentException("Item "+item+" already exists");
+      if (!(definition instanceof Map))
+         throw new IllegalArgumentException("Item definition must be a Map");
+      Map map = (Map)definition;
+      if (map.isEmpty())
+         throw new IllegalArgumentException("Definition does not contain any field");
+      String primaryKey = null;
+      String first = null;
+      String sql = "create table "+item+" {";
+      for (Object key : map.keySet()) {
+         String name = key.toString();
+         if (first == null)
+            first = name;
+         else
+            sql += ",";
+         sql += "\n   "+name+" "+getFieldDefinition(map.get(key));
+      }
+      try {
+         statement.executeUpdate(sql+"\n}");
+         loadItems(false);
+      }
+      catch (SQLException e) { throw new IllegalArgumentException("Cannot create item "+item+": "+e, e); }
    }
 
    @Override
@@ -204,6 +227,30 @@ public class JdbcRepository implements Repository<Map>, Closeable {
          catch (Exception e) {}
          connection = null;
       }
+   }
+
+   private void loadItems(boolean reloadConnection) {
+      try {
+         if (reloadConnection || connection == null)
+            openConnection();
+         DatabaseMetaData dmd = connection.getMetaData();
+         ResultSet rs = dmd.getTables(info.getDatabase(), null, null, null);
+         while (rs.next()) {
+            String type = rs.getString("table_type").toLowerCase();
+            if (type.equals("table")) {
+               String table = rs.getString("table_name");
+               List<String> keys = new ArrayList<>();
+               ResultSet rs2 = dmd.getPrimaryKeys(null, null, table);
+               while (rs2.next())
+                  keys.add(rs2.getString("COLUMN_NAME").toLowerCase());
+               primaryKeys.put(table.toLowerCase(), keys.toArray(new String[keys.size()]));
+               rs2.close();
+            }
+         }
+         rs.close();
+      }
+      catch (SQLException | IOException e) { throw new RuntimeException(e); }
+      finally { items = new TreeSet<>(primaryKeys.keySet()); }
    }
 
    private Map doInsert(String item, Map entity, String[] keys) throws SQLException {
@@ -281,7 +328,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
 
    private String getClause(Expression exp) {
       Operator op = getOperator(exp.getAction());
-      Object[] tokens = exp.getTokens();
+      Object[] tokens = exp.getArguments();
       if (tokens == null || tokens.length == 0)
          tokens = new Reference[2];
       else if (tokens.length < 2)
@@ -332,7 +379,7 @@ public class JdbcRepository implements Repository<Map>, Closeable {
          Expression exp = (Expression)value;
          if (exp.getAction() != null)
             return (printOperator ? " = " : "") + "(" + getClause(exp) + ")";
-         value = exp.getTokens();
+         value = exp.getArguments();
       }
       if (value instanceof Property)
          return ((Property)value).getId();
@@ -398,6 +445,65 @@ public class JdbcRepository implements Repository<Map>, Closeable {
       catch (Exception e) {
          throw new IOException("Connection to " + info.getUrl() + " failed: " + e.toString(), e);
       }
+   }
+
+   private String getFieldDefinition(Object def) {
+      if (def instanceof Class)
+         return getSqlType((Class)def);
+      if (def instanceof CharSequence)
+         return def.toString();
+      if (def == null)
+         return "";
+      if (def.getClass().isArray())
+         def = new ArrayWrapper(def);
+      if (def instanceof Collection) {
+         StringJoiner joiner = new StringJoiner(" ");
+         for (Object e : (Collection)def)
+            joiner.add(getFieldDefinition(e));
+         return joiner.toString();
+      }
+      throw new IllegalArgumentException("Invalid definition element type: "+def.getClass().getName());
+   }
+
+   private String getSqlType(Class type) {
+      if (CharSequence.class.isAssignableFrom(type))
+         return "text";
+      if (Character.class.isAssignableFrom(type))
+         return "char(1)";
+      if (Date.class.isAssignableFrom(type)) {
+         if (java.sql.Date.class.isAssignableFrom(type))
+            return "date";
+         if (java.sql.Time.class.isAssignableFrom(type))
+            return "time";
+         return "timestamp";
+      }
+      if (Boolean.class.isAssignableFrom(type))
+         return info.getVendor().isHasBoolean() ? "boolean" : "tinyint";
+      if (Number.class.isAssignableFrom(type)) {
+         if (Byte.class.isAssignableFrom(type))
+            return "tinyint";
+         if (Short.class.isAssignableFrom(type))
+            return "smallint";
+         if (Integer.class.isAssignableFrom(type))
+            return "int";
+         if (Long.class.isAssignableFrom(type))
+            return "bigint";
+         if (Float.class.isAssignableFrom(type))
+            return "real";
+         if (Double.class.isAssignableFrom(type))
+            return "float";
+         if (BigInteger.class.isAssignableFrom(type))
+            return "bigint";
+         //TODO: check for primitives
+         return "numeric";
+      }
+      if (byte[].class.isAssignableFrom(type))
+         return "binary";
+      if (Blob.class.isAssignableFrom(type))
+         return "blob";
+      if (Clob.class.isAssignableFrom(type))
+         return "clob";
+      throw new IllegalArgumentException("Unknown data type: "+type.getName());
    }
 
    private Class getJavaType(Object sqlType) {

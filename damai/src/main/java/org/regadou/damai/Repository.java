@@ -22,4 +22,6 @@ public interface Repository<T> {
    T update(String item, T entity);
 
    boolean remove(String item, Object id);
+
+   void createItem(String item, Object definition) throws IllegalArgumentException;
 }

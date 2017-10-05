@@ -435,12 +435,31 @@ public class Bootstrap implements Configuration, Converter {
          case 1:
             return newInstance(constructors[0]);
          default:
+            Constructor noarg = null;
+            List<Constructor> withargs = new ArrayList<>();
+            List<Constructor> inject = new ArrayList<>();
+            Class Inject;
+            try { Inject = Class.forName("javax.inject.Inject"); }
+            catch (ClassNotFoundException e) { Inject = null; }
             for (Constructor c : constructors) {
-               Object result = newInstance(c);
-               if (result != null)
-                  return result;
+               if (c.getParameterCount() == 0)
+                  noarg = c;
+               else if (Inject != null && c.getAnnotation(Inject) != null)
+                  inject.add(c);
+               else
+                  withargs.add(c);
             }
-            return null;
+
+            Constructor c;
+            if (inject.size() == 1)
+               c = inject.get(0);
+            else if (withargs.size() == 1)
+               c = withargs.get(0);
+            else if (noarg != null)
+               c = noarg;
+            else
+               return null;
+            return newInstance(c);
       }
    }
 

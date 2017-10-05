@@ -88,9 +88,16 @@ public class FileSystemRepository implements Repository<UrlReference> {
       File file = new File(folder + "/" + item);
       if (file.isDirectory()) {
          for (File f : file.listFiles()) {
-            ScriptContext cx = new PropertiesScriptContext(item, configuration.getPropertyManager(),
-                                                                 configuration.getContextFactory());
-            if (!comparator.isEmpty(filter.getValue(cx))) {
+            boolean toadd;
+            if (filter == null)
+               toadd = true;
+            else {
+               ScriptContext cx = new PropertiesScriptContext(item, configuration.getPropertyManager(),
+                                                                    configuration.getContextFactory());
+               toadd = false == comparator.isEmpty(filter.getValue(cx));
+            }
+
+            if (toadd) {
                try { found.add(new UrlReference(f, configuration)); }
                catch (MalformedURLException e) { throw new RuntimeException(e); }
             }
@@ -121,6 +128,16 @@ public class FileSystemRepository implements Repository<UrlReference> {
       throw new RuntimeException("FileSystemRepository does not support remove method yet! Coming soon ...");
    }
 
+   @Override
+   public void createItem(String item, Object definition) throws IllegalArgumentException {
+      File file = new File(folder + "/" + item);
+      if (file.exists())
+         throw new IllegalArgumentException("Item "+item+" already exists");
+      if (!file.mkdir())
+         throw new IllegalArgumentException("Problem occured while creating item "+item);
+      getItems();
+   }
+
    private void validateFile(File file, Configuration configuration) {
        if (!file.isDirectory())
          throw new RuntimeException(file+" is not a directory");
@@ -129,6 +146,7 @@ public class FileSystemRepository implements Repository<UrlReference> {
       this.factory = configuration.getPropertyManager().getPropertyFactory(File.class);
       this.comparator = new GenericComparator(configuration);
       this.equals = new BinaryAction(configuration, null, Operator.EQUAL);
+      getItems();
    }
 
    private void validateUrl(URL url, Configuration configuration) {

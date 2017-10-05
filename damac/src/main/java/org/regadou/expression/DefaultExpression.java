@@ -6,7 +6,6 @@ import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import org.regadou.action.ActionBuilder;
-import org.regadou.action.BinaryAction;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
@@ -24,7 +23,7 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
    private Configuration configuration;
    private ScriptEngine engine;
    private String text;
-   private List<Reference> tokens = new ArrayList<>();
+   private List<Reference> arguments = new ArrayList<>();
    private Action action;
 
    public DefaultExpression(ScriptEngine engine, Collection<Reference> tokens, Configuration configuration) {
@@ -40,7 +39,7 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
       this.engine = engine;
       this.configuration = configuration;
       if (expressions != null)
-         tokens = Arrays.asList(expressions);
+         arguments = Arrays.asList(expressions);
       action = EVAL_ACTION;
    }
 
@@ -48,7 +47,7 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
    public String toString() {
       if (text == null) {
          text = (action == null) ? "" : action.getName();
-         for (Object token : tokens) {
+         for (Object token : arguments) {
             if (!text.isEmpty())
                text += " ";
             text += String.valueOf(token);
@@ -96,23 +95,23 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
    }
 
    @Override
-   public Reference[] getTokens() {
-      return tokens.toArray(new Reference[tokens.size()]);
+   public Reference[] getArguments() {
+      return arguments.toArray(new Reference[arguments.size()]);
    }
 
    @Override
    public void addToken(Reference token) {
       text = null;
       if (action == null && (action = isAction(token)) != null) {
-         if (tokens.size() > 1) {
+         if (arguments.size() > 1) {
              //TODO: try to make an entity out of it
-            Reference subject = new GenericReference(null, tokens);
-            tokens = new ArrayList();
-            tokens.add(subject);
+            Reference subject = new GenericReference(null, arguments);
+            arguments = new ArrayList();
+            arguments.add(subject);
          }
       }
       else
-         tokens.add(token);
+         arguments.add(token);
    }
 
    @Override
@@ -128,10 +127,10 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
       try {
          if (action != null) {
             Object value;
-            if (tokens.isEmpty())
+            if (arguments.isEmpty())
                value = action;
             else
-               value = action.execute(tokens.toArray());
+               value = action.execute(arguments.toArray());
             if (value instanceof Reference)
                return (Reference)value;
             else if (value instanceof Map.Entry)
@@ -140,15 +139,15 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
                return new GenericReference(null, value);
          }
          else {
-            switch (tokens.size()) {
+            switch (arguments.size()) {
                case 0:
                   return null;
                case 1:
-                  return tokens.get(0);
+                  return arguments.get(0);
                default:
-                  if (tokens.get(0) instanceof Expression) {
+                  if (arguments.get(0) instanceof Expression) {
                      Reference result = null;
-                     for (Reference token : tokens) {
+                     for (Reference token : arguments) {
                         if (token instanceof Expression)
                            result = toReference(((Expression)token).getValue(context));
                         else
@@ -157,7 +156,7 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
                      return result;
                   }
                   //TODO: check if we have properties enumeration for an entity
-                  return new GenericReference(null, tokens);
+                  return new GenericReference(null, arguments);
             }
          }
       }
@@ -168,7 +167,7 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
    }
 
    public boolean isEmpty() {
-      return action == null && tokens.isEmpty();
+      return action == null && arguments.isEmpty();
    }
 
    public Action isAction(Object token) {

@@ -83,7 +83,7 @@ public class PrecedenceExpression extends DefaultExpression {
    }
 
    @Override
-   public Reference[] getTokens() {
+   public Reference[] getArguments() {
       if (param2 == null)
          return (param1 == null) ? new Reference[0] : new Reference[]{getReference(param1)};
       if (param1 == null)

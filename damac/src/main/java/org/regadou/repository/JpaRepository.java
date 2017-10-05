@@ -153,6 +153,11 @@ public class JpaRepository implements Repository<Map> {
       });
    }
 
+   @Override
+   public void createItem(String item, Object definition) throws IllegalArgumentException {
+      throw new RuntimeException("JpaRepository does not support createItem method yet! Coming soon ...");
+   }
+
    private <T> T transaction(Function<EntityManager, T> function) {
       EntityManager manager = factory.createEntityManager();
       EntityTransaction t = manager.getTransaction();

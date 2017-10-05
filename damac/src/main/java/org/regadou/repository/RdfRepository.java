@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Namespace;
 import org.regadou.damai.PropertyManager;
@@ -15,6 +14,8 @@ import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 import org.regadou.factory.ResourcePropertyFactory;
 import org.regadou.collection.FilterableIterable;
+import org.regadou.damai.Reference;
+import org.regadou.resource.DefaultNamespace;
 
 public class RdfRepository implements Repository<Resource> {
 
@@ -117,11 +118,32 @@ public class RdfRepository implements Repository<Resource> {
       return false;
    }
 
+   @Override
+   public void createItem(String item, Object definition) throws IllegalArgumentException {
+      if (resources.containsKey(item))
+         throw new IllegalArgumentException("Item "+item+" already exists");
+      if (!(definition instanceof CharSequence))
+         throw new IllegalArgumentException("Item definition must be a CharSequence");
+      Namespace ns = new DefaultNamespace(item, definition.toString(), this);
+      if (!resourceManager.registerNamespace(ns))
+         throw new IllegalArgumentException("Cannot register namespace "+ns);
+      addItem(item);
+   }
+
    private String getLocalName(Object id, String item) {
       if (id != null) {
          String name = id.toString();
-         if (name.startsWith(item+":"))
-            return name.substring(item.length()+1);
+         int index = name.indexOf(':');
+         if (index < 0)
+            return name;
+         if (name.substring(0, index).equals(item))
+            return name.substring(index+1);
+         Reference r = resourceManager.getResource(item+":");
+         if (r != null) {
+            String uri = r.getValue().toString();
+            if (name.startsWith(uri))
+               return name.substring(uri.length());
+         }
       }
       return null;
    }
@@ -131,12 +153,8 @@ public class RdfRepository implements Repository<Resource> {
          String name = getLocalName(entity.getId(), item);
          if (name != null) {
             Map<String,Resource> map = resources.get(item);
-            if (map == null) {
-               map = new TreeMap<>();
-               map.put("", (Namespace)resourceManager.getResource(item+":"));
-               resources.put(item, map);
-               items.add(item);
-            }
+            if (map == null)
+               map = addItem(item);
             else if (map.containsKey(name) && !overwrite)
                return null;
             map.put(name, entity);
@@ -144,6 +162,14 @@ public class RdfRepository implements Repository<Resource> {
          }
       }
       return null;
+   }
+
+   private Map<String,Resource> addItem(String item) {
+      Map<String,Resource> map = new TreeMap<>();
+      map.put("", (Namespace)resourceManager.getResource(item+":"));
+      resources.put(item, map);
+      items.add(item);
+      return map;
    }
 
 }

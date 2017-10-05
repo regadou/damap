@@ -69,5 +69,5 @@ public class DefaultNamespace implements Namespace {
    }
 
    @Override
-   public void setValue(Object value) {}
+   public void setValue(String value) {}
 }

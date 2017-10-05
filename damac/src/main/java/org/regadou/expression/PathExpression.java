@@ -61,7 +61,7 @@ public class PathExpression implements Expression<Reference> {
    }
 
    @Override
-   public Reference[] getTokens() {
+   public Reference[] getArguments() {
       List<Reference> tokens = new ArrayList<>();
       tokens.add(new GenericReference(null, path, true));
       if (data != null)
