@@ -32,12 +32,12 @@ public abstract class TypedProperty<P,T> extends TypedReference<T> implements Pr
    }
 
    @Override
-   public P getParent() {
+   public P getOwner() {
       return parent;
    }
 
    @Override
-   public Class<P> getParentType() {
+   public Class<P> getOwnerType() {
       return parentType;
    }
 }

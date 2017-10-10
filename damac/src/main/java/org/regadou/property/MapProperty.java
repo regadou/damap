@@ -23,12 +23,12 @@ public class MapProperty extends TypedProperty<Map,Object> {
 
    @Override
    public Object getValue() {
-      return getParent().get(key);
+      return getOwner().get(key);
    }
 
    @Override
    public void setValue(Object value) {
-      getParent().put(key, value);
+      getOwner().put(key, value);
    }
 
 }

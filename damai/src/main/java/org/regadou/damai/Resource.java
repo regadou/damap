@@ -4,25 +4,34 @@ public interface Resource<T> extends Reference<T> {
 
    @Override
    default String getId() {
-      Namespace ns = getNamespace();
+      Reference owner = getOwner();
       String name = getLocalName();
-      if (ns == null)
-         return (name == null) ? null : name;
-      else if (name == null)
-         return ns.getPrefix() + ":";
-      else
-         return ns.getPrefix() + ":" + name;
+      if (owner == null)
+         return name;
+      Object value = owner.getValue();
+      while (value instanceof Reference)
+         value = ((Reference)value).getValue();
+      if (value instanceof Namespace)
+         return ((Namespace)value).getPrefix() + ":" + ((name == null) ? "" : name);
+      String id = owner.getId();
+      if (id == null)
+         return name;
+      if (id.endsWith("/") || id.endsWith("#") || id.endsWith(":"))
+         return id + ((name == null) ? "" : name);
+      else if (id.contains("/"))
+         return id + "/" + ((name == null) ? "" : name);
+      return id + ":" + name;
    }
 
    String getLocalName();
 
-   Namespace getNamespace();
+   Reference getOwner();
 
    String[] getProperties();
 
-   Resource getProperty(Resource property);
+   Reference getProperty(String property);
 
-   void setProperty(Resource property, Resource value);
+   void setProperty(String property, Reference value);
 
-   boolean addProperty(Resource property, Resource value);
+   boolean addProperty(String property, Reference value);
 }

@@ -1,6 +1,5 @@
 package org.regadou.resource;
 
-import java.util.Collection;
 import org.regadou.damai.Namespace;
 import org.regadou.damai.Repository;
 import org.regadou.damai.Resource;
@@ -46,28 +45,4 @@ public class DefaultNamespace implements Namespace {
    public Repository getRepository() {
       return repository;
    }
-
-   @Override
-   public String[] getProperties() {
-      Collection<Object> ids = repository.getIds(prefix);
-      return ids.toArray(new String[ids.size()]);
-   }
-
-   @Override
-   public Resource getProperty(Resource property) {
-      return repository.getOne(prefix, property);
-   }
-
-   @Override
-   public void setProperty(Resource property, Resource value) {
-      repository.update(prefix, value);
-   }
-
-   @Override
-   public boolean addProperty(Resource property, Resource value) {
-      return repository.add(prefix, value) != null;
-   }
-
-   @Override
-   public void setValue(String value) {}
 }

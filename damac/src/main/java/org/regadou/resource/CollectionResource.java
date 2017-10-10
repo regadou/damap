@@ -5,24 +5,20 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import org.regadou.damai.Converter;
 import org.regadou.damai.Namespace;
+import org.regadou.damai.Reference;
 import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
+import org.regadou.reference.GenericReference;
 
-public class CollectionResource extends LinkedHashSet<Resource> implements Resource {
-
-   private static final String[] PROPERTIES = {"size"};
+public class CollectionResource extends LinkedHashSet<Reference> implements Resource {
 
    private String id;
-   private ResourceManager resourceManager;
-   private Converter converter;
    private Namespace namespace;
 
-   public CollectionResource(ResourceManager resourceManager, Converter converter, Resource...resources) {
+   public CollectionResource(ResourceManager resourceManager, Reference...values) {
       super();
-      for (Resource r : resources)
+      for (Reference r : values)
          add(r);
-      this.resourceManager = resourceManager;
-      this.converter = converter;
       this.id = String.valueOf(hashCode());
       this.namespace = (Namespace)resourceManager.getResource("_:");
    }
@@ -61,32 +57,49 @@ public class CollectionResource extends LinkedHashSet<Resource> implements Resou
    }
 
    @Override
-   public Namespace getNamespace() {
-      return namespace;
+   public Reference getOwner() {
+      return (namespace == null) ? null: new GenericReference(id, namespace, true);
    }
 
    @Override
    public String[] getProperties() {
-      return PROPERTIES;
+      return "rdf:type,size".split(",");
    }
 
    @Override
-   public Resource getProperty(Resource property) {
+   public Reference getProperty(String property) {
       //TODO: we must support @id, rdf:type, rdf:_#
-      if (property.toString().equals(PROPERTIES[0]))
-         return new LiteralResource(size(), resourceManager, converter);
+      switch (property) {
+         case "rdf:type":
+            return wrap(Collection.class);
+         case "size":
+            return wrap(size());
+         default:
+            if (property.startsWith("rdf:_"))
+               property = property.substring(5);
+            try {
+               int index = Integer.parseInt(property);
+               if (index >= 0 && index < size())
+                  return wrap(toArray()[index]);
+            }
+            catch (NumberFormatException e) {}
+      }
       return null;
    }
 
    @Override
-   public void setProperty(Resource property, Resource value) {
+   public void setProperty(String property, Reference value) {
       clear();
       //TODO: detect Collection or array to do addAll() instead
       add(value);
    }
 
    @Override
-   public boolean addProperty(Resource property, Resource value) {
+   public boolean addProperty(String property, Reference value) {
       return add(value);
+   }
+
+   private Reference wrap(Object value) {
+      return (value instanceof Reference) ? (Reference)value : new GenericReference(null, value, true);
    }
 }

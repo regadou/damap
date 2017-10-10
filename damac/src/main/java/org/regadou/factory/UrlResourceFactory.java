@@ -1,6 +1,6 @@
 package org.regadou.factory;
 
-import org.regadou.reference.UrlReference;
+import org.regadou.resource.Url;
 import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.List;
@@ -25,7 +25,7 @@ public class UrlResourceFactory implements ResourceFactory {
 
    @Override
    public Reference getResource(String id) {
-      try { return new UrlReference(id, configuration); }
+      try { return new Url(id, configuration); }
       catch (MalformedURLException e) { return null; }
    }
 

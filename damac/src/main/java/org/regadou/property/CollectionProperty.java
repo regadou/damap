@@ -34,7 +34,7 @@ public class CollectionProperty extends TypedProperty<Collection,Object> {
 
    @Override
    public Object getValue() {
-      Collection parent = getParent();
+      Collection parent = getOwner();
       if (index == null)
          return parent.size();
       if (index < 0 || index > parent.size())
@@ -54,7 +54,7 @@ public class CollectionProperty extends TypedProperty<Collection,Object> {
    public void setValue(Object value) {
       if (index == null || index < 0)
          return;
-      Collection parent = getParent();
+      Collection parent = getOwner();
       while (index > parent.size())
          parent.add(null);
       if (parent.size() == index)

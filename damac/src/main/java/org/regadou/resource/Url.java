@@ -1,4 +1,4 @@
-package org.regadou.reference;
+package org.regadou.resource;
 
 import java.io.Closeable;
 import java.io.File;
@@ -11,34 +11,40 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
 import org.regadou.damai.Configuration;
+import org.regadou.damai.Property;
+import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Reference;
+import org.regadou.damai.Resource;
 import org.regadou.mime.DefaultFileTypeMap;
+import org.regadou.reference.GenericReference;
 import org.regadou.repository.FileSystemRepository;
 
-public class UrlReference implements Reference, Closeable {
+public class Url implements Resource, Closeable {
 
    private Configuration configuration;
    private URL url;
+   private String localName;
+   private Reference parent;
    private String mimetype;
    private URLConnection connection;
    private Object value;
 
-   public UrlReference(URL url, Configuration configuration) {
+   public Url(URL url, Configuration configuration) {
       this.url = url;
       this.configuration = configuration;
    }
 
-   public UrlReference(URI uri, Configuration configuration) throws MalformedURLException {
+   public Url(URI uri, Configuration configuration) throws MalformedURLException {
       this.url = uri.toURL();
       this.configuration = configuration;
    }
 
-   public UrlReference(File file, Configuration configuration) throws MalformedURLException {
+   public Url(File file, Configuration configuration) throws MalformedURLException {
       this.url = file.toURI().toURL();
       this.configuration = configuration;
    }
 
-   public UrlReference(String url, Configuration configuration) throws MalformedURLException {
+   public Url(String url, Configuration configuration) throws MalformedURLException {
       this.url = new URL(url);
       this.configuration = configuration;
    }
@@ -136,14 +142,78 @@ public class UrlReference implements Reference, Closeable {
       catch (Exception e) { throw new RuntimeException("Error setting value for "+url, e); }
    }
 
+   @Override
+   public String getLocalName() {
+      if (localName == null)
+         findParentAndLocalName();
+      return localName;
+   }
+
+   @Override
+   public Reference getOwner() {
+      if (parent == null)
+         findParentAndLocalName();
+      return parent;
+   }
+
+   @Override
+   public String[] getProperties() {
+      return getPropertyFactory().getProperties(getValue());
+   }
+
+   @Override
+   public Reference getProperty(String property) {
+      return getPropertyFactory().getProperty(getValue(), property);
+   }
+
+   @Override
+   public void setProperty(String property, Reference value) {
+      Property p = getPropertyFactory().getProperty(getValue(), property);
+      if (p != null)
+         p.setValue(value);
+   }
+
+   @Override
+   public boolean addProperty(String property, Reference value) {
+      return getPropertyFactory().addProperty(getValue(), property, value) != null;
+   }
+
+   @Override
+   public void close() throws IOException {
+      connection = null;
+   }
+
    private URLConnection getConnection() throws IOException {
       if (connection == null)
          connection = url.openConnection();
       return connection;
    }
 
-   @Override
-   public void close() throws IOException {
-      connection = null;
+   private PropertyFactory getPropertyFactory() {
+      Object v = getValue();
+      Class type = (v == null) ? Void.class : v.getClass();
+      return configuration.getPropertyManager().getPropertyFactory(type);
+   }
+
+   private void findParentAndLocalName() {
+      String uri = url.toString();
+      while (uri.endsWith("#"))
+         uri = uri.substring(0, uri.length()-1);
+      int index = uri.lastIndexOf('#');
+      if (index < 0) {
+         while (uri.endsWith("/"))
+            uri = uri.substring(0, uri.length()-1);
+         index = uri.lastIndexOf('/');
+         if (index < 0) {
+            localName = uri;
+            parent = new GenericReference(null, null, true);
+            return;
+         }
+      }
+      try {
+         parent = new Url(uri.substring(0, index), configuration);
+         localName = uri.substring(index+1);
+      }
+      catch (MalformedURLException e) { throw new RuntimeException(e); }
    }
 }

@@ -196,7 +196,7 @@ public class ActionFunctions {
                result = (Reference)path;
                if (isDestroy && result instanceof Property) {
                   last = result.getId();
-                  Object parent = ((Property)result).getParent();
+                  Object parent = ((Property)result).getOwner();
                   result = (parent instanceof Reference) ? (Reference)parent : new GenericReference(null, parent, true);
                }
             }

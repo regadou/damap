@@ -2,7 +2,7 @@ package org.regadou.factory;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import org.regadou.reference.UrlReference;
+import org.regadou.resource.Url;
 import java.net.MalformedURLException;
 import javax.inject.Inject;
 import org.regadou.action.FieldAction;
@@ -48,7 +48,7 @@ public class NoSchemeResourceFactory implements ResourceFactory {
       File f = new File(id);
       if (!f.exists() && !f.getParentFile().isDirectory())
          return null;
-      try { return new UrlReference(f.toURI().toURL(), configuration); }
+      try { return new Url(f.toURI().toURL(), configuration); }
       catch (MalformedURLException e) { return null; }
    }
 

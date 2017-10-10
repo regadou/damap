@@ -2,7 +2,7 @@ package org.regadou.damai;
 
 public interface Property<P,T> extends Reference<T> {
 
-   P getParent();
+   P getOwner();
 
-   Class<P> getParentType();
+   Class<P> getOwnerType();
 }

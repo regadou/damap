@@ -1,14 +1,15 @@
 package org.regadou.property;
 
 import org.regadou.damai.Property;
+import org.regadou.damai.Reference;
 import org.regadou.damai.Resource;
 
-public class ResourceProperty implements Property<Resource,Resource> {
+public class ResourceProperty implements Property<Resource,Reference> {
 
    private Resource resource;
-   private Resource property;
+   private String property;
 
-   public ResourceProperty(Resource resource, Resource property) {
+   public ResourceProperty(Resource resource, String property) {
       this.resource = resource;
       this.property = property;
    }
@@ -19,32 +20,32 @@ public class ResourceProperty implements Property<Resource,Resource> {
    }
 
    @Override
-   public Resource getParent() {
+   public Resource getOwner() {
       return resource;
    }
 
    @Override
-   public Class<Resource> getParentType() {
+   public Class<Resource> getOwnerType() {
       return Resource.class;
    }
 
    @Override
    public String getId() {
-      return property.toString();
+      return property;
    }
 
    @Override
-   public Resource getValue() {
+   public Reference getValue() {
       return resource.getProperty(property);
    }
 
    @Override
-   public Class<Resource> getType() {
-      return Resource.class;
+   public Class<Reference> getType() {
+      return Reference.class;
    }
 
    @Override
-   public void setValue(Resource value) {
+   public void setValue(Reference value) {
       resource.setProperty(property, value);
    }
 }

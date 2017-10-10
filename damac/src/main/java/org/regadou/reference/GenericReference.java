@@ -5,34 +5,34 @@ import org.regadou.damai.Reference;
 
 public class GenericReference implements Reference {
 
-   private String name;
+   private String id;
    private Object value;
    private boolean readonly;
    private Map.Entry entry;
 
-   public GenericReference(String name) {
-      this.name = name;
+   public GenericReference(String id) {
+      this.id = id;
    }
 
-   public GenericReference(String name, Object value) {
-      this.name = name;
+   public GenericReference(String id, Object value) {
+      this.id = id;
       this.value = value;
    }
 
-   public GenericReference(String name, Object value, boolean readonly) {
-      this.name = name;
+   public GenericReference(String id, Object value, boolean readonly) {
+      this.id = id;
       this.value = value;
       this.readonly = readonly;
    }
 
    @Override
    public String toString() {
-      return (name == null) ? String.valueOf(value) : name;
+      return (id == null) ? String.valueOf(value) : id;
    }
 
    @Override
    public String getId() {
-      return name;
+      return id;
    }
 
    @Override
@@ -57,7 +57,7 @@ public class GenericReference implements Reference {
          entry = new Map.Entry<String,Object>() {
             @Override
             public String getKey() {
-               return name;
+               return id;
             }
 
             @Override

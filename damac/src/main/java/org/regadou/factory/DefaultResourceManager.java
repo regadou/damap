@@ -14,6 +14,7 @@ import org.regadou.damai.ResourceManager;
 import org.regadou.property.ScriptContextProperty;
 import org.regadou.repository.RdfRepository;
 import org.regadou.resource.DefaultNamespace;
+import org.regadou.resource.GenericResource;
 
 public class DefaultResourceManager implements ResourceManager {
 
@@ -30,7 +31,7 @@ public class DefaultResourceManager implements ResourceManager {
       registerFactory(new NoSchemeResourceFactory(this, configuration));
       registerFactory(new UrlResourceFactory(this, configuration));
       registerFactory(new ServerResourceFactory(this, configuration));
-      Repository repo = new RdfRepository(this, configuration.getPropertyManager());
+      Repository repo = new RdfRepository(configuration, this);
       registerNamespace(new DefaultNamespace("_", LOCALHOST, repo));
       //TODO: add other script schemes with a ScriptEngineResourceFactory
    }
@@ -41,7 +42,7 @@ public class DefaultResourceManager implements ResourceManager {
          return null;
       Namespace ns = namespaces.get(id);
       if (ns != null)
-         return ns;
+         return new GenericResource(ns.getPrefix()+":", ns, true, configuration);
 
       int index = id.indexOf(':');
       if (index < 0) {

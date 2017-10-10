@@ -27,12 +27,12 @@ public class RepositoryItemProperty extends TypedProperty<RepositoryItem,Object>
    public Object getValue() {
       if (name == null)
          return null;
-      return getParent().getOne(name);
+      return getOwner().getOne(name);
    }
 
    @Override
    public void setValue(Object value) {
-      RepositoryItem repoItem = getParent();
+      RepositoryItem repoItem = getOwner();
       if (name == null) {
          value = repoItem.insert(value);
          Collection<String> keys = repoItem.getPrimaryKeys();

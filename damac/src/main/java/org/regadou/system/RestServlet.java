@@ -34,7 +34,7 @@ import org.regadou.damai.ScriptContextFactory;
 import org.regadou.reference.InputStreamReference;
 import org.regadou.expression.PathExpression;
 import org.regadou.reference.GenericReference;
-import org.regadou.reference.UrlReference;
+import org.regadou.resource.Url;
 import org.regadou.script.DefaultCompiledScript;
 import org.regadou.collection.EnumerationSet;
 import org.regadou.action.GenericComparator;
@@ -106,7 +106,7 @@ public class RestServlet implements Servlet {
       try {
          URL url = configuration.getInitScript();
          if (url != null) {
-            UrlReference r = new UrlReference(url, configuration);
+            Url r = new Url(url, configuration);
             String mimetype = r.getMimetype();
             ScriptEngine engine = configuration.getEngineManager().getEngineByMimeType(mimetype);
             if (engine instanceof Compilable)

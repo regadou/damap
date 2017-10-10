@@ -45,7 +45,7 @@ public class ScriptContextProperty implements Property<ScriptContext,Object> {
 
    @Override
    public Object getValue() {
-      return (scope != null) ? getParent().getAttribute(name, scope) : getParent().getAttribute(name);
+      return (scope != null) ? getOwner().getAttribute(name, scope) : getOwner().getAttribute(name);
    }
 
    @Override
@@ -55,19 +55,19 @@ public class ScriptContextProperty implements Property<ScriptContext,Object> {
 
    @Override
    public void setValue(Object value) {
-      int scope = (this.scope != null) ? this.scope : getParent().getAttributesScope(name);
+      int scope = (this.scope != null) ? this.scope : getOwner().getAttributesScope(name);
       if (scope < 0)
-         scope = getParent().getScopes().get(0);
-      getParent().setAttribute(name, value, scope);
+         scope = getOwner().getScopes().get(0);
+      getOwner().setAttribute(name, value, scope);
    }
 
    @Override
-   public ScriptContext getParent() {
+   public ScriptContext getOwner() {
       return (cx == null) ? factory.getScriptContext() : cx;
    }
 
    @Override
-   public Class getParentType() {
+   public Class getOwnerType() {
       return ScriptContext.class;
    }
 }

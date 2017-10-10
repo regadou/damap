@@ -26,12 +26,12 @@ public class GenericProperty implements Property {
    }
 
    @Override
-   public Object getParent() {
+   public Object getOwner() {
       return parent;
    }
 
    @Override
-   public Class getParentType() {
+   public Class getOwnerType() {
       return Object.class;
    }
 

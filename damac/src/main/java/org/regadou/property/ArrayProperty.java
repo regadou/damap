@@ -28,12 +28,12 @@ public class ArrayProperty<P,T> implements Property<P,T> {
    }
 
    @Override
-   public P getParent() {
+   public P getOwner() {
       return parent;
    }
 
    @Override
-   public Class getParentType() {
+   public Class getOwnerType() {
       return type.isPrimitive() ? parent.getClass() : Object[].class;
    }
 

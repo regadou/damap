@@ -8,28 +8,29 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Namespace;
-import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Repository;
 import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 import org.regadou.factory.ResourcePropertyFactory;
 import org.regadou.collection.FilterableIterable;
+import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
 import org.regadou.resource.DefaultNamespace;
+import org.regadou.resource.GenericResource;
 
 public class RdfRepository implements Repository<Resource> {
 
    private static final Collection<String> PRIMARY_KEY = Arrays.asList(ResourcePropertyFactory.ID_PROPERTY);
 
    private transient ResourceManager resourceManager;
-   private transient PropertyManager propertyManager;
+   private transient Configuration configuration;
    private transient Map<String,Map<String,Resource>> resources = new TreeMap<>();
    private Collection<String> items = new TreeSet<>();
 
 
-   public RdfRepository(ResourceManager resourceManager, PropertyManager propertyManager) {
+   public RdfRepository(Configuration configuration, ResourceManager resourceManager) {
+      this.configuration = configuration;
       this.resourceManager = resourceManager;
-      this.propertyManager = propertyManager;
    }
 
    @Override
@@ -77,7 +78,7 @@ public class RdfRepository implements Repository<Resource> {
          return Collections.EMPTY_LIST;
       if (filter == null)
          return src.values();
-      return new FilterableIterable<>(propertyManager, src.values()).filter(filter);
+      return new FilterableIterable<>(configuration.getPropertyManager(), src.values()).filter(filter);
    }
 
    @Override
@@ -166,7 +167,8 @@ public class RdfRepository implements Repository<Resource> {
 
    private Map<String,Resource> addItem(String item) {
       Map<String,Resource> map = new TreeMap<>();
-      map.put("", (Namespace)resourceManager.getResource(item+":"));
+      Reference r = resourceManager.getResource(item+":");
+      map.put("", (r instanceof Resource) ? (Resource)r : new GenericResource(r.getId(), r, true, configuration));
       resources.put(item, map);
       items.add(item);
       return map;

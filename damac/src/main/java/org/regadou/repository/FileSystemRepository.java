@@ -18,12 +18,12 @@ import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Repository;
 import org.regadou.expression.SimpleExpression;
-import org.regadou.reference.UrlReference;
+import org.regadou.resource.Url;
 import org.regadou.action.GenericComparator;
 import org.regadou.damai.Action;
 import org.regadou.script.PropertiesScriptContext;
 
-public class FileSystemRepository implements Repository<UrlReference> {
+public class FileSystemRepository implements Repository<Url> {
 
    private static final String PRIMARY_KEY = "name";
 
@@ -83,8 +83,8 @@ public class FileSystemRepository implements Repository<UrlReference> {
    }
 
    @Override
-   public Collection<UrlReference> getAny(String item, Expression filter) {
-      Collection<UrlReference> found = new ArrayList<>();
+   public Collection<Url> getAny(String item, Expression filter) {
+      Collection<Url> found = new ArrayList<>();
       File file = new File(folder + "/" + item);
       if (file.isDirectory()) {
          for (File f : file.listFiles()) {
@@ -98,7 +98,7 @@ public class FileSystemRepository implements Repository<UrlReference> {
             }
 
             if (toadd) {
-               try { found.add(new UrlReference(f, configuration)); }
+               try { found.add(new Url(f, configuration)); }
                catch (MalformedURLException e) { throw new RuntimeException(e); }
             }
          }
@@ -107,19 +107,19 @@ public class FileSystemRepository implements Repository<UrlReference> {
    }
 
    @Override
-   public UrlReference getOne(String item, Object id) {
+   public Url getOne(String item, Object id) {
       Expression filter = new SimpleExpression(configuration, equals, PRIMARY_KEY, id);
-      Collection<UrlReference> found = getAny(item, filter);
+      Collection<Url> found = getAny(item, filter);
       return found.isEmpty() ? null : found.iterator().next();
    }
 
    @Override
-   public UrlReference add(String item, UrlReference entity) {
+   public Url add(String item, Url entity) {
       throw new RuntimeException("FileSystemRepository does not support add method yet! Coming soon ...");
    }
 
    @Override
-   public UrlReference update(String item, UrlReference entity) {
+   public Url update(String item, Url entity) {
       throw new RuntimeException("FileSystemRepository does not support update method yet! Coming soon ...");
    }
 
