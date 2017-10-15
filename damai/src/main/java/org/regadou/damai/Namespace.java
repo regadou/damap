@@ -6,5 +6,5 @@ public interface Namespace {
 
    String getPrefix();
 
-   Repository getRepository();
+   Repository<Resource> getRepository();
 }

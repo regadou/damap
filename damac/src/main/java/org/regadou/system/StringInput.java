@@ -1,4 +1,4 @@
-package org.regadou.util;
+package org.regadou.system;
 
 import java.io.IOException;
 import java.io.InputStream;

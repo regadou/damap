@@ -1,9 +1,9 @@
 package org.regadou.expression;
 
-import org.regadou.property.ScriptContextProperty;
+import org.regadou.resource.ScriptContextResource;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
@@ -37,9 +37,8 @@ public class MapExpression extends DefaultExpression {
    }
 
    private void addCondition(Object key, Object value) {
-      Collection<Reference> tokens = Arrays.asList(
-         new GenericReference(null, Operator.EQUAL, true),
-         new ScriptContextProperty(configuration.getContextFactory(), key.toString()),
+      List<Reference> tokens = Arrays.asList(new GenericReference(null, Operator.EQUAL, true),
+         new ScriptContextResource(configuration, null, key.toString(), null),
          new GenericReference(null, value, true)
       );
       if (getAction() == null) {

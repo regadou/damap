@@ -21,7 +21,6 @@ import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
 import org.regadou.resource.Url;
 import org.regadou.script.InteractiveScript;
-import org.regadou.util.StringInput;
 
 public class Main {
 

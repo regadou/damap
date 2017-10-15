@@ -1,6 +1,6 @@
 package org.regadou.script;
 
-import org.regadou.property.ScriptContextProperty;
+import org.regadou.resource.ScriptContextResource;
 import org.regadou.expression.DefaultExpression;
 import java.io.Reader;
 import java.util.*;
@@ -22,7 +22,7 @@ import org.regadou.number.Complex;
 import org.regadou.number.Probability;
 import org.regadou.number.Time;
 import org.regadou.reference.GenericReference;
-import org.regadou.util.StringInput;
+import org.regadou.system.StringInput;
 
 
 public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
@@ -638,8 +638,7 @@ public class JsonScriptEngine implements ScriptEngine, Compilable, Printable {
          if (r != null)
             return r;
       }
-      return (status.cx != null) ? new ScriptContextProperty(status.cx, txt)
-                                 : new ScriptContextProperty(configuration.getContextFactory(), txt);
+      return new ScriptContextResource(configuration, status.cx, txt, null);
    }
 
    private Reference parseSymbol(ParserStatus status) {

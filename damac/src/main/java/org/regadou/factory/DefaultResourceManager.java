@@ -7,11 +7,11 @@ import java.util.TreeMap;
 import javax.inject.Inject;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Namespace;
-import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
+import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
-import org.regadou.property.ScriptContextProperty;
+import org.regadou.resource.ScriptContextResource;
 import org.regadou.repository.RdfRepository;
 import org.regadou.resource.DefaultNamespace;
 import org.regadou.resource.GenericResource;
@@ -37,17 +37,17 @@ public class DefaultResourceManager implements ResourceManager {
    }
 
    @Override
-   public Reference getResource(String id) {
+   public Resource getResource(String id) {
       if (id == null || id.trim().isEmpty())
          return null;
       Namespace ns = namespaces.get(id);
       if (ns != null)
-         return new GenericResource(ns.getPrefix()+":", ns, true, configuration);
+         return new GenericResource(ns.getPrefix()+":", ns, null, true, configuration);
 
       int index = id.indexOf(':');
       if (index < 0) {
          if (nullSchemeFactory != null) {
-            Reference r = nullSchemeFactory.getResource(id);
+            Resource r = nullSchemeFactory.getResource(id);
             if (r != null)
                return r;
          }
@@ -58,7 +58,7 @@ public class DefaultResourceManager implements ResourceManager {
             return factory.getResource(id);
       }
 
-      return new ScriptContextProperty(configuration.getContextFactory(), id);
+      return new ScriptContextResource(configuration, null, id, null);
    }
 
    @Override

@@ -26,7 +26,7 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
    private List<Reference> arguments = new ArrayList<>();
    private Action action;
 
-   public DefaultExpression(ScriptEngine engine, Collection<Reference> tokens, Configuration configuration) {
+   public DefaultExpression(ScriptEngine engine, List<Reference> tokens, Configuration configuration) {
       this.engine = engine;
       this.configuration = configuration;
       if (tokens != null) {

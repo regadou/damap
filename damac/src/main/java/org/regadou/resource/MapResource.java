@@ -10,16 +10,16 @@ import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 import org.regadou.reference.GenericReference;
 
-public class DefaultResource implements Resource {
+public class MapResource implements Resource<Map<String,CollectionResource>> {
 
-   private String id;
+   private String localName;
    private Namespace namespace;
    private Map<String,CollectionResource> properties = new LinkedHashMap<>();
    protected transient ResourceManager resourceManager;
    protected transient Converter converter;
 
-   public DefaultResource(String id, Namespace namespace, ResourceManager resourceManager, Converter converter) {
-      this.id = id;
+   public MapResource(String localName, Namespace namespace, ResourceManager resourceManager, Converter converter) {
+      this.localName = localName;
       this.namespace = namespace;
       this.resourceManager = resourceManager;
       this.converter = converter;
@@ -41,8 +41,28 @@ public class DefaultResource implements Resource {
    }
 
    @Override
-   public Object getValue() {
-//TODO: transform it into proper java instance
+   public String getId() {
+      Reference owner = getOwner();
+      String name = getLocalName();
+      if (owner == null)
+         return name;
+      Object value = owner.getValue();
+      while (value instanceof Reference)
+         value = ((Reference)value).getValue();
+      if (value instanceof Namespace)
+         return ((Namespace)value).getPrefix() + ":" + ((name == null) ? "" : name);
+      String id = owner.getId();
+      if (id == null)
+         return name;
+      if (id.endsWith("/") || id.endsWith("#") || id.endsWith(":"))
+         return id + ((name == null) ? "" : name);
+      else if (id.contains("/"))
+         return id + "/" + ((name == null) ? "" : name);
+      return id + ":" + name;
+   }
+
+   @Override
+   public Map<String,CollectionResource> getValue() {
       return properties;
    }
 
@@ -60,19 +80,19 @@ public class DefaultResource implements Resource {
    }
 
    @Override
-   public void setValue(Object value) {
+   public void setValue(Map<String,CollectionResource> value) {
 //TODO: we need the algoritm to transform a java instance into a rdf resource
 //      properties = value;
    }
 
    @Override
    public Reference getOwner() {
-      return (namespace == null) ? null: new GenericReference(id, namespace, true);
+      return (namespace == null) ? null: new GenericReference(namespace.getPrefix()+":", namespace, true);
    }
 
    @Override
    public String getLocalName() {
-      return id;
+      return localName;
    }
 
    @Override

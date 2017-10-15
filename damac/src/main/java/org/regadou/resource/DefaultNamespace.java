@@ -42,7 +42,7 @@ public class DefaultNamespace implements Namespace {
    }
 
    @Override
-   public Repository getRepository() {
+   public Repository<Resource> getRepository() {
       return repository;
    }
 }

@@ -1,6 +1,6 @@
 package org.regadou.script;
 
-import org.regadou.property.ScriptContextProperty;
+import org.regadou.resource.ScriptContextResource;
 import org.regadou.expression.DefaultExpression;
 import org.regadou.number.Time;
 import org.regadou.number.Complex;
@@ -21,7 +21,7 @@ import javax.script.SimpleBindings;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
-import org.regadou.util.StringInput;
+import org.regadou.system.StringInput;
 
 public class SexlScriptEngine implements ScriptEngine, Compilable {
 
@@ -549,8 +549,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
          if (r != null)
             return r;
       }
-      return (status.cx != null) ? new ScriptContextProperty(status.cx, txt)
-                                 : new ScriptContextProperty(configuration.getContextFactory(), txt);
+      return new ScriptContextResource(configuration, status.cx, txt, null);
    }
 
    private Reference parseSymbol(ParserStatus status) {
@@ -582,8 +581,7 @@ public class SexlScriptEngine implements ScriptEngine, Compilable {
          case ",":
             return END_OF_EXPRESSION;
       }
-      return (status.cx != null) ? new ScriptContextProperty(status.cx, txt)
-                                 : new ScriptContextProperty(configuration.getContextFactory(), txt);
+      return new ScriptContextResource(configuration, status.cx, txt, null);
    }
 
    private Reference parseComment(ParserStatus status, char end) {

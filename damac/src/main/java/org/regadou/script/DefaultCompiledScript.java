@@ -7,7 +7,7 @@ import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import org.regadou.damai.Configuration;
-import org.regadou.util.StringInput;
+import org.regadou.system.StringInput;
 
 public class DefaultCompiledScript extends CompiledScript {
 

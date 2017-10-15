@@ -3,7 +3,6 @@ package org.regadou.resource;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import org.regadou.damai.Converter;
 import org.regadou.damai.Namespace;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Resource;
@@ -36,6 +35,11 @@ public class CollectionResource extends LinkedHashSet<Reference> implements Reso
    @Override
    public int hashCode() {
       return toString().hashCode();
+   }
+
+   @Override
+   public String getId() {
+      return null;
    }
 
    @Override

@@ -382,7 +382,7 @@ public class ActionFunctions {
       if (src instanceof Expression)
          return (Expression)src;
       Reference token = (src instanceof Reference) ? (Reference)src : new GenericReference(null, src, true);
-      return new DefaultExpression(null, Collections.singleton(token), configuration);
+      return new DefaultExpression(null, Collections.singletonList(token), configuration);
    }
 
    private boolean getBoolean(Object src) {

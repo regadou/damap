@@ -11,7 +11,7 @@ import javax.script.ScriptException;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.Printable;
-import org.regadou.util.StringInput;
+import org.regadou.system.StringInput;
 
 public class ScriptEngineMimeHandler implements MimeHandler {
 

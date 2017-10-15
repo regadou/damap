@@ -2,6 +2,7 @@ package org.regadou.factory;
 
 import org.regadou.damai.Namespace;
 import org.regadou.damai.Reference;
+import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
 import org.regadou.reference.GenericReference;
@@ -19,7 +20,7 @@ public class NamespaceResourceFactory implements ResourceFactory {
    }
 
    @Override
-   public Reference getResource(String id) {
+   public Resource getResource(String id) {
       String name;
       if (id.startsWith(namespace.getPrefix()+":"))
          name = id.substring(namespace.getPrefix().length()+1);
@@ -27,13 +28,7 @@ public class NamespaceResourceFactory implements ResourceFactory {
          name = id.substring(namespace.getUri().length());
       else
          return null;
-      Object value = namespace.getRepository().getOne(namespace.getPrefix(), name);
-      if (value == null)
-         return null;
-      else if (value instanceof Reference)
-         return (Reference)value;
-      else
-         return new GenericReference(id, value, true);
+      return namespace.getRepository().getOne(namespace.getPrefix(), name);
    }
 
    @Override

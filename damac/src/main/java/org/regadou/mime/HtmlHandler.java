@@ -10,7 +10,7 @@ import org.regadou.damai.Configuration;
 import org.regadou.damai.MimeHandler;
 import org.regadou.damai.Reference;
 import org.regadou.reference.MapEntryReference;
-import org.regadou.util.StringInput;
+import org.regadou.system.StringInput;
 
 public class HtmlHandler implements MimeHandler {
 

@@ -1,6 +1,6 @@
 package org.regadou.expression;
 
-import org.regadou.property.ScriptContextProperty;
+import org.regadou.resource.ScriptContextResource;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -104,7 +104,7 @@ public class SimpleExpression extends PrecedenceExpression {
                   token = keywords.get(word);
                else {
                   try { token = new Double(word); }
-                  catch (Exception e) { token = new ScriptContextProperty(configuration.getContextFactory(), word); }
+                  catch (Exception e) { token = new ScriptContextResource(configuration, null, word, null); }
                }
                addTokens(token);
                break;

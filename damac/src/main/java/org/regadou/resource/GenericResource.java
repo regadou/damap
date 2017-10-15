@@ -9,30 +9,37 @@ import org.regadou.reference.GenericReference;
 
 public class GenericResource implements Resource {
 
-   private String id;
+   private String localName;
    private Object value;
+   private Object owner;
    private boolean readonly;
    private Configuration configuration;
-   private String localName;
-   private Namespace namespace;
 
-   public GenericResource(String id, Object value, boolean readonly, Configuration configuration) {
+   public GenericResource(String localName, Object value, Object owner, boolean readonly, Configuration configuration) {
       while (value instanceof Reference)
          value = ((Reference)value).getValue();
-      this.id = id;
+      this.localName = localName;
       this.value = value;
+      this.owner = owner;
       this.readonly = readonly;
       this.configuration = configuration;
    }
 
    @Override
    public String toString() {
-      return getId();
+      return (localName == null) ? super.toString() : getId();
    }
 
    @Override
    public String getId() {
-      return id;
+      if (localName == null)
+         return null;
+      if (owner instanceof Reference) {
+         String ownerId = ((Reference)owner).getId();
+         if (ownerId != null)
+            return localName+"@"+ownerId;
+      }
+      return localName;
    }
 
    @Override
@@ -53,16 +60,16 @@ public class GenericResource implements Resource {
 
    @Override
    public String getLocalName() {
-      if (localName == null)
-         detectLocalNameAndNamespace();
       return localName;
    }
 
    @Override
    public Reference getOwner() {
-      if (namespace == null)
-         detectLocalNameAndNamespace();
-      return new GenericReference(namespace.getPrefix(), namespace, true);
+      if (owner == null)
+         return null;
+      if (owner instanceof Reference)
+         return (Reference)owner;
+      return new GenericReference(null, owner, true);
    }
 
    @Override
@@ -93,9 +100,5 @@ public class GenericResource implements Resource {
       Property p = configuration.getPropertyManager().getPropertyFactory(type)
                                 .addProperty(this.value, property, value.getValue());
       return p != null;
-   }
-
-   private void detectLocalNameAndNamespace() {
-
    }
 }

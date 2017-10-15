@@ -8,7 +8,6 @@ import java.util.StringJoiner;
 import java.util.TreeMap;
 import javax.script.ScriptContext;
 import org.regadou.action.ActionBuilder;
-import org.regadou.action.BinaryAction;
 import org.regadou.damai.Action;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
@@ -16,7 +15,6 @@ import org.regadou.damai.Expression;
 import org.regadou.damai.Reference;
 import org.regadou.reference.GenericReference;
 import org.regadou.action.GenericComparator;
-import org.regadou.damai.Operator;
 
 public class PathExpression implements Expression<Reference> {
 

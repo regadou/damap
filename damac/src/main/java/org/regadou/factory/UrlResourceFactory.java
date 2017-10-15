@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import javax.inject.Inject;
 import org.regadou.damai.Configuration;
-import org.regadou.damai.Reference;
+import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
 
@@ -24,7 +24,7 @@ public class UrlResourceFactory implements ResourceFactory {
    }
 
    @Override
-   public Reference getResource(String id) {
+   public Resource getResource(String id) {
       try { return new Url(id, configuration); }
       catch (MalformedURLException e) { return null; }
    }

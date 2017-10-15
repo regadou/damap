@@ -9,9 +9,10 @@ import java.io.Writer;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
@@ -26,7 +27,7 @@ public class TcpServer implements Closeable {
    private ScriptContextFactory contextFactory;
    private ScriptEngineManager engineManager;
    private ServerSocket server;
-   private Map<Socket,InteractiveScript> clients = new LinkedHashMap<>();
+   private Map<Socket,InteractiveScript> clients = new ConcurrentHashMap<>();
    private long sleep = 1000;
    private AtomicBoolean running = new AtomicBoolean(false);
 
@@ -42,7 +43,8 @@ public class TcpServer implements Closeable {
          listen();
    }
 
-   public String getUri() {
+   @Override
+   public String toString() {
       return address;
    }
 
@@ -59,11 +61,35 @@ public class TcpServer implements Closeable {
          close((Socket)iter.next());
    }
 
-   public void listen() {
+   public String getUri() {
+      return address;
+   }
+
+   public Collection<InteractiveScript> getClients() {
+      return clients.values();
+   }
+
+   public boolean isRunning() {
+      return running.get();
+   }
+
+   public void setRunning(boolean run) {
+      if (running.get() == run)
+         return;
+      if (run)
+         listen();
+      else
+         running.set(false);
+   }
+
+   protected void finalize() {
+      close();
+   }
+
+   private void listen() {
       if (running.get())
          return;
       initServer();
-      running.set(true);
       new Thread() {
          @Override
          public void run() {
@@ -88,11 +114,7 @@ public class TcpServer implements Closeable {
       }.start();
    }
 
-   protected void finalize() {
-      close();
-   }
-
-   private void initServer() {
+   private synchronized void initServer() {
       if (server != null)
          return;
       String address = this.address;
@@ -113,9 +135,10 @@ public class TcpServer implements Closeable {
          default:
             throw new RuntimeException("Invalid tcp server address "+this.address);
       }
+      running.set(true);
    }
 
-   private void close(Socket s) {
+   private synchronized void close(Socket s) {
       try {
          clients.remove(s).close();
          s.close();

@@ -39,7 +39,7 @@ import org.regadou.mime.HtmlHandler;
 import org.regadou.mime.ImageHandler;
 import org.regadou.mime.JsonHandler;
 import org.regadou.mime.RdfHandler;
-import org.regadou.util.StringInput;
+import org.regadou.system.StringInput;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 

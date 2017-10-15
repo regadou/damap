@@ -9,10 +9,10 @@ import org.regadou.action.FieldAction;
 import org.regadou.action.MethodAction;
 import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
-import org.regadou.damai.Reference;
+import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
-import org.regadou.reference.GenericReference;
+import org.regadou.resource.GenericResource;
 
 public class NoSchemeResourceFactory implements ResourceFactory {
 
@@ -29,8 +29,11 @@ public class NoSchemeResourceFactory implements ResourceFactory {
    }
 
    @Override
-   public Reference getResource(String id) {
-      try { return new GenericReference(id, Class.forName(id), true); }
+   public Resource getResource(String id) {
+      try {
+         Class type = Class.forName(id);
+         return new GenericResource(id, type, type.getPackage(), true, configuration);
+      }
       catch (ClassNotFoundException e) {
          int last = id.lastIndexOf('.');
          if (last > 0) {
@@ -70,7 +73,7 @@ public class NoSchemeResourceFactory implements ResourceFactory {
       return false;
    }
 
-   private Reference getMember(Class type, String name) {
+   private Resource getMember(Class type, String name) {
       Action member = null;
       int index = name.indexOf('(');
       if (index > 0) {
@@ -105,6 +108,6 @@ public class NoSchemeResourceFactory implements ResourceFactory {
             catch (NoSuchMethodException e) {}
          }
       }
-      return (member == null) ? null : new GenericReference(member.getName(), member, true);
+      return (member == null) ? null : new GenericResource(member.getName(), member, type, true, configuration);
    }
 }

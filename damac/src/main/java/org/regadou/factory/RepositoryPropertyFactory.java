@@ -22,13 +22,20 @@ public class RepositoryPropertyFactory implements PropertyFactory<Repository> {
 
    @Override
    public Property addProperty(Repository repo, String name, Object value) {
-      //TODO: create a new property item
-      return null;
+      try {
+         repo.createItem(name, value);
+         return new GenericProperty(repo, name, new RepositoryItem(name, repo), true);
+      }
+      catch (IllegalArgumentException e) {
+         //TODO: log the exception somehow
+         return null;
+      }
    }
 
    @Override
    public boolean removeProperty(Repository repo, String name) {
-      //TODO: can we remove an item from a repository ?
+      //TODO: we could have a removeItem() method in the repository interface
+      //      but I find it dangerous to easily loose persisted data
       return false;
    }
 }

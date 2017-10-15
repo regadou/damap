@@ -9,14 +9,13 @@ import javax.script.SimpleBindings;
 import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.Reference;
-import org.regadou.property.ScriptContextProperty;
 
 public class ScriptContextPropertyFactory implements PropertyFactory<ScriptContext> {
 
    @Override
    public Property getProperty(ScriptContext cx, String name) {
       int scope = cx.getAttributesScope(name);
-      return (scope < 0) ? null : new ScriptContextProperty(cx, name, scope);
+      return (scope < 0) ? null : getContextProperty(cx, name, scope);
    }
 
    @Override
@@ -51,7 +50,7 @@ public class ScriptContextPropertyFactory implements PropertyFactory<ScriptConte
          }
          scope = scopes.get(0);
          cx.setAttribute(name, value, scope);
-         return new ScriptContextProperty(cx, name, scope);
+         return getContextProperty(cx, name, scope);
       }
       return null;
    }
@@ -64,5 +63,44 @@ public class ScriptContextPropertyFactory implements PropertyFactory<ScriptConte
          return cx.getAttributesScope(name) != scope;
       }
       return false;
+   }
+
+   private Property getContextProperty(ScriptContext cx, String name, int scope) {
+      return new Property<ScriptContext,Object>() {
+
+         @Override
+         public String toString() {
+            return name;
+         }
+         @Override
+         public ScriptContext getOwner() {
+            return cx;
+         }
+
+         @Override
+         public Class<ScriptContext> getOwnerType() {
+            return ScriptContext.class;
+         }
+
+         @Override
+         public String getId() {
+            return name;
+         }
+
+         @Override
+         public Class<Object> getType() {
+            return Object.class;
+         }
+
+         @Override
+         public Object getValue() {
+            return cx.getAttribute(name, scope);
+         }
+
+         @Override
+         public void setValue(Object value) {
+            cx.setAttribute(name, value, scope);
+         }
+      };
    }
 }

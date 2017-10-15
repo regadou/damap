@@ -8,11 +8,12 @@ import java.util.Map;
 import java.util.TreeMap;
 import javax.inject.Inject;
 import org.regadou.damai.Configuration;
-import org.regadou.damai.Reference;
+import org.regadou.damai.Repository;
+import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceFactory;
 import org.regadou.damai.ResourceManager;
-import org.regadou.reference.GenericReference;
 import org.regadou.repository.JdbcConnectionInfo;
+import org.regadou.resource.GenericResource;
 import org.regadou.system.TcpServer;
 
 public class ServerResourceFactory implements ResourceFactory {
@@ -43,13 +44,15 @@ public class ServerResourceFactory implements ResourceFactory {
    }
 
    @Override
-   public Reference getResource(String id) {
+   public Resource getResource(String id) {
       switch(id.substring(0, id.indexOf(':'))) {
          case "jdbc":
             JdbcConnectionInfo info = new JdbcConnectionInfo(id, vendorMap);
-            return new GenericReference(info.getUrl(), new JdbcRepository(info, configuration), true);
+            Repository repo = new JdbcRepository(info, configuration);
+            return new GenericResource(info.getUrl(), repo, null, true, configuration);
          case "tcp":
-            return new GenericReference(id, new TcpServer(id, configuration.getEngineManager(), configuration.getContextFactory()), true);
+            TcpServer server = new TcpServer(id, configuration.getEngineManager(), configuration.getContextFactory());
+            return new GenericResource(id, server, null, true, configuration);
       }
       return null;
    }

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.sql.Date;
@@ -19,7 +20,6 @@ import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Statement;
-import org.eclipse.rdf4j.model.URI;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.RDFParser;
@@ -45,7 +45,7 @@ import org.regadou.number.Time;
 import org.regadou.reference.GenericReference;
 import org.regadou.repository.RdfRepository;
 import org.regadou.resource.DefaultNamespace;
-import org.regadou.resource.DefaultResource;
+import org.regadou.resource.MapResource;
 
 public class RdfHandler implements MimeHandler {
 
@@ -74,6 +74,7 @@ public class RdfHandler implements MimeHandler {
          {Class.class, "rdfs:Datatype"},
          {Class.class, "rdfs:Class"},
          {Property.class, "rdf:Property"},
+         {Property.class, "rdf:Statement"},
          {List.class, "rdf:List"},
          {List.class, "rdf:Seq"},
          {Set.class, "rdf:Bag"},
@@ -91,8 +92,8 @@ public class RdfHandler implements MimeHandler {
          {Date.class, "xsd:date"},
          {Time.class, "xsd:time"},
          {File.class, "xsd:anyURI"},
-         {java.net.URI.class, "xsd:anyURI"},
-         {URL.class, "xsd:anyURI"}
+         {URL.class, "xsd:anyURI"},
+         {URI.class, "xsd:anyURI"}
       }) {
          JAVA_RDF_MAP.put((Class)mapping[0], mapping[1].toString());
          RDF_JAVA_MAP.put(mapping[1].toString(), (Class)mapping[0]);
@@ -189,8 +190,8 @@ public class RdfHandler implements MimeHandler {
             return createLiteralUri(iri.stringValue(), resourceManager, converter);
          id = iri.getLocalName();
       }
-      else if (v instanceof URI) {
-         URI uri = (URI)v;
+      else if (v instanceof org.eclipse.rdf4j.model.URI) {
+         org.eclipse.rdf4j.model.URI uri = (org.eclipse.rdf4j.model.URI)v;
          ns = getNamespace(uri.getNamespace(), resourceManager);
          if (ns == null)
             return createLiteralUri(uri.stringValue(), resourceManager, converter);
@@ -199,17 +200,14 @@ public class RdfHandler implements MimeHandler {
       else
          throw new RuntimeException("Unknown value type: "+v.getClass().getName());
 
-      Repository repo = ns.getRepository();
-      Object obj = repo.getOne(ns.getPrefix(), id);
-      if (obj == null) {
-         Resource r = new DefaultResource(id, ns, resourceManager, converter);
+      Repository<Resource> repo = ns.getRepository();
+      Resource r = repo.getOne(ns.getPrefix(), id);
+      if (r == null) {
+         r = new MapResource(id, ns, resourceManager, converter);
          repo.add(ns.getPrefix(), r);
          return r;
       }
-      else if (obj instanceof Resource)
-         return (Resource)obj;
-      else
-         throw new RuntimeException("Unexpected resource type: "+obj.getClass().getName());
+      return r;
    }
 
    private Namespace getNamespace(String uri, ResourceManager resourceManager) {

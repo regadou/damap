@@ -11,16 +11,14 @@ import org.regadou.damai.Namespace;
 import org.regadou.damai.Repository;
 import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
-import org.regadou.factory.ResourcePropertyFactory;
 import org.regadou.collection.FilterableIterable;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
 import org.regadou.resource.DefaultNamespace;
-import org.regadou.resource.GenericResource;
 
 public class RdfRepository implements Repository<Resource> {
 
-   private static final Collection<String> PRIMARY_KEY = Arrays.asList(ResourcePropertyFactory.ID_PROPERTY);
+   private static final Collection<String> PRIMARY_KEY = Arrays.asList("@id");
 
    private transient ResourceManager resourceManager;
    private transient Configuration configuration;
@@ -167,8 +165,8 @@ public class RdfRepository implements Repository<Resource> {
 
    private Map<String,Resource> addItem(String item) {
       Map<String,Resource> map = new TreeMap<>();
-      Reference r = resourceManager.getResource(item+":");
-      map.put("", (r instanceof Resource) ? (Resource)r : new GenericResource(r.getId(), r, true, configuration));
+      Resource r = resourceManager.getResource(item+":");
+      map.put("", (Resource)r);
       resources.put(item, map);
       items.add(item);
       return map;
