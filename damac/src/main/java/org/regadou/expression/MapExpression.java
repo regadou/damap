@@ -37,7 +37,8 @@ public class MapExpression extends DefaultExpression {
    }
 
    private void addCondition(Object key, Object value) {
-      List<Reference> tokens = Arrays.asList(new GenericReference(null, Operator.EQUAL, true),
+      List<Reference> tokens = Arrays.asList(
+         new GenericReference(null, Operator.EQUAL, true),
          new ScriptContextResource(configuration, null, key.toString(), null),
          new GenericReference(null, value, true)
       );

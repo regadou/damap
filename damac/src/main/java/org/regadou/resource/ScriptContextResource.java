@@ -14,7 +14,6 @@ public class ScriptContextResource implements Resource {
    private ScriptContext cx;
    private String name;
    private Integer scope;
-   private PropertyFactory<ScriptContext> factory;
 
    public ScriptContextResource(Configuration configuration, ScriptContext cx, String name, Integer scope) {
       this.configuration = configuration;
@@ -68,19 +67,22 @@ public class ScriptContextResource implements Resource {
 
    @Override
    public Reference getProperty(String property) {
-      return getFactory().getProperty(getContext(), name);
+      return getFactory().getProperty(getContext(), property);
    }
 
    @Override
    public void setProperty(String property, Reference value) {
-      Property p = getFactory().getProperty(getContext(), name);
-      if (p != null)
-         p.setValue(value);
+      Property p = getFactory().getProperty(getContext(), property);
+      if (p != null) {
+         Object v = (value == null) ? null : value.getValue();
+         p.setValue(v);
+      }
    }
 
    @Override
    public boolean addProperty(String property, Reference value) {
-      Property p = getFactory().addProperty(getContext(), name, value);
+      Object v = (value == null) ? null : value.getValue();
+      Property p = getFactory().addProperty(getContext(), property, v);
       return p != null;
    }
 
@@ -89,8 +91,8 @@ public class ScriptContextResource implements Resource {
    }
 
    private PropertyFactory<ScriptContext> getFactory() {
-      if (factory == null)
-         factory = configuration.getPropertyManager().getPropertyFactory(ScriptContext.class);
-      return factory;
+      Object value = getValue();
+      Class type = (value == null) ? Void.class : value.getClass();
+      return configuration.getPropertyManager().getPropertyFactory(type);
    }
 }

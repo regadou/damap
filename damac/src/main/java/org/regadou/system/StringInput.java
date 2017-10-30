@@ -43,11 +43,13 @@ public class StringInput implements CharSequence {
 
    @Override
    public char charAt(int index) {
+      //TODO: we could be more intelligent and buffer the loading from the reader
       return toString().charAt(index);
    }
 
    @Override
    public CharSequence subSequence(int start, int end) {
+      //TODO: we could be more intelligent and buffer the loading from the reader
       return toString().subSequence(start, end);
    }
 }

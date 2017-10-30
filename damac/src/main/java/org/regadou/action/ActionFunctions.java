@@ -27,6 +27,7 @@ import org.regadou.damai.Expression;
 import org.regadou.damai.Filterable;
 import org.regadou.damai.Operator;
 import org.regadou.damai.Property;
+import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Reference;
 import org.regadou.expression.DefaultExpression;
@@ -297,7 +298,12 @@ public class ActionFunctions {
       }
       if (property instanceof Reference && ((Reference)property).getId() == null)
          return getProperty(value, ((Reference)property).getValue());
-      return propertyManager.getProperty(value, String.valueOf(property));
+      Property p = propertyManager.getProperty(value, String.valueOf(property));
+      if (p == null) {
+         PropertyFactory f = propertyManager.getPropertyFactory(value.getClass());
+         p = f.addProperty(value, String.valueOf(property), null);
+      }
+      return p;
    }
 
    private Reference getArrayProperty(Object value, Object property) {

@@ -18,7 +18,7 @@ public class MapPropertyFactory implements PropertyFactory<Map> {
 
    @Override
    public Property getProperty(Map map, String name) {
-      return new MapProperty(map, name);
+      return map.containsKey(name) ? new MapProperty(map, name) : null;
    }
 
    @Override

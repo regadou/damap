@@ -117,10 +117,8 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
    @Override
    public Reference getValue(ScriptContext context) {
       ScriptContext oldContext = configuration.getContextFactory().getScriptContext();
-      if (context == null) {
-         context = oldContext;
+      if (context == null || context == oldContext)
          oldContext = null;
-      }
       else
          configuration.getContextFactory().setScriptContext(context);
 
@@ -149,7 +147,7 @@ public class DefaultExpression extends CompiledScript implements Expression<Refe
                      Reference result = null;
                      for (Reference token : arguments) {
                         if (token instanceof Expression)
-                           result = toReference(((Expression)token).getValue(context));
+                           result = toReference(((Expression)token).getValue());
                         else
                            result = token;
                      }

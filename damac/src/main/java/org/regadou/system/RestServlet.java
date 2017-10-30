@@ -48,13 +48,13 @@ public class RestServlet implements Servlet {
 
    private static final int NOT_FOUND = 404;
    private static final String DEFAULT_MIMETYPE = "text/html";
-   private static final Map COMMAND_MAPPING = new StaticMap(
-           "get",    Command.GET,
-           "put",    Command.SET,
-           "post",   Command.CREATE,
-           "patch",  Command.UPDATE,
-           "delete", Command.DESTROY
-   );
+   private static final Map COMMAND_MAPPING = new StaticMap(new Object[][]{
+      {"get",    Command.GET},
+      {"put",    Command.SET},
+      {"post",   Command.CREATE},
+      {"patch",  Command.UPDATE},
+      {"delete", Command.DESTROY}
+   });
 
    private ServletConfig servletConfig;
    private Configuration configuration;
@@ -183,7 +183,15 @@ public class RestServlet implements Servlet {
                mimetype = mimetype.split(";")[0].split(",")[0];
          }
          Command command = (Command)COMMAND_MAPPING.get(request.getMethod().toLowerCase());
-         Object data = command.isDataNeeded() ? new InputStreamReference(configuration.getHandlerFactory(), request.getInputStream(), mimetype, charset) : null;
+         Object data = null;
+         String url = request.getRequestURL().toString();
+         if (command.isDataNeeded()) {
+            String id = url;
+            String query = request.getQueryString();
+            if (query != null && !query.isEmpty())
+               id += "?" + query;
+            data = new InputStreamReference(id, request.getInputStream(), mimetype, charset, configuration.getHandlerFactory());
+         }
          Object value = new PathExpression(configuration, keywords, command, request.getPathInfo(), data).getValue(cx);
          if (value == null || (command == Command.DESTROY && value.equals(Boolean.FALSE)))
             response.setStatus(NOT_FOUND);
@@ -198,7 +206,7 @@ public class RestServlet implements Servlet {
             return;
          }
          else if (handler instanceof HtmlHandler)
-            value = new HtmlHandler.Link(request.getRequestURL().toString(), value);
+            value = new HtmlHandler.Link(url, value);
          handler.save(response.getOutputStream(), charset, value);
       }
       finally { factory.setScriptContext(null); }

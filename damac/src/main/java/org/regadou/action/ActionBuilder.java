@@ -1,6 +1,5 @@
 package org.regadou.action;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import org.regadou.damai.Action;
@@ -9,6 +8,8 @@ import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
 
 public class ActionBuilder {
+
+   private static final String CASE_CONFLICT_ERROR = "Conflicting configuration: both upper case and lower case have been set";
 
    private Configuration configuration;
    private boolean wantOperators;
@@ -133,7 +134,7 @@ public class ActionBuilder {
 
    public List<Action> buildAll() {
       if (wantLowerCase && wantUpperCase)
-         throw new RuntimeException("Conflicting configuration: both upper case and lower case have been set");
+         throw new RuntimeException(CASE_CONFLICT_ERROR);
       List<Action> actions = new ArrayList<>();
       if (wantOperators) {
          for (Operator op : Operator.values())
@@ -155,8 +156,11 @@ public class ActionBuilder {
          Operator op = (Operator)parent;
          if (wantSymbols)
             name = ActionFunctions.getSymbol(op, wantStandard);
-         else if (wantLowerCase)
+         else if (wantLowerCase) {
+            if (wantUpperCase)
+               throw new RuntimeException(CASE_CONFLICT_ERROR);
             name = parent.getName().toLowerCase();
+         }
          else if (wantUpperCase)
             name = parent.getName().toUpperCase();
          else

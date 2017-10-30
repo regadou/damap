@@ -26,6 +26,10 @@ xsd:time a rdfs:Datatype ;
    rdfs:label "heure"@fr ;
    rdfs:label "time"@en .
 
+xsd:duration a rdfs:Datatype ;
+   rdfs:label "dur\u00e9e"@fr ;
+   rdfs:label "duration"@en .
+
 xsd:double a rdfs:Datatype ;
    rdfs:label "r\u00e9el double"@fr ;
    rdfs:label "double real"@en .

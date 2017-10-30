@@ -10,15 +10,15 @@ import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 import org.regadou.reference.GenericReference;
 
-public class MapResource implements Resource<Map<String,CollectionResource>> {
+public class RdfResource implements Resource {
 
    private String localName;
    private Namespace namespace;
-   private Map<String,CollectionResource> properties = new LinkedHashMap<>();
+   private Map<String,RdfCollection> properties = new LinkedHashMap<>();
    protected transient ResourceManager resourceManager;
    protected transient Converter converter;
 
-   public MapResource(String localName, Namespace namespace, ResourceManager resourceManager, Converter converter) {
+   public RdfResource(String localName, Namespace namespace, ResourceManager resourceManager, Converter converter) {
       this.localName = localName;
       this.namespace = namespace;
       this.resourceManager = resourceManager;
@@ -62,13 +62,14 @@ public class MapResource implements Resource<Map<String,CollectionResource>> {
    }
 
    @Override
-   public Map<String,CollectionResource> getValue() {
+   public Object getValue() {
+      Class type = getType();
       return properties;
    }
 
    @Override
    public Class getType() {
-      CollectionResource values = properties.get("rdf:type");
+      RdfCollection values = properties.get("rdf:type");
       if (values != null && !values.isEmpty()) {
          for (Reference r : values) {
             Class type = findJavaType(r.getId());
@@ -80,7 +81,7 @@ public class MapResource implements Resource<Map<String,CollectionResource>> {
    }
 
    @Override
-   public void setValue(Map<String,CollectionResource> value) {
+   public void setValue(Object value) {
 //TODO: we need the algoritm to transform a java instance into a rdf resource
 //      properties = value;
    }
@@ -106,7 +107,7 @@ public class MapResource implements Resource<Map<String,CollectionResource>> {
 
    @Override
    public Reference getProperty(String property) {
-      CollectionResource values = properties.get(property);
+      RdfCollection values = properties.get(property);
       if (values != null) {
          switch (values.size()) {
             case 0:
@@ -125,15 +126,15 @@ public class MapResource implements Resource<Map<String,CollectionResource>> {
       if (value == null)
          properties.remove(property);
       else
-         properties.put(property, new CollectionResource(resourceManager, value));
+         properties.put(property, new RdfCollection(resourceManager, value));
    }
 
    @Override
    public boolean addProperty(String property, Reference value) {
       if (value != null) {
-         CollectionResource values = properties.get(property);
+         RdfCollection values = properties.get(property);
          if (values == null)
-            properties.put(property, new CollectionResource(resourceManager, value));
+            properties.put(property, new RdfCollection(resourceManager, value));
          else
             values.add(value);
       }

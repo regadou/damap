@@ -93,13 +93,11 @@ public class PrecedenceExpression extends DefaultExpression {
 
    @Override
    public Reference getValue(ScriptContext context) {
-      ScriptContext oldContext;
-      if (context == null)
+      ScriptContext oldContext = configuration.getContextFactory().getScriptContext();
+      if (context == null || context == oldContext)
          oldContext = null;
-      else {
-         oldContext = configuration.getContextFactory().getScriptContext();
+      else
          configuration.getContextFactory().setScriptContext(context);
-      }
 
       try {
          if (action != null)

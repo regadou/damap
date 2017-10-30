@@ -10,6 +10,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -45,7 +46,7 @@ import org.regadou.number.Time;
 import org.regadou.reference.GenericReference;
 import org.regadou.repository.RdfRepository;
 import org.regadou.resource.DefaultNamespace;
-import org.regadou.resource.MapResource;
+import org.regadou.resource.RdfResource;
 
 public class RdfHandler implements MimeHandler {
 
@@ -91,6 +92,7 @@ public class RdfHandler implements MimeHandler {
          {Timestamp.class, "xsd:dateTime"},
          {Date.class, "xsd:date"},
          {Time.class, "xsd:time"},
+         {Duration.class, "xsd:duration"},
          {File.class, "xsd:anyURI"},
          {URL.class, "xsd:anyURI"},
          {URI.class, "xsd:anyURI"}
@@ -203,7 +205,7 @@ public class RdfHandler implements MimeHandler {
       Repository<Resource> repo = ns.getRepository();
       Resource r = repo.getOne(ns.getPrefix(), id);
       if (r == null) {
-         r = new MapResource(id, ns, resourceManager, converter);
+         r = new RdfResource(id, ns, resourceManager, converter);
          repo.add(ns.getPrefix(), r);
          return r;
       }
@@ -315,6 +317,8 @@ public class RdfHandler implements MimeHandler {
             return new Date(lit.calendarValue().toGregorianCalendar().getTime().getTime());
          case "xsd:time":
             return new Time(lit.calendarValue().toGregorianCalendar());
+         case "xsd:duration":
+            return Duration.parse(lit.getLabel());
          case "xsd:string":
          default:
             return lit.getLabel();

@@ -8,22 +8,24 @@ import org.regadou.damai.Reference;
 
 public class InputStreamReference implements Reference {
 
-   private MimeHandlerFactory handlerFactory;
+   private String id;
    private InputStream inputStream;
    private String mimetype;
    private String charset;
    private Object value;
+   private MimeHandlerFactory handlerFactory;
 
-   public InputStreamReference(MimeHandlerFactory handlerFactory, InputStream inputStream, String mimetype, String charset) {
-      this.handlerFactory = handlerFactory;
+   public InputStreamReference(String id, InputStream inputStream, String mimetype, String charset, MimeHandlerFactory handlerFactory) {
+      this.id = id;
       this.inputStream = inputStream;
       this.mimetype = mimetype;
       this.charset = charset;
+      this.handlerFactory = handlerFactory;
    }
 
    @Override
    public String getId() {
-      return null;
+      return id;
    }
 
    @Override
@@ -46,8 +48,6 @@ public class InputStreamReference implements Reference {
    }
 
    @Override
-   public void setValue(Object value) {
-      this.value = value;
-   }
+   public void setValue(Object value) {}
 
 }

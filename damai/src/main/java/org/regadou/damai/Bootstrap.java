@@ -20,6 +20,10 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -374,6 +378,9 @@ public class Bootstrap implements Configuration, Converter {
          return (T)convert((value == null) ? "0" : value.toString(), PRIMITIVES_MAP.get(type));
       if (type.isArray())
          return (T)toArray(value, type.getComponentType());
+      Object timeValue = getTemporalValue(type, value);
+      if (timeValue != null)
+         return (T)timeValue;
       for (Constructor c : type.getConstructors()) {
          try {
             Class[] params = c.getParameterTypes();
@@ -697,4 +704,19 @@ public class Bootstrap implements Configuration, Converter {
       else
          map.put(map.size(), value);
    }
+
+   private Object getTemporalValue(Class type, Object value) {
+      for (Class t : TIME_TYPES) {
+         if (t.isAssignableFrom(type)) {
+            if (type.isInstance(value))
+               return value;
+            //TODO: convert to type with CharSequence parsint of single arg constructor
+         }
+      }
+      return null;
+   }
+
+   private static final Class[] TIME_TYPES = new Class[]{
+      Date.class, Time.class, Timestamp.class, java.util.Date.class, Duration.class
+   };
 }

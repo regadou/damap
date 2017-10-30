@@ -95,6 +95,7 @@ public class Time extends Number {
    private Long end;
    private Long duration;
    private Measure measure;
+   private String label;
 
    public Time() {
       start = System.currentTimeMillis();
@@ -151,10 +152,9 @@ public class Time extends Number {
 
    @Override
    public String toString() {
-      if (measure == Measure.DURATION)
-         return duration+"ms";
-      else
-         return new Timestamp(start).toString();
+      if (label == null)
+         label = (measure == Measure.DURATION) ? duration+"ms" : new Timestamp(start).toString();
+      return label;
    }
 
    public Long getStart() {

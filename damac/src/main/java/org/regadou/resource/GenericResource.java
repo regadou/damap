@@ -1,7 +1,6 @@
 package org.regadou.resource;
 
 import org.regadou.damai.Configuration;
-import org.regadou.damai.Namespace;
 import org.regadou.damai.Property;
 import org.regadou.damai.Reference;
 import org.regadou.damai.Resource;

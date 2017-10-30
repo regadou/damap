@@ -33,7 +33,7 @@ public class DefaultResourceManager implements ResourceManager {
       registerFactory(new ServerResourceFactory(this, configuration));
       Repository repo = new RdfRepository(configuration, this);
       registerNamespace(new DefaultNamespace("_", LOCALHOST, repo));
-      //TODO: add other script schemes with a ScriptEngineResourceFactory
+      //TODO: add other script schemes (like javascript:) with a ScriptEngineResourceFactory
    }
 
    @Override

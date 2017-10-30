@@ -13,15 +13,20 @@ public class BeanPropertyFactory implements PropertyFactory {
    public Property getProperty(Object value, String name) {
       if (value == null)
          return null;
-      BeanMap map = (value instanceof BeanMap) ? (BeanMap)value : new BeanMap(value);
-      return map.containsKey(name) ? new MapProperty(map, name, map.getType(name)) : null;
+      Map map = (value instanceof Map) ? (Map)value : new BeanMap(value);
+      if (!map.containsKey(name))
+         return null;
+      else if (map instanceof BeanMap)
+         return new MapProperty(map, name, ((BeanMap)map).getType(name));
+      else
+         return new MapProperty(map, name);
    }
 
    @Override
    public String[] getProperties(Object value) {
       if (value == null)
          return new String[0];
-      Map map = new BeanMap(value);
+      Map map = (value instanceof Map) ? (Map)value : new BeanMap(value);
       String[] names = new String[map.size()];
       Iterator<String> it = map.keySet().iterator();
       for (int i = 0; it.hasNext(); i++)

@@ -9,12 +9,14 @@ import org.regadou.damai.Resource;
 import org.regadou.damai.ResourceManager;
 import org.regadou.reference.GenericReference;
 
-public class CollectionResource extends LinkedHashSet<Reference> implements Resource {
+public class RdfCollection extends LinkedHashSet<Reference> implements Resource<Collection<Reference>> {
 
+   private static final String[] PROPERTIES = "rdf:type,size".split(",");
+   
    private String id;
    private Namespace namespace;
 
-   public CollectionResource(ResourceManager resourceManager, Reference...values) {
+   public RdfCollection(ResourceManager resourceManager, Reference...values) {
       super();
       for (Reference r : values)
          add(r);
@@ -43,8 +45,8 @@ public class CollectionResource extends LinkedHashSet<Reference> implements Reso
    }
 
    @Override
-   public Collection<Resource> getValue() {
-      return Arrays.asList(toArray(new Resource[size()]));
+   public Collection<Reference> getValue() {
+      return Arrays.asList(toArray(new Reference[size()]));
    }
 
    @Override
@@ -53,7 +55,10 @@ public class CollectionResource extends LinkedHashSet<Reference> implements Reso
    }
 
    @Override
-   public void setValue(Object value) { }
+   public void setValue(Collection<Reference> value) {
+      clear();
+      addAll(value);
+   }
 
    @Override
    public String getLocalName() {
@@ -67,7 +72,7 @@ public class CollectionResource extends LinkedHashSet<Reference> implements Reso
 
    @Override
    public String[] getProperties() {
-      return "rdf:type,size".split(",");
+      return PROPERTIES;
    }
 
    @Override
@@ -94,8 +99,10 @@ public class CollectionResource extends LinkedHashSet<Reference> implements Reso
    @Override
    public void setProperty(String property, Reference value) {
       clear();
-      //TODO: detect Collection or array to do addAll() instead
-      add(value);
+      if (value instanceof RdfCollection)
+         addAll(((RdfCollection)value).getValue());
+      else
+         add(value);
    }
 
    @Override

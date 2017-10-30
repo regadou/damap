@@ -70,7 +70,7 @@ public class PathExpression implements Expression<Reference> {
    @Override
    public Reference getValue(ScriptContext context) {
       ScriptContext oldContext = configuration.getContextFactory().getScriptContext();
-      if (context == null)
+      if (context == null || context == oldContext)
          oldContext = null;
       else
          configuration.getContextFactory().setScriptContext(context);

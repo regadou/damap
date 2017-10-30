@@ -1,6 +1,7 @@
 package org.regadou.factory;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Date;
 import javax.activation.FileTypeMap;
 import org.regadou.damai.Property;
@@ -22,7 +23,9 @@ public class FilePropertyFactory implements PropertyFactory<File> {
 
    @Override
    public Property getProperty(File file, String name) {
-      return new GenericProperty(file, name, getValue(file, name), true);
+      if (Arrays.asList(PROPERTIES).contains(name))
+         return new GenericProperty(file, name, getValue(file, name), true);
+      return null;
    }
 
    @Override

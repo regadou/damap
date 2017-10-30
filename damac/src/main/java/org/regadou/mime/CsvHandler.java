@@ -7,17 +7,31 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import org.regadou.collection.StaticMap;
 import org.regadou.damai.Converter;
 import org.regadou.damai.MimeHandler;
+import org.regadou.number.Complex;
+import org.regadou.number.Probability;
 
 public class CsvHandler implements MimeHandler {
 
-   private static final String[] mimetypes = new String[]{"text/csv"};
-   private final char[] splitters = new char[]{',', ';', '\t'};
+   private static final String[] MIMETYPES = new String[]{"text/csv"};
+   private static final char[] SPLITTERS = new char[]{',', ';', '\t'};
+
+   private static class ParsingStatus {
+      private String[] fields;
+      private char separator;
+      int lineno;
+   }
+
    private Converter converter;
 
    public CsvHandler(Converter converter) {
@@ -26,18 +40,23 @@ public class CsvHandler implements MimeHandler {
 
    @Override
    public String[] getMimetypes() {
-      return mimetypes;
+      return MIMETYPES;
    }
 
    @Override
    public Object load(InputStream input, String charset) throws IOException {
-      List<Object[]> lines = new ArrayList<>();
+      //TODO: must implement a Collection that is linked to a BufferedReader to load its elelments
+      Collection rows = new ArrayList();
       BufferedReader reader = new BufferedReader(new InputStreamReader(input, charset));
+      ParsingStatus status = new ParsingStatus();
       String  line;
-      char[] separator = new char[1];
-      while ((line = reader.readLine()) != null)
-         lines.add(getLineColumns(line, separator));
-      return lines.toArray(new Object[lines.size()][]);
+      while ((line = reader.readLine()) != null) {
+         status.lineno++;
+         Object row = getLineColumns(line, status);
+         if (row != null)
+            rows.add(row);
+      }
+      return rows;
    }
 
    @Override
@@ -46,60 +65,91 @@ public class CsvHandler implements MimeHandler {
       output.flush();
    }
 
-   private Object[] getLineColumns(String line,  char[] separator) {
+   private Object getLineColumns(String line, ParsingStatus status) {
       if (line == null)
-         return new Object[0];
+         return null;
       line = line.trim();
-      if (line.equals(""))
-         return new Object[0];
+      if (line.isEmpty())
+         return null;
 
       char[] chars = line.toCharArray();
       List cells = new ArrayList();
       char instr = 0;
-      int start = 0;
+      StringBuilder buffer = null;
 
       for (int i = 0; i < chars.length; i++) {
          char c = chars[i];
          if (instr > 0) {
-            if (c == instr)
+            buffer.append(c);
+            if (c == instr) {
+               i++;
+               c = chars[i];
+               if (i < chars.length && c == instr)
+                  continue;
                instr = 0;
-            continue;
+            }
+            else
+               continue;
          }
 
          switch (c) {
             case '"':
             case '\'':
+               if (buffer == null)
+                  buffer = new StringBuilder();
+               else if (!buffer.toString().trim().isEmpty()) {
+                  buffer.append(c);
+                  continue;
+               }
+               buffer.append(c);
                instr = c;
                break;
             case ',':
             case ';':
             case '\t':
-               if (separator[0] == 0)
-                  separator[0] = c;
-               else if (separator[0] != c)
-                  continue;
-               addCell(cells, chars, start, i);
+               if (status.separator == 0 || status.separator == c) {
+                  status.separator = c;
+                  addCell(cells, (buffer == null) ? "" : buffer.toString(), status);
+                  break;
+               }
+            default:
+               if (buffer == null)
+                  buffer = new StringBuilder();
+               buffer.append(c);
          }
       }
 
-      if (start >= 0)
-         addCell(cells, chars, start, chars.length);
-      return cells.toArray();
+      if (instr > 0)
+         throw new RuntimeException("Missing closing quote at line "+status.lineno+": "+instr);
+      if (buffer != null)
+         addCell(cells, buffer.toString(), status);
+
+      if (status.fields == null) {
+         for (Object cell : cells) {
+            if (cell instanceof String && !cell.toString().trim().isEmpty())
+                  continue;
+            status.fields = new String[0];
+            return cells;
+         }
+         status.fields = (String[])cells.toArray(new String[cells.size()]);
+         return null;
+      }
+      else if (status.fields.length == 0)
+         return cells;
+      else
+         return new StaticMap(status.fields, cells.toArray());
    }
 
-   private void addCell(List cells, char[] chars, int start, int end) {
-      String txt = new String(chars,start,end-start).trim();
-      Object value;
-      if (txt.equals(""))
-         value = txt;
-      else if (txt.startsWith("'") || txt.startsWith("\"")) {
-         if (txt.charAt(0) == txt.charAt(txt.length()-1))
-            value = txt.substring(1,txt.length()-1);
+   private void addCell(List cells, String txt, ParsingStatus status) {
+      txt = txt.trim();
+      Object value = txt;
+      if (!txt.isEmpty()) {
+         char first = txt.charAt(0);
+         if ((first == '"' || first == '\''))
+            value = txt.substring(1, txt.length()-1);
          else
-            value = txt.substring(1);
+            value = getValue(txt);
       }
-      else
-         value = txt;
       cells.add(value);
    }
 
@@ -192,7 +242,7 @@ public class CsvHandler implements MimeHandler {
          for (Object cell : row) {
             if (sep == null) {
                if (splitter[0] == 0)
-                  splitter[0] = splitters[0];
+                  splitter[0] = SPLITTERS[0];
                sep = splitter[0] + "";
             }
             else
@@ -213,7 +263,7 @@ public class CsvHandler implements MimeHandler {
       if (splitter[0] != 0)
          return txt.split(splitter[0]+"");
       String[] parts = null;
-      for (char c : splitters) {
+      for (char c : SPLITTERS) {
          String[] p = txt.split(c+"");
          if (parts == null || p.length > parts.length) {
             parts = p;
@@ -248,4 +298,101 @@ public class CsvHandler implements MimeHandler {
       else
          return obj.toString();
    }
+
+   private Object getValue(String txt) {
+      if (txt.equals("true"))
+         return Boolean.TRUE;
+      if (txt.equals("false"))
+         return Boolean.FALSE;
+      try {
+         if (txt.endsWith("%"))
+            return new Probability(txt);
+         if (txt.indexOf('I') >= 0 || txt.indexOf('i') >= 0)
+            return new Complex(txt);
+         if (txt.indexOf('.') >= 0 || txt.indexOf('E') >= 0 || txt.indexOf('e') >= 0)
+            return new Double(txt);
+         if (txt.startsWith("0x"))
+            return Long.parseLong(txt.substring(2), 16);
+         return new Long(txt);
+      }
+      catch (NumberFormatException e) {
+         Object t = parseTime(txt);
+         return (t == null) ? txt : t;
+      }
+   }
+
+   private Object parseTime(String txt) {
+      int[] parts = new int[]{0, 0, 0, 0, 0, 0};
+      int date = 0, time = 0;
+      for (String part : txt.toLowerCase().replace('"', ' ').split(" ")) {
+         if (part.isEmpty())
+            continue;
+         int m = MONTHS.indexOf(part);
+         if (m >= 0) {
+            parts[MONTH] = m%12+1;
+            date++;
+         }
+         else if (part.contains("-")) {
+            String[] subparts = part.split("-");
+            switch (subparts.length) {
+               default:
+                  continue;
+               case 3:
+                  parts[DAY] = new Float(subparts[2]).intValue();
+               case 2:
+                  parts[MONTH] = new Float(subparts[1]).intValue();
+               case 1:
+                  parts[YEAR] = new Float(subparts[0]).intValue();
+            }
+            date += subparts.length;
+         }
+         else if (part.contains(":")) {
+            String[] subparts = part.split(":");
+            switch (subparts.length) {
+               default:
+                  continue;
+               case 3:
+                  parts[SECOND] = new Float(subparts[2]).intValue();
+               case 2:
+                  parts[MINUTE] = new Float(subparts[1]).intValue();
+               case 1:
+                  parts[HOUR] = new Float(subparts[0]).intValue();
+            }
+            time += subparts.length;
+         }
+         else if (part.equals("pm") && parts[HOUR] < 12)
+            parts[HOUR] += 12;
+         else if (part.equals("am") && parts[HOUR] > 11)
+            parts[HOUR] -= 12;
+         else {
+            try {
+               int n = Integer.parseInt(part);
+               if (n > 200)
+                  parts[YEAR] = n;
+               else if (n > 31)
+                  parts[YEAR] = n+1900;
+               else if (n > 0)
+                  parts[DAY] = n;
+               else
+                  continue;
+               date++;
+            }
+            catch (NumberFormatException e) {}
+         }
+      }
+
+      if (date == 0) {
+         if (time == 0)
+            return null;
+         return new Time(parts[HOUR], parts[MINUTE], parts[SECOND]);
+      }
+      else if (time == 0)
+         return new Date(parts[YEAR], parts[MONTH], parts[DAY]);
+      return new Timestamp(parts[YEAR], parts[MONTH], parts[DAY], parts[HOUR], parts[MINUTE], parts[SECOND], 0);
+   }
+
+   private static final int YEAR=0, MONTH=1, DAY=2, HOUR=3, MINUTE=4, SECOND=5;
+   private static final List<String> MONTHS = Arrays.asList(
+       "jan,feb,mar,apr,may,jun,jul,aug,sep,oct,nov,dec,jan,fev,mar,avr,mai,jun,jui,aou,sep,oct,nov,dec".split(",")
+   );
 }
