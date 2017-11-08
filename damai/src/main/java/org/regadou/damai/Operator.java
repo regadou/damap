@@ -2,7 +2,7 @@ package org.regadou.damai;
 
 import java.util.Collection;
 
-public enum Operator implements Action {
+public enum Operator implements StandardAction {
 
    ADD, SUBTRACT, MULTIPLY, DIVIDE, MODULO, POWER, ROOT, LOGARITHM,
    LESS, LESSEQUAL, MORE, MOREQUAL, EQUAL, NOTEQUAL,
@@ -63,5 +63,48 @@ public enum Operator implements Action {
    @Override
    public Class[] getParameterTypes() {
       return PARAMETERS_TYPES;
+   }
+
+   @Override
+   public int getPrecedence() {
+      switch (this) {
+         case POWER: return 10;
+         case ROOT: return 9;
+         case LOGARITHM: return 8;
+         case MULTIPLY: return 7;
+         case DIVIDE: return 7;
+         case MODULO: return 7;
+         case ADD: return 6;
+         case SUBTRACT: return 6;
+         case NOT: return 5;
+         case FROM: return 4;
+         case TO: return 4;
+         case LESS: return 3;
+         case LESSEQUAL: return 3;
+         case MORE: return 3;
+         case MOREQUAL: return 3;
+         case EQUAL: return 3;
+         case NOTEQUAL: return 3;
+         case AND: return 2;
+         case OR: return 2;
+         case IN: return 1;
+         case CASE: return -1;
+         case WHILE: return -2;
+         case DO: return -3;
+         case HAVE: return -4;
+         case JOIN: return -5;
+         case IS: return -6;
+         default: throw new RuntimeException("Operator "+this+" has a programming problem");
+      }
+   }
+
+   @Override
+   public StandardAction getStandardAction() {
+      return this;
+   }
+
+   @Override
+   public boolean hasSideEffects() {
+      return false;
    }
 }

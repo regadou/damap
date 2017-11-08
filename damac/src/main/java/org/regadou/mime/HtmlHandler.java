@@ -32,7 +32,7 @@ public class HtmlHandler implements MimeHandler {
    private GenericComparator comparator;
 
    public HtmlHandler(Configuration configuration) {
-      comparator = new GenericComparator(configuration);
+      comparator = configuration.getInstance(GenericComparator.class);
    }
 
    @Override

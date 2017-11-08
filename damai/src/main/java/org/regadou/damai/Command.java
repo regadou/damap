@@ -1,6 +1,6 @@
 package org.regadou.damai;
 
-public enum Command implements Action {
+public enum Command implements StandardAction {
 
    // all commands take 2 parameters (path and data)
    // path is usually represented by an array of elements (string, number or expression)
@@ -34,10 +34,16 @@ public enum Command implements Action {
 
    @Override
    public Class[] getParameterTypes() {
-      return isDataNeeded() ? DOUBLE_PARAMETERS_TYPES : SINGLE_PARAMETERS_TYPES;
+      return (this == SET || this == CREATE || this == UPDATE) ? DOUBLE_PARAMETERS_TYPES : SINGLE_PARAMETERS_TYPES;
    }
 
-   public boolean isDataNeeded() {
-      return this == SET || this == CREATE || this == UPDATE;
+   @Override
+   public StandardAction getStandardAction() {
+      return this;
+   }
+
+   @Override
+   public boolean hasSideEffects() {
+      return this != GET;
    }
 }

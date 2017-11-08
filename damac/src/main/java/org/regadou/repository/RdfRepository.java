@@ -76,7 +76,7 @@ public class RdfRepository implements Repository<Resource> {
          return Collections.EMPTY_LIST;
       if (filter == null)
          return src.values();
-      return new FilterableIterable<>(configuration.getPropertyManager(), src.values()).filter(filter);
+      return new FilterableIterable<>(configuration, src.values()).filter(filter);
    }
 
    @Override

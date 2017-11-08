@@ -38,9 +38,6 @@ public class HttpScriptContext implements ScriptContext {
       this.request = request;
       this.response = response;
       Bindings bindings = configuration.getEngineManager().getBindings();
-      bindings.put("ENGINE_SCOPE", ENGINE_SCOPE);
-      bindings.put("SESSION_SCOPE", SESSION_SCOPE);
-      bindings.put("GLOBAL_SCOPE", GLOBAL_SCOPE);
       scopes.put(GLOBAL_SCOPE, bindings);
       if (request != null) {
          Map<String,Object> map = new MapAdapter<>(
@@ -49,7 +46,7 @@ public class HttpScriptContext implements ScriptContext {
                  request::setAttribute,
                  request::removeAttribute);
          bindings = new SimpleBindings(map);
-         bindings.put("request", request);
+         bindings.put("request", bindings);
          scopes.put(ENGINE_SCOPE, bindings);
 
          String username = request.getRemoteUser();
@@ -71,7 +68,9 @@ public class HttpScriptContext implements ScriptContext {
                  session::getAttribute,
                  session::setAttribute,
                  session::removeAttribute);
-         scopes.put(SESSION_SCOPE, new SimpleBindings(map));
+         bindings = new SimpleBindings(map);
+         bindings.put("session", bindings);
+         scopes.put(SESSION_SCOPE, bindings);
       }
       else
          scopes.put(ENGINE_SCOPE, new SimpleBindings());

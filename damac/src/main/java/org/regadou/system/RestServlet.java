@@ -86,7 +86,7 @@ public class RestServlet implements Servlet {
          configuration = new Bootstrap(properties.getProperty("configuration"));
       else
          configuration = new GuiceConfiguration();
-      comparator = new GenericComparator(configuration);
+      comparator = configuration.getInstance(GenericComparator.class);
       Bindings global = configuration.getGlobalScope();
       if (global == null) {
          global = new SimpleBindings(new MapAdapter<>(
@@ -185,7 +185,7 @@ public class RestServlet implements Servlet {
          Command command = (Command)COMMAND_MAPPING.get(request.getMethod().toLowerCase());
          Object data = null;
          String url = request.getRequestURL().toString();
-         if (command.isDataNeeded()) {
+         if (command.getParameterTypes().length > 1) {
             String id = url;
             String query = request.getQueryString();
             if (query != null && !query.isEmpty())

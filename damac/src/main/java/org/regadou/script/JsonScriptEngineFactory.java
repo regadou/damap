@@ -9,7 +9,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import org.regadou.action.ActionBuilder;
 import org.regadou.action.AllAction;
-import org.regadou.action.BinaryAction;
+import org.regadou.action.DefaultAction;
 import org.regadou.action.ErrorAction;
 import org.regadou.action.InputAction;
 import org.regadou.action.LinkAction;
@@ -98,7 +98,7 @@ public class JsonScriptEngineFactory implements ScriptEngineFactory {
                  .setWantOptimized(true)
                  .setWantSymbols(true)
                  .setWantStandard(true)
-                 .addActions(new BinaryAction(configuration, "=", Command.SET, null, -10),
+                 .addActions(new DefaultAction(configuration, "=", Command.SET, null, -10),
                              new AllAction(configuration, keywords, new ScriptContextMap(configuration.getContextFactory())))
                  .addActions(LinkAction.class, InputAction.class, OutputAction.class, ErrorAction.class)
                  .buildAll();

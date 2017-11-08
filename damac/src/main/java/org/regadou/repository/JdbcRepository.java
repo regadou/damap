@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.TreeSet;
 import java.util.function.Predicate;
-import org.regadou.action.BinaryAction;
+import org.regadou.action.DefaultAction;
 import org.regadou.collection.ArrayWrapper;
 import org.regadou.damai.Action;
 import org.regadou.damai.Expression;
@@ -35,6 +35,7 @@ import org.regadou.damai.Reference;
 import org.regadou.damai.Repository;
 import org.regadou.collection.PersistableMap;
 import org.regadou.damai.Configuration;
+import org.regadou.damai.StandardAction;
 import org.regadou.expression.SimpleExpression;
 import org.regadou.property.GenericProperty;
 
@@ -566,14 +567,10 @@ public class JdbcRepository implements Repository<Map>, Closeable {
    }
 
    private Operator getOperator(Action action) {
-      if (action instanceof Operator)
-         return (Operator)action;
-      else if (action instanceof BinaryAction) {
-         Action a = ((BinaryAction)action).getParentAction();
-         return (a instanceof Operator) ? (Operator)a : Operator.valueOf(a.getName().toUpperCase());
-      }
-      else
-         return Operator.valueOf(action.getName().toUpperCase());
+      StandardAction std = action.getStandardAction();
+      if (std instanceof Operator)
+         return (Operator)std;
+      throw new RuntimeException("Action "+std+" is not an operator");
    }
 
    private String printOperator(Operator op, Object value) {

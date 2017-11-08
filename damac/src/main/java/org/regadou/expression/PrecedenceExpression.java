@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.StringJoiner;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
-import org.regadou.action.ActionFunctions;
 import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
@@ -123,8 +122,8 @@ public class PrecedenceExpression extends DefaultExpression {
          if (action == null)
             action = atoken;
          else {
-            int oldprec = ActionFunctions.getPrecedence(action);
-            int newprec = ActionFunctions.getPrecedence(atoken);
+            int oldprec = action.getPrecedence();
+            int newprec = atoken.getPrecedence();
             if (newprec > oldprec)
                param2 = newExpression(atoken, param2);
             else {

@@ -1,6 +1,7 @@
 package org.regadou.action;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,105 +31,123 @@ import org.regadou.damai.Property;
 import org.regadou.damai.PropertyFactory;
 import org.regadou.damai.PropertyManager;
 import org.regadou.damai.Reference;
+import org.regadou.damai.StandardAction;
 import org.regadou.expression.DefaultExpression;
 import org.regadou.reference.GenericReference;
 
-public class ActionFunctions {
+public class DefaultAction implements Action {
 
+   private static final String FUNCTIONAL_METHOD_NAME = "apply";
    private static enum Type { COLLECTION, NUMERIC, ENTITY, STRING }
-   private static final BiFunction NOOP = (x, y) -> null;
-
-   private static ActionFunctions INSTANCE;
-
-   public static BiFunction getFunction(Action action, Configuration configuration) {
-      if (INSTANCE == null)
-         INSTANCE = new ActionFunctions(configuration);
-      return INSTANCE.getFunction(action);
-   }
-
-   public static int getPrecedence(Action action) {
-      if (action instanceof Operator) {
-         switch ((Operator)action) {
-            case POWER: return 10;
-            case ROOT: return 9;
-            case LOGARITHM: return 8;
-            case MULTIPLY: return 7;
-            case DIVIDE: return 7;
-            case MODULO: return 7;
-            case ADD: return 6;
-            case SUBTRACT: return 6;
-            case NOT: return 5;
-            case FROM: return 4;
-            case TO: return 4;
-            case LESS: return 3;
-            case LESSEQUAL: return 3;
-            case MORE: return 3;
-            case MOREQUAL: return 3;
-            case EQUAL: return 3;
-            case NOTEQUAL: return 3;
-            case AND: return 2;
-            case OR: return 2;
-            case IN: return 1;
-            case CASE: return -1;
-            case WHILE: return -2;
-            case DO: return -3;
-            case HAVE: return -4;
-            case JOIN: return -5;
-            case IS: return -6;
-            default: throw new RuntimeException("Unknown operator "+action);
-         }
-      }
-      else if (action instanceof BinaryAction)
-         return ((BinaryAction)action).getPrecedence();
-      else if (action instanceof OperatorAction)
-         return ((OperatorAction)action).getPrecedence();
-      else
-         return 0;
-   }
-
-   public static String getSymbol(Operator operator, boolean standard) {
-      switch (operator) {
-         case ADD: return "+";
-         case SUBTRACT: return "-";
-         case MULTIPLY: return "*";
-         case DIVIDE: return "/";
-         case MODULO: return "%";
-         case POWER: return "^";
-         case ROOT: return "\\/";
-         case LOGARITHM: return "\\";
-         case LESS: return "<";
-         case LESSEQUAL: return "<=";
-         case MORE: return ">";
-         case MOREQUAL: return ">=";
-         case EQUAL: return standard ? "==" : "=";
-         case NOTEQUAL: return "!=";
-         case AND: return standard ? "&&" : "&";
-         case OR: return standard ? "||" : "|";
-         case NOT: return "!";
-         case IN: return "@";
-         case FROM: return "<-";
-         case TO: return "->";
-         case IS: return "?:";
-         case DO: return "=>";
-         case HAVE: return ".";
-         case JOIN: return ",";
-         case CASE: return "?";
-         case WHILE: return "?*";
-         default: throw new RuntimeException("Unknown operator "+operator);
-      }
-   }
 
    private Configuration configuration;
    private GenericComparator comparator;
+   private String name;
+   private StandardAction standardAction;
+   private BiFunction function;
+   private Class returnType;
+   private Class[] parameterTypes;
+   private int precedence;
 
-   private ActionFunctions(Configuration configuration) {
-      this.configuration = configuration;
-      this.comparator = new GenericComparator(configuration);
+   public DefaultAction(Configuration configuration, String name, StandardAction standardAction) {
+      this(configuration, name, standardAction, null, null, null, null);
    }
 
-   private BiFunction getFunction(Action action) {
-      if (action instanceof Operator) {
-         switch ((Operator)action) {
+   public DefaultAction(Configuration configuration, String name, StandardAction standardAction, BiFunction function) {
+      this(configuration, name, standardAction, function, null, null, null);
+   }
+
+   public DefaultAction(Configuration configuration, String name, StandardAction standardAction, BiFunction function, Integer precedence) {
+      this(configuration, name, standardAction, function, precedence, null, null);
+   }
+
+   public DefaultAction(Configuration configuration, String name, StandardAction standardAction, BiFunction function, Integer precedence, Class returnType) {
+      this(configuration, name, standardAction, function, precedence, returnType, null);
+   }
+
+   public DefaultAction(Configuration configuration, String name, StandardAction standardAction, BiFunction function, Integer precedence, Class returnType, Class[] parameterTypes) {
+      this.configuration = configuration;
+      this.name = name;
+      this.standardAction = (standardAction == null) ? StandardAction.NOOP : standardAction;
+      this.function = (function == null) ? getFunction() : function;
+      this.precedence = (precedence == null) ? this.standardAction.getPrecedence() : precedence;
+      this.returnType = returnType;
+      this.parameterTypes = parameterTypes;
+      this.comparator = configuration.getInstance(GenericComparator.class);
+   }
+
+   @Override
+   public String toString() {
+      return getName();
+   }
+
+   @Override
+   public Object execute(Object... parameters) {
+      int length = getParameterTypes().length;
+      if (parameters == null)
+         parameters = new Object[2];
+      else if (parameters.length < length) {
+         Object[] old = parameters;
+         parameters = new Object[Math.max(length, 2)];
+         for (int p = 0; p < parameters.length; p++)
+            parameters[p] = (p < old.length) ? old[p] : null;
+      }
+      else if (parameters.length > length && standardAction instanceof Operator) {
+         Object result = parameters[0];
+         for (int p = 1; p < parameters.length; p++)
+            result = function.apply(result, parameters[p]);
+         return result;
+      }
+      return function.apply(parameters[0], parameters[1]);
+   }
+
+   @Override
+   public String getName() {
+      if (name == null) {
+         name = standardAction.getName();
+         if (name == null)
+            name = Action.super.getName();
+      }
+      return name;
+   }
+
+   @Override
+   public Class getReturnType() {
+      if (returnType == null)
+         findTypes();
+      return returnType;
+   }
+
+   @Override
+   public Class[] getParameterTypes() {
+      if (parameterTypes == null)
+         findTypes();
+      return parameterTypes;
+   }
+
+   @Override
+   public int getPrecedence() {
+      return precedence;
+   }
+
+   @Override
+   public StandardAction getStandardAction() {
+      return standardAction;
+   }
+
+   private void findTypes() {
+      for (Method method : function.getClass().getMethods()) {
+         if (FUNCTIONAL_METHOD_NAME.equals(method.getName())) {
+            returnType = method.getReturnType();
+            parameterTypes = method.getParameterTypes();
+            break;
+         }
+      }
+   }
+
+   private BiFunction getFunction() {
+      if (standardAction instanceof Operator) {
+         switch ((Operator)standardAction) {
             case EQUAL:
                return (p1, p2) -> comparator.compare(p1, p2) == 0;
             case NOTEQUAL:
@@ -186,9 +205,9 @@ public class ActionFunctions {
          }
 
       }
-      else if (action instanceof Command) {
+      else if (standardAction instanceof Command) {
          return (path, data) -> {
-            boolean isDestroy = action == Command.DESTROY;
+            boolean isDestroy = standardAction == Command.DESTROY;
             while (path instanceof Expression)
                path = ((Expression)path).getValue();
             Reference result;
@@ -222,7 +241,7 @@ public class ActionFunctions {
                }
             }
 
-            switch ((Command)action) {
+            switch ((Command)standardAction) {
                case SET:
                   return comparator.setValue(result, data);
                case GET:
@@ -234,12 +253,10 @@ public class ActionFunctions {
                case DESTROY:
                   return (last == null) ? false : comparator.removeValue(result, last);
                default:
-                  throw new RuntimeException("Unknown command "+action);
+                  throw new RuntimeException("Unknown command "+standardAction);
             }
          };
       }
-      else if (action instanceof BinaryAction)
-         return ((BinaryAction)action).getFunction();
       else
          return (p1, p2) -> {
             Object[] params;
@@ -249,7 +266,7 @@ public class ActionFunctions {
                params = new Object[]{p1};
             else
                params = new Object[]{p1, p2};
-            return action.execute(params);
+            return standardAction.execute(params);
          };
    }
 
@@ -276,28 +293,28 @@ public class ActionFunctions {
       if (property.getClass().isArray())
          return getArrayProperty(value, property);
 
-      PropertyManager propertyManager = configuration.getPropertyManager();
       if (property instanceof Expression) {
          Filterable filterable;
          boolean returnBoolean = false;
          if (value instanceof Filterable)
             filterable = (Filterable)value;
          else if (value instanceof Collection)
-            filterable = new FilterableIterable(propertyManager, (Collection)value);
+            filterable = new FilterableIterable(configuration, (Collection)value);
          else if (value == null) {
-            filterable = new FilterableIterable(propertyManager);
+            filterable = new FilterableIterable(configuration);
             returnBoolean = true;
          }
          else if (value.getClass().isArray())
-            filterable = new FilterableIterable(propertyManager, new ArrayWrapper(value));
+            filterable = new FilterableIterable(configuration, new ArrayWrapper(value));
          else
-            filterable = new FilterableIterable(propertyManager, value);
+            filterable = new FilterableIterable(configuration, value);
          Collection filtered = filterable.filter((Expression)property);
          Object result = returnBoolean ? !filtered.isEmpty() : filtered;
          return new GenericReference(null, result, true);
       }
       if (property instanceof Reference && ((Reference)property).getId() == null)
          return getProperty(value, ((Reference)property).getValue());
+      PropertyManager propertyManager = configuration.getPropertyManager();
       Property p = propertyManager.getProperty(value, String.valueOf(property));
       if (p == null) {
          PropertyFactory f = propertyManager.getPropertyFactory(value.getClass());

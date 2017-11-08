@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.script.ScriptContext;
-import org.regadou.action.BinaryAction;
+import org.regadou.action.DefaultAction;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Expression;
 import org.regadou.damai.Operator;
@@ -144,8 +144,8 @@ public class FileSystemRepository implements Repository<Url> {
       this.folder = file;
       this.configuration = configuration;
       this.factory = configuration.getPropertyManager().getPropertyFactory(File.class);
-      this.comparator = new GenericComparator(configuration);
-      this.equals = new BinaryAction(configuration, null, Operator.EQUAL);
+      this.comparator = configuration.getInstance(GenericComparator.class);
+      this.equals = new DefaultAction(configuration, null, Operator.EQUAL);
       getItems();
    }
 

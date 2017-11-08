@@ -1,6 +1,7 @@
 #!/bin/sh
 
 mvn clean || exit
+echo waiting 5 seconds ...
 sleep 5
 mvn install || exit
 cd damac

@@ -3,17 +3,17 @@ package org.regadou.action;
 import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
+import org.regadou.damai.StandardAction;
 
-public class OperatorAction implements Action {
+public class LogicalAction implements Action {
 
-   private Configuration configuration;
    private GenericComparator comparator;
    private Operator operator;
    private String name;
-   private Integer precedence;
+   private int precedence;
    private boolean stopValue;
 
-   public OperatorAction(Configuration configuration, Operator operator, String name, Integer precedence) {
+   public LogicalAction(Configuration configuration, Operator operator, String name, Integer precedence) {
       switch (operator) {
          case EQUAL:
             stopValue = false;
@@ -45,14 +45,13 @@ public class OperatorAction implements Action {
          case CASE:
             break;
          default:
-            throw new RuntimeException(operator+" is not an optimized operator");
+            throw new RuntimeException(operator+" is not a logical operator");
       }
 
-      this.configuration = configuration;
       this.operator = operator;
       this.name = name;
-      this.precedence = precedence;
-      this.comparator = new GenericComparator(configuration);
+      this.precedence = (precedence == null) ? operator.getPrecedence() : precedence;
+      this.comparator = configuration.getInstance(GenericComparator.class);
    }
 
    @Override
@@ -72,10 +71,14 @@ public class OperatorAction implements Action {
       return (operator == Operator.CASE) ? Object.class : Boolean.class;
    }
 
+   @Override
    public int getPrecedence() {
-      if (precedence == null)
-         precedence = ActionFunctions.getPrecedence(operator);
       return precedence;
+   }
+
+   @Override
+   public StandardAction getStandardAction() {
+      return operator;
    }
 
    @Override

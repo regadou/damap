@@ -55,7 +55,7 @@ public class DefaultMimeHandlerFactory implements MimeHandlerFactory {
    @Inject
    public DefaultMimeHandlerFactory(Configuration configuration) {
       this.configuration = configuration;
-      this.comparator = new GenericComparator(configuration);
+      this.comparator = configuration.getInstance(GenericComparator.class);
       Converter converter = configuration.getConverter();
       for (MimeHandler handler : createDefaultHandlers())
          registerHandler(handler);

@@ -41,7 +41,7 @@ public class LinkAction implements Action {
          ref = (Reference)variable;
       else {
          if (getter == null)
-            getter = new BinaryAction(configuration, null, Command.GET);
+            getter = new DefaultAction(configuration, null, Command.GET);
          Object result = getter.execute(variable);
          if (result instanceof Reference)
             ref = (Reference)variable;

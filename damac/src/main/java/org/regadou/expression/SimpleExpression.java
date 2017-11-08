@@ -8,6 +8,7 @@ import java.util.Map;
 import org.regadou.damai.Action;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Reference;
+import org.regadou.damai.StandardAction;
 import org.regadou.reference.GenericReference;
 
 public class SimpleExpression extends PrecedenceExpression {
@@ -21,7 +22,7 @@ public class SimpleExpression extends PrecedenceExpression {
    public SimpleExpression(Configuration configuration, Action action, Object param1, Object param2) {
       super(null, configuration);
       this.configuration = configuration;
-      addTokens((action == null) ? Action.NOOP : action, param1, param2);
+      addTokens((action == null) ? StandardAction.NOOP : action, param1, param2);
    }
 
    public SimpleExpression(Configuration configuration, String text, Map keywords) {

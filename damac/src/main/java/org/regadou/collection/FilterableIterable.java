@@ -10,6 +10,7 @@ import org.regadou.damai.Expression;
 import org.regadou.damai.Filterable;
 import org.regadou.damai.PropertyManager;
 import org.regadou.action.GenericComparator;
+import org.regadou.damai.Configuration;
 import org.regadou.script.PropertiesScriptContext;
 
 public class FilterableIterable<T> implements Iterable<T>, Filterable {
@@ -18,15 +19,14 @@ public class FilterableIterable<T> implements Iterable<T>, Filterable {
    private Collection<T> items;
    private GenericComparator comparator;
 
-   public FilterableIterable(PropertyManager manager, Collection<T> items) {
-      this.manager = manager;
-      this.items = items;
-      this.comparator = new GenericComparator(null);
+   public FilterableIterable(Configuration configuration, T...items) {
+      this(configuration, Arrays.asList(items));
    }
 
-   public FilterableIterable(PropertyManager manager, T...items) {
-      this.manager = manager;
-      this.items = Arrays.asList(items);
+   public FilterableIterable(Configuration configuration, Collection<T> items) {
+      this.manager = configuration.getPropertyManager();
+      this.items = items;
+      this.comparator = configuration.getInstance(GenericComparator.class);
    }
 
    @Override

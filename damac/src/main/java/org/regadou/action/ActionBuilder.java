@@ -6,10 +6,43 @@ import org.regadou.damai.Action;
 import org.regadou.damai.Command;
 import org.regadou.damai.Configuration;
 import org.regadou.damai.Operator;
+import org.regadou.damai.StandardAction;
 
 public class ActionBuilder {
 
    private static final String CASE_CONFLICT_ERROR = "Conflicting configuration: both upper case and lower case have been set";
+
+   public static String getSymbol(Operator operator, boolean standard) {
+      switch (operator) {
+         case ADD: return "+";
+         case SUBTRACT: return "-";
+         case MULTIPLY: return "*";
+         case DIVIDE: return "/";
+         case MODULO: return "%";
+         case POWER: return "^";
+         case ROOT: return "\\/";
+         case LOGARITHM: return "\\";
+         case LESS: return "<";
+         case LESSEQUAL: return "<=";
+         case MORE: return ">";
+         case MOREQUAL: return ">=";
+         case EQUAL: return standard ? "==" : "=";
+         case NOTEQUAL: return "!=";
+         case AND: return standard ? "&&" : "&";
+         case OR: return standard ? "||" : "|";
+         case NOT: return "!";
+         case IN: return "@";
+         case FROM: return "<-";
+         case TO: return "->";
+         case IS: return "?:";
+         case DO: return "=>";
+         case HAVE: return ".";
+         case JOIN: return ",";
+         case CASE: return "?";
+         case WHILE: return "?*";
+         default: throw new RuntimeException("Unknown operator "+operator);
+      }
+   }
 
    private Configuration configuration;
    private boolean wantOperators;
@@ -155,7 +188,7 @@ public class ActionBuilder {
       if (parent instanceof Operator) {
          Operator op = (Operator)parent;
          if (wantSymbols)
-            name = ActionFunctions.getSymbol(op, wantStandard);
+            name = getSymbol(op, wantStandard);
          else if (wantLowerCase) {
             if (wantUpperCase)
                throw new RuntimeException(CASE_CONFLICT_ERROR);
@@ -166,7 +199,7 @@ public class ActionBuilder {
          else
             name = parent.getName();
          if (wantOptimized) {
-            try { return new OperatorAction(configuration, op, name, precedence); }
+            try { return new LogicalAction(configuration, op, name, precedence); }
             catch (Exception e) {}
          }
       }
@@ -180,6 +213,6 @@ public class ActionBuilder {
       else
          return parent;
 
-      return new BinaryAction(configuration, name, parent, null, precedence);
+      return new DefaultAction(configuration, name, (StandardAction)parent, null, precedence);
    }
 }

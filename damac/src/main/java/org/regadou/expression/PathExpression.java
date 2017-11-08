@@ -34,7 +34,7 @@ public class PathExpression implements Expression<Reference> {
    public PathExpression(Configuration configuration, Map keywords, Command command, String path, Object data) {
       this.configuration = configuration;
       this.keywords = keywords;
-      this.comparator = new GenericComparator(configuration);
+      this.comparator = configuration.getInstance(GenericComparator.class);
       this.command = getAction(command);
       this.path = path;
       this.data = data;
